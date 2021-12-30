@@ -176,7 +176,12 @@ class Puzzle
     CellStatus newStatus;
     CellValue  newValue;
 
-    if (notesMode) {
+    if (symbol == VACANT) {
+      // This a delete of a symbol or of one or more notes in a cell.
+      newValue  = VACANT;
+      newStatus = VACANT;
+    }
+    else if (notesMode) {
       // If it is a new Note value, set the Notes bit, else copy the old Notes.
       newValue = (currentStatus != NOTES) ? NotesBit : currentValue;
 
@@ -197,7 +202,7 @@ class Puzzle
     else {
       // Normal entry of a possible solution-value or a delete.
       newValue = symbol;
-      if ((newValue == currentValue) || (newValue == VACANT)) {
+      if (newValue == currentValue) {
         newValue  = VACANT;
         newStatus = VACANT;
       }
