@@ -35,7 +35,8 @@ class PuzzleView2D extends StatefulWidget
   // Specs for painting the 2D puzzle view and processing hits.
   late PaintingSpecs paintingSpecs;
 
-  late PuzzleLayoutPainter  layoutPainter;	// Painter for background.
+  // late PuzzleLayoutPainter  layoutPainter;	// Painter for background.
+  late PuzzlePainter  puzzlePainter;	// Painter for background and symbols.
 
   PuzzleView2D({Key? key,
                required this.selection,
@@ -50,7 +51,8 @@ class PuzzleView2D extends StatefulWidget
     paintingSpecs = PaintingSpecs(_puzzle);
     paintingSpecs.calculatePainting();
 
-    layoutPainter   = PuzzleLayoutPainter(paintingSpecs);
+    // layoutPainter   = PuzzleLayoutPainter(paintingSpecs);
+    puzzlePainter   = PuzzlePainter(paintingSpecs);
   }
 
   static const routeName = '/puzzle_view_2d';
@@ -75,6 +77,9 @@ class _PuzzleView2DState extends State<PuzzleView2D>
   {
     setState(() {hitPos = details.localPosition;} );
     print('HIT ${hitPos.dx.toStringAsFixed(2)}, ${hitPos.dy.toStringAsFixed(2)}');
+    // Tell the PuzzlePainter where the hit is and trigger a repaint.
+    widget.puzzlePainter.hitPosition = hitPos;
+    widget.puzzlePainter.notifyListeners();
   }
 
   @override
@@ -144,9 +149,10 @@ class _PuzzleView2DState extends State<PuzzleView2D>
                 child: Listener(
                   onPointerDown: _handleHit,
                   child: CustomPaint(
-                    painter: widget.layoutPainter,
-                    foregroundPainter: PuzzleSolutionPainter(
-                                         widget.paintingSpecs, hitPos),
+                    // painter: widget.layoutPainter,
+                    painter: widget.puzzlePainter,
+                    // foregroundPainter: PuzzleSolutionPainter(
+                                         // widget.paintingSpecs, hitPos),
                   ),
                 ),
               ), // End Container(
@@ -179,9 +185,10 @@ class _PuzzleView2DState extends State<PuzzleView2D>
                 child: Listener(
                   onPointerDown: _handleHit,
                   child: CustomPaint(
-                    painter: widget.layoutPainter,
-                    foregroundPainter: PuzzleSolutionPainter(
-                                         widget.paintingSpecs, hitPos),
+                    // painter: widget.layoutPainter,
+                    painter: widget.puzzlePainter,
+                    // foregroundPainter: PuzzleSolutionPainter(
+                                         // widget.paintingSpecs, hitPos),
                   ),
                 ),
               ), // End Container(
@@ -195,19 +202,20 @@ class _PuzzleView2DState extends State<PuzzleView2D>
 } // End class _PuzzleView2DState extends State<PuzzleView2D>
 
 
-class PuzzleLayoutPainter extends CustomPainter
+class PuzzlePainter extends ChangeNotifier implements CustomPainter
 {
 // TODO - Why is shouldRepaint() being called TWICE before paint() is entered?
 
   PaintingSpecs paintingSpecs;
+  Offset hitPosition = Offset(-1.0, -1.0);
 
   // TODO - Find out for sure how to use Listenable and repaint param properly.
   //
   //        For now, adding 2nd param and super() seems to get repaints OK.
   //        Oh, and adding "repaint: repaint" to the super's parameters is
   //        harmless and might help us get re-painting on value-change later. 
-  PuzzleLayoutPainter(this.paintingSpecs, {Listenable? repaint})
-                             : super(); // (repaint: repaint);
+
+  PuzzlePainter(this.paintingSpecs);
   Size prevSize = Size(10.0, 10.0);
   // { print('PuzzleLayoutPainter size = ${Widget.size}'); }
 
@@ -228,18 +236,6 @@ class PuzzleLayoutPainter extends CustomPainter
     int h = size.height.floor();
     print("W $w, H $h");
     // ***********************
-
-    // TODO - We can detect a size change, using size and prevSize variables,
-    //        and so we can avoid re-painting everything after a mouse-hit and
-    //        just concentrate on recording the effects of the hit. HOWEVER, if
-    //        the mouse-pointer moves outside the Flutter window, or onto the
-    //        title-bar, a re-paint request occurs regardless, even though the
-    //        canvas size is still the same as before. THEN if the paint() code
-    //        skips pre-painting, the whole canvas is erased and left white...
-    //
-    //        NOTE: When this happens, prevSize reverts to (10.0, 10.0),
-    //              indicating that the PuzzleLayoutPainter instance has been
-    //              destroyed and re-created...
 
     int  nSymbols      = paintingSpecs.nSymbols;
     int  sizeX         = paintingSpecs.sizeX;
@@ -300,7 +296,6 @@ class PuzzleLayoutPainter extends CustomPainter
 
     // Paint the backgrounds of puzzle-cells, as required by the puzzle-type.
     int nCells   = sizeX * sizeY;
-    // double gap   = cellSize / 8.0;
     double gap = 0.0;
     double o1, o2;
     // TODO - Think about using a gradient in cell-painting, as opposed to gaps.
@@ -328,6 +323,8 @@ class PuzzleLayoutPainter extends CustomPainter
       canvas.drawRect(Offset(o1, o2) & Size(controlSize, controlSize), paint2);
     }
 
+    // TODO - Draw thin edges first, then thick edges. Use different "heights"?
+
     // Draw light and dark edges of cells, as required by the puzzle type.
     int nEdges   = sizeY * (sizeX + 1);
     for (int i = 0; i < nEdges; i++) {
@@ -348,28 +345,28 @@ class PuzzleLayoutPainter extends CustomPainter
       // print('i = $i x = ${i~/(nSymbols + 1)} y = ${i%(nSymbols + 1)} EW = ${paintingSpecs.edgesEW[i]} NS = ${paintingSpecs.edgesNS[i]}');
     }
 
-    // Paint the framework of the control-area.
+    // Paint framework of control-area, thick lines last, to cover thin ends.
     if (portrait) {
       // Horizontal - at the bottom of the screen or window.
-      canvas.drawRect(Offset(topLeftXc, topLeftYc) &
-                      Size((nSymbols + 1) * controlSize, controlSize),
-                      thickLinePaint);
       for (int n = 0; n < nSymbols; n++) {
         double o1 = topLeftXc + (n + 1) * controlSize;
         double o2 = topLeftYc + controlSize;
         canvas.drawLine(Offset(o1, topLeftYc), Offset(o1, o2), thinLinePaint);
       }
+      canvas.drawRect(Offset(topLeftXc, topLeftYc) &
+                      Size((nSymbols + 1) * controlSize, controlSize),
+                      thickLinePaint);
     }
     else {
       // Vertical - at the side of the screen or window.
-      canvas.drawRect(Offset(topLeftXc, topLeftYc) &
-                      Size(controlSize, (nSymbols + 1) * controlSize),
-                      thickLinePaint);
       for (int n = 0; n < nSymbols; n++) {
         double o1 = topLeftXc + controlSize;
         double o2 = topLeftYc + (n + 1) * controlSize;
         canvas.drawLine(Offset(topLeftXc, o2), Offset(o1, o2), thinLinePaint);
       }
+      canvas.drawRect(Offset(topLeftXc, topLeftYc) &
+                      Size(controlSize, (nSymbols + 1) * controlSize),
+                      thickLinePaint);
     }
 
     // Add the graphics for the control symbols.
@@ -385,165 +382,110 @@ class PuzzleLayoutPainter extends CustomPainter
                                 isNote: false, isCell: false);
     }
 
-    // Paint the graphics for the puzzle symbols.
-    Puzzle puzzle = paintingSpecs.puzzle;
+    if (hitPosition.dx > 0.0 && hitPosition.dy > 0.0) {
+      print('Hit at $hitPosition');
+    }
+    else {
+      print('NO HIT this time');
+    }
+
+    // Check for a hit in the puzzle-area (i.e. a user-move).
+    Rect r = paintingSpecs.puzzleRect;
+    if (r.contains(hitPosition)) {
+      print('Hit the Puzzle Area');
+      Puzzle puzzle = paintingSpecs.puzzle;
+      Offset point = hitPosition - Offset(topLeftX, topLeftY);
+      double cellSize = r.width / paintingSpecs.sizeX;
+      int x = (point.dx / cellSize).floor();
+      int y = (point.dy / cellSize).floor();
+      print('Hit is at cell ($x, $y)');
+      int n = puzzle.puzzleMap.cellIndex(x, y);
+      print('Cell index = $n');
+      if ((paintingSpecs.cellBackG[n] == UNUSABLE) ||
+          (paintingSpecs.cellBackG[n] == GIVEN)) {
+        print('Cell $n cannot be played.');
+      }
+      else {
+        // Record the user's move, if it is valid.
+        CellState m = paintingSpecs.puzzle.hitPuzzleArea(n);
+        if (m.status == UNUSABLE) {
+          print('Invalid move. Cell $n cannot be played.');
+        }
+        else {
+          print('Change cell $n to status ${m.status}, value ${m.cellValue}');
+        }
+      }
+    }
+    // Check for a hit in the control-area.
+    else if (paintingSpecs.controlRect.contains(hitPosition)) {
+      print('Hit the Control Area');
+      Rect r = paintingSpecs.controlRect;
+      Puzzle puzzle = paintingSpecs.puzzle;
+      int nCells = paintingSpecs.nSymbols + 1;
+      bool portrait = paintingSpecs.portrait;
+      double cellSize = portrait ? r.width / nCells : r.height / nCells;
+      Offset point = hitPosition - Offset(topLeftXc, topLeftYc);
+      int x = (point.dx / cellSize).floor();
+      int y = (point.dy / cellSize).floor();
+      print('Hit is at cell ($x, $y)');
+      int selection = portrait ? x : y;		// Get the selected symbol.
+      if ((selection == 0) && (point.dy > 0.67 * cellSize)) {
+        // The bottom part of symbol zero toggles Notes Mode on or off.
+        // The top part acts as an Erase button.
+        puzzle.notesMode = !puzzle.notesMode;
+      }
+      else {
+        // The value selected is treated as a cell-value, a note or an erase.
+        puzzle.selectedControl = selection;
+      }
+    }
+
+    // Paint/repaint the graphics for all the symbols in the puzzle area.
     int puzzleSize = paintingSpecs.sizeX * paintingSpecs.sizeY;
+    Puzzle puzzle  = paintingSpecs.puzzle;
     for (int pos = 0; pos < puzzleSize; pos++) {
       int ns = puzzle.stateOfPlay[pos];
-      if ((ns == UNUSABLE) || (ns == VACANT)) {
+      if (ns == UNUSABLE) {
         continue;
       }
       int i = puzzle.puzzleMap.cellPosX(pos);
       int j = puzzle.puzzleMap.cellPosY(pos);
       cellPos = Offset(topLeftX, topLeftY) + Offset(i * cellSize, j * cellSize);
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
-               cellSize, isNote: (ns > 1024), isCell: true);
+                cellSize, isNote: (ns > 1024), isCell: true);
     }
-    print('REACHED END of Layout paint()...');
+    print('REACHED END of PuzzlePainter.paint()...');
   } // End void paint(Canvas canvas, Size size)
 
   @override
-  bool shouldRepaint(PuzzleLayoutPainter oldDelegate) {
-    print('ENTERED PuzzleLayoutPainter shouldRepaint()');
-    return true; // false;
-  }
-
-  @override
-  bool? hitTest(Offset position)
-  {
-    // hitPosition = position;
-    print('ENTERED Background hitTest: hitPosition = $position');
-    return false;
-  }
-
-} // End class PuzzleLayoutPainter extends CustomPainter
-
-
-class PuzzleSolutionPainter extends CustomPainter
-{
-// TODO - Why is shouldRepaint() being called TWICE before paint() is entered?
-
-  PaintingSpecs paintingSpecs;
-  Offset hitPosition; //  = hitPos; // Offset(-1.0, -1.0);
-
-
-  // TODO - Find out for sure how to use Listenable and repaint param properly.
-  //
-  //        For now, adding 2nd param and super() seems to get repaints OK.
-  //        Oh, and adding "repaint: repaint" to the super's parameters is
-  //        harmless and might help us get re-painting on value-change later. 
-  PuzzleSolutionPainter(this.paintingSpecs, this.hitPosition,
-                        {Listenable? repaint})
-                        : super(); // (repaint: repaint);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-
-    print('\n\nENTERED Solution paint(Canvas canvas, Size size)');
-    print('Size $size hit-position $hitPosition');
-
-    if (hitPosition.dx <= 0.0 && hitPosition.dy <= 0.0) {
-      return;
-    }
-    if (size != paintingSpecs.canvasSize) {
-      print('Canvas changed from ${paintingSpecs.canvasSize} to $size');
-      return;
-    }
-    if (paintingSpecs.puzzleRect.contains(hitPosition)) {
-      print('Hit the Puzzle Area');
-      Rect r = paintingSpecs.puzzleRect;
-      Puzzle puzzle = paintingSpecs.puzzle;
-      double x0 = r.left;
-      double y0 = r.top;
-      Offset point = hitPosition - Offset(x0, y0);
-      double cellSize = r.width / paintingSpecs.sizeX;
-      int x = (point.dx / cellSize).floor();
-      int y = (point.dy / cellSize).floor();
-      print('Hit is at cell ($x, $y)');
-      int n = paintingSpecs.puzzle.puzzleMap.cellIndex(x, y);
-      print('Cell index = $n');
-      if ((paintingSpecs.cellBackG[n] == UNUSABLE) ||
-          (paintingSpecs.cellBackG[n] == GIVEN)) {
-        print('Cell $n cannot be played.');
-        return;
-      }
-      CellState m = paintingSpecs.puzzle.hitPuzzleArea(n);
-      Offset cellPos;
-      if (m.status == UNUSABLE) {
-        print('Invalid move. Cell $n cannot be played.');
-        return;
-      }
-      else {
-        // TODO - We are going to have to repaint the entire stateOfPlay list.
-        //        Needs to be done in the background painter?
-        //        Also we are not getting any notes.
-        //        And a change of control-number loses everything until the
-        //        next hit is done, but repeated entries of 3 (say) keep stuff.
-        print('Change cell $n to status ${m.status}, value ${m.cellValue}');
-        int ns = puzzle.selectedControl;
-        // double scale = puzzle.notesMode ? 0.25 : 0.85;
-        cellPos = Offset(x0 + x * cellSize, y0 + y * cellSize);
-        paintingSpecs.paintSymbol(canvas, ns, cellPos,
-                   cellSize, isNote: puzzle.notesMode, isCell: true);
-       int puzzleSize = paintingSpecs.sizeX * paintingSpecs.sizeY;
-       for (int pos = 0; pos < puzzleSize; pos++) {
-         ns = puzzle.stateOfPlay[pos];
-         if ((ns == UNUSABLE) || (ns == VACANT)) {
-           continue;
-         }
-// TODO - We seem to need this code in BOTH places. Even so, it's not always OK.
-         int i = puzzle.puzzleMap.cellPosX(pos);
-         int j = puzzle.puzzleMap.cellPosY(pos);
-         cellPos = Offset(x0, y0) + Offset(i * cellSize, j * cellSize);
-         paintingSpecs.paintSymbol(canvas, ns, cellPos,
-                  cellSize, isNote: (ns > 1024), isCell: true);
-       }
-      }
-    }
-    else if (paintingSpecs.controlRect.contains(hitPosition)) {
-      print('Hit the Control Area');
-      Rect r = paintingSpecs.controlRect;
-      Puzzle puzzle = paintingSpecs.puzzle;
-      double x0 = r.left;
-      double y0 = r.top;
-      int nCells = paintingSpecs.nSymbols + 1;
-      bool portrait = paintingSpecs.portrait;
-      double cellSize = portrait ? r.width / nCells : r.height / nCells;
-      Offset point = hitPosition - Offset(x0, y0);
-      int x = (point.dx / cellSize).floor();
-      int y = (point.dy / cellSize).floor();
-      print('Hit is at cell ($x, $y)');
-      int selection = portrait ? x : y;
-      if ((selection == 0) && (point.dy > 0.67 * cellSize)) {
-        puzzle.notesMode = !puzzle.notesMode;
-      }
-      else {
-        puzzle.selectedControl = selection;
-      }
-    }
-  } // End void paint(Canvas canvas, Size size)
-
-
-  @override
-  bool shouldRepaint(PuzzleSolutionPainter oldDelegate) {
-    print('ENTERED PuzzleSolutionPainter shouldRepaint()');
+// TODO - Just return true...
+  bool shouldRepaint(PuzzlePainter oldDelegate) {
+    print('ENTERED PuzzlePainter shouldRepaint()');
     // CRUCIAL: Comparing prev and curr values of hitPosition ensures a repaint.
     bool newHit = (hitPosition != oldDelegate.hitPosition);
     print('Repaint? Old hit ${oldDelegate.hitPosition}, new hit $hitPosition');
+    print('Repaint is $newHit, hit at $hitPosition');
     return newHit;
   }
 
-
+// TODO - Don't need hitTest function? Can do everything required in _handleHit?
+// TODO - Make hitTest Null...
   @override
   bool? hitTest(Offset position)
   {
     // hitPosition = position;
     // print('ENTERED Foreground hitTest: hitPosition = $position');
+    // print('ENTERED PuzzlePainter hitTest: hitPosition = $position');
+    hitPosition = position;
     return true;
   }
-// TODO - Don't need hitTest function? Can do everything required in _handleHit?
 
-} // End class PuzzleSolutionPainter extends CustomPainter
+  // Dummy methods, needed because we are re-implementing CustomPainter (above).
+  get semanticsBuilder => null;
+
+  bool shouldRebuildSemantics(covariant CustomPainter oldDelegate) => false;
+
+} // End class PuzzlePainter extends ChangeNotifier implements CustomPainter
 
 
 // ************************************************************************** //
