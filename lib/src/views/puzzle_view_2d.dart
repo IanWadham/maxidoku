@@ -10,12 +10,11 @@ import '../models/puzzletypes.dart';
 import 'painting_specs_2d.dart';
 
 /* ************************************************************************** **
-   NEW ICON BUTTONS - enter a puzzle, check entered puzzle, generate a puzzle,
-   set symmetry, set difficulty, hint, solve, undo, redo.....  restart??
+   NEW ICON BUTTONS - enter a puzzle (no button: let a user enter something and
+   then check that they wishh to continue), check entered puzzle, generate a
+   puzzle, hint, solve, undo, redo, restart. Mark and go back to Mark???
 
-   Material Icon Names --- Undo, Redo, 
-
-   Split the erase button into erase + notes toggle.
+   Set symmetry, set difficulty in Settings. Message to user about this???
 ** ************************************************************************** */
 
 /* ************************************************************************** **
@@ -111,27 +110,70 @@ class _PuzzleView2DState extends State<PuzzleView2D>
       ),
       IconButton(
         icon: const Icon(Icons.save_outlined),
-        tooltip: 'Save puzzle on disk',
+        tooltip: 'Save puzzle',
         onPressed: () {
           // Navigate to the settings page.
           Navigator.restorablePushNamed(
             context, SettingsView.routeName);
         },
       ),
-/*
       IconButton(
-        icon: const Icon(Icons.file_restore),
-        tooltip: 'Restore puzzle from disk',
+        icon: const Icon(Icons.file_download),
+        tooltip: 'Restore puzzle',
         onPressed: () {
           // Navigate to the settings page.
           Navigator.restorablePushNamed(
             context, SettingsView.routeName);
         },
       ),
-*/
       IconButton(
         icon: const Icon(CommunityMaterialIcons.lightbulb_on_outline),
         tooltip: 'Get a hint',
+        onPressed: () {
+          // Navigate to the settings page.
+          Navigator.restorablePushNamed(
+            context, SettingsView.routeName);
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.undo_outlined),
+        tooltip: 'Undo a move',
+        onPressed: () {
+          // Navigate to the settings page.
+          Navigator.restorablePushNamed(
+            context, SettingsView.routeName);
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.redo_outlined),
+        tooltip: 'Redo a move',
+        onPressed: () {
+          // Navigate to the settings page.
+          Navigator.restorablePushNamed(
+            context, SettingsView.routeName);
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.devices_outlined),
+        tooltip: 'Generate a new puzzle',
+        onPressed: () {
+          // Navigate to the settings page.
+          Navigator.restorablePushNamed(
+            context, SettingsView.routeName);
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.check_circle_outline_outlined),
+        tooltip: 'Check that the puzzle you have entered is valid',
+        onPressed: () {
+          // Navigate to the settings page.
+          Navigator.restorablePushNamed(
+            context, SettingsView.routeName);
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.restart_alt_outlined),
+        tooltip: 'Start solving this puzzle again',
         onPressed: () {
           // Navigate to the settings page.
           Navigator.restorablePushNamed(
