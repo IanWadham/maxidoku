@@ -131,6 +131,7 @@ class Puzzle
 
   int  selectedControl = 1;
   bool notesMode       = false;
+  int  lastCellHit     = 0;
 
   Puzzle({required int index})
   {
@@ -216,8 +217,10 @@ class Puzzle
     _cellChanges.add(CellChange(n, oldState, newState));
     _cellStatus[n]  = newStatus;
     _stateOfPlay[n] = newValue;
+
     print('NEW MOVE: cell $n status $newStatus value $newValue');
     print('StateOfPlay $_stateOfPlay');
+    lastCellHit = n;
     return newState;
   }
 }

@@ -24,6 +24,8 @@ import 'painting_specs_2d.dart';
   // info on MacOS, Linux, Windows, etc.
 ** ************************************************************************** */
 
+const double eraseDepth = 0.67;
+
 /// Displays a Sudoku puzzle of a selected type and size.
 class PuzzleView2D extends StatefulWidget
 {
@@ -224,7 +226,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
    * that the user has entered as their solution.                      */
   @override
   void paint(Canvas canvas, Size size) {
-    print('\n\nENTERED Layout paint(Canvas canvas, Size size)');
+    print('\n\nENTERED PuzzlePainter.paint(Canvas canvas, Size size)');
     print('Size $size, previous size $prevSize');
     bool sizeChanged = (size != prevSize);
     if (sizeChanged) {
@@ -286,10 +288,16 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin  = StrokeJoin.round;
+    var highlight      = Paint()	// Style for highlights.
+      ..color = Colors.red
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin  = StrokeJoin.round;
 
     // Calculated widths of lines, depending on canvas size and puzzle size.
     thinLinePaint.strokeWidth  = cellSize / 30.0;
     thickLinePaint.strokeWidth = cellSize / 15.0;
+    highlight.strokeWidth      = cellSize / 15.0;
 
     // Now paint the background of the canvas.
     canvas.drawRect(Offset(0, 0) & size, paint1);
@@ -346,6 +354,14 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     }
 
     // Paint framework of control-area, thick lines last, to cover thin ends.
+
+    // Start with divider between Notes and Erase (it is always horizontal).
+    double notesDividerY = topLeftYc + eraseDepth * controlSize;
+    canvas.drawLine(Offset(topLeftXc, notesDividerY),
+                    Offset(topLeftXc + controlSize, notesDividerY),
+                    thinLinePaint);
+
+    // Draw the other lines between cells, horizontal or vertical, as required.
     if (portrait) {
       // Horizontal - at the bottom of the screen or window.
       for (int n = 0; n < nSymbols; n++) {
@@ -382,12 +398,14 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
                                 isNote: false, isCell: false);
     }
 
+    // ******** DEBUG ********
     if (hitPosition.dx > 0.0 && hitPosition.dy > 0.0) {
       print('Hit at $hitPosition');
     }
     else {
       print('NO HIT this time');
     }
+    // ***********************
 
     // Check for a hit in the puzzle-area (i.e. a user-move).
     Rect r = paintingSpecs.puzzleRect;
@@ -416,6 +434,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
         }
       }
     }
+
     // Check for a hit in the control-area.
     else if (paintingSpecs.controlRect.contains(hitPosition)) {
       print('Hit the Control Area');
@@ -429,7 +448,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       int y = (point.dy / cellSize).floor();
       print('Hit is at cell ($x, $y)');
       int selection = portrait ? x : y;		// Get the selected symbol.
-      if ((selection == 0) && (point.dy > 0.67 * cellSize)) {
+      if ((selection == 0) && (point.dy > eraseDepth * cellSize)) {
         // The bottom part of symbol zero toggles Notes Mode on or off.
         // The top part acts as an Erase button.
         puzzle.notesMode = !puzzle.notesMode;
@@ -453,34 +472,50 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       cellPos = Offset(topLeftX, topLeftY) + Offset(i * cellSize, j * cellSize);
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
                 cellSize, isNote: (ns > 1024), isCell: true);
+      if (pos == puzzle.lastCellHit) {
+        canvas.drawRect(cellPos & Size(cellSize, cellSize), highlight);
+      }
     }
+
+    // Highlight the user's latest control-selection.
+    cellPos   = Offset(topLeftXc, topLeftYc);
+    int    n  = puzzle.selectedControl;
+    double d  = n * controlSize;
+    double hh = (n == 0) ? eraseDepth * controlSize : controlSize;
+    cellPos  = cellPos + (paintingSpecs.portrait ? Offset(d, 0) : Offset(0, d));
+    canvas.drawRect(cellPos & Size(controlSize, hh), highlight);
+
+    // Add the label for the Notes button and highlight it, if required.
+    cellPos = Offset(topLeftXc, notesDividerY);
+    for (int n = 1; n <= 3; n++) {
+      paintingSpecs.paintSymbol(canvas, n, cellPos,
+                controlSize, isNote: true, isCell: false);
+    }
+    if (puzzle.notesMode) {
+      canvas.drawRect(cellPos & Size(controlSize,
+                      controlSize * (1 - eraseDepth)), highlight);
+    }
+
     print('REACHED END of PuzzlePainter.paint()...');
   } // End void paint(Canvas canvas, Size size)
 
   @override
-// TODO - Just return true...
   bool shouldRepaint(PuzzlePainter oldDelegate) {
     print('ENTERED PuzzlePainter shouldRepaint()');
-    // CRUCIAL: Comparing prev and curr values of hitPosition ensures a repaint.
-    bool newHit = (hitPosition != oldDelegate.hitPosition);
-    print('Repaint? Old hit ${oldDelegate.hitPosition}, new hit $hitPosition');
-    print('Repaint is $newHit, hit at $hitPosition');
-    return newHit;
-  }
-
-// TODO - Don't need hitTest function? Can do everything required in _handleHit?
-// TODO - Make hitTest Null...
-  @override
-  bool? hitTest(Offset position)
-  {
-    // hitPosition = position;
-    // print('ENTERED Foreground hitTest: hitPosition = $position');
-    // print('ENTERED PuzzlePainter hitTest: hitPosition = $position');
-    hitPosition = position;
     return true;
   }
 
-  // Dummy methods, needed because we are re-implementing CustomPainter (above).
+  @override
+  // Don't need hitTest function? Can do everything required in _handleHit().
+  // bool? hitTest(Offset position) => false; // null;
+  bool? hitTest(Offset position)
+  {
+    // print('ENTERED PuzzlePainter hitTest: hitPosition = $position');
+    // hitPosition = position;
+    return true;
+  }
+
+  // Dummy methods: needed because we are re-implementing CustomPainter (above).
   get semanticsBuilder => null;
 
   bool shouldRebuildSemantics(covariant CustomPainter oldDelegate) => false;
