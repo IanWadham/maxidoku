@@ -74,15 +74,25 @@ class _PuzzleView2DState extends State<PuzzleView2D>
 {
   Offset hitPos = Offset(-1.0, -1.0);
 
-  void _handleHit(PointerEvent details)
+  // void _handleHit(PointerEvent details)
+  void _possibleHit(PointerEvent details)
   {
+    // Offset checkPos = details.localPosition;
+    // if (checkPos.dx < 0.0 || checkPos.dy < 0 || checkPos.dx > 741.0 || checkPos.dy > 480.0) return;
+    // setState(() {hitPos = checkPos;} );
     setState(() {hitPos = details.localPosition;} );
     print('HIT ${hitPos.dx.toStringAsFixed(2)}, ${hitPos.dy.toStringAsFixed(2)}');
     // Tell the PuzzlePainter where the hit is and trigger a repaint.
     widget.puzzlePainter.hitPosition = hitPos;
     widget.puzzlePainter.notifyListeners();
   }
-
+/*
+  @override
+  void initState() {
+    super.initState();
+    PuzzlePainter puzzlePainter = new PuzzlePainter(paintingSpecs);
+  }
+*/
   @override
   Widget build(BuildContext context) {
 
@@ -139,18 +149,16 @@ class _PuzzleView2DState extends State<PuzzleView2D>
         icon: const Icon(Icons.undo_outlined),
         tooltip: 'Undo a move',
         onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
+          print('PRESSED UNDO ***********************************************');
+          // widget._puzzle.undo();
         },
       ),
       IconButton(
         icon: const Icon(Icons.redo_outlined),
         tooltip: 'Redo a move',
         onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
+          print('PRESSED REDO ***********************************************');
+          // widget._puzzle.redo();
         },
       ),
       IconButton(
@@ -182,31 +190,43 @@ class _PuzzleView2DState extends State<PuzzleView2D>
       ),
     ]; // End list of action icons
 
+    // Listener listener = new Listener(
+      // onPointerDown: _possibleHit,
+    // );
+
+    // CustomPaint puzzleArea = new CustomPaint(
+      // painter: widget.puzzlePainter,
+      // child:   Listener(
+        // onPointerDown: _possibleHit,
+      // ),
+    // );
+
     if (! widget.paintingSpecs.portrait) {	// Landscape orientation.
       // Paint the puzzle with the action icons in a column on the RHS.
       return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
         body: Row(
           children: <Widget>[
-            Expanded(
+            // Expanded(
+            ConstrainedBox(
+              constraints: BoxConstraints.tight(const Size(700.0, 600.0)),
               child: Container(
-                height: (MediaQuery.of(context).size.height),
+                // height: (MediaQuery.of(context).size.height),
+                // child: puzzleArea,
                 child: Listener(
-                  onPointerDown: _handleHit,
+                  onPointerDown: _possibleHit,
                   child: CustomPaint(
-                    // painter: widget.layoutPainter,
                     painter: widget.puzzlePainter,
-                    // foregroundPainter: PuzzleSolutionPainter(
-                                         // widget.paintingSpecs, hitPos),
                   ),
+                  behavior: HitTestBehavior.deferToChild,
                 ),
               ), // End Container(
             ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
-                child: Column(
-                  children: actionIcons,
-                ),
+              child: Column(
+                children: actionIcons,
               ),
+            ),
           ], // End Row children: [
         ), // End body: Row(
       ); // End return Scaffold(
@@ -218,21 +238,18 @@ class _PuzzleView2DState extends State<PuzzleView2D>
           children: <Widget> [
             Ink( // Give puzzle-background colour to row of IconButtons.
               color: Colors.amber.shade100,
-                child: Row(
-                  children: actionIcons,
+              child: Row(
+                children: actionIcons,
               ),
             ),
             Expanded(
               child: Container(
-                width:  (MediaQuery.of(context).size.width),
-                // child:  puzzleView,
+                width: (MediaQuery.of(context).size.width),
+                // child: puzzleArea,
                 child: Listener(
-                  onPointerDown: _handleHit,
+                  onPointerDown: _possibleHit,
                   child: CustomPaint(
-                    // painter: widget.layoutPainter,
                     painter: widget.puzzlePainter,
-                    // foregroundPainter: PuzzleSolutionPainter(
-                                         // widget.paintingSpecs, hitPos),
                   ),
                 ),
               ), // End Container(
@@ -268,6 +285,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
    * that the user has entered as their solution.                      */
   @override
   void paint(Canvas canvas, Size size) {
+    canvas.clipRect((Offset(0.0, 0.0) & size));
     print('\n\nENTERED PuzzlePainter.paint(Canvas canvas, Size size)');
     print('Size $size, previous size $prevSize');
     bool sizeChanged = (size != prevSize);
@@ -441,6 +459,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     }
 
     // ******** DEBUG ********
+    print('HIT SEEN at $hitPosition');
     if (hitPosition.dx > 0.0 && hitPosition.dy > 0.0) {
       print('Hit at $hitPosition');
     }
@@ -548,7 +567,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
   }
 
   @override
-  // Don't need hitTest function? Can do everything required in _handleHit().
+  // Don't need hitTest function? Can do everything required in _possibleHit().
   // bool? hitTest(Offset position) => false; // null;
   bool? hitTest(Offset position)
   {
