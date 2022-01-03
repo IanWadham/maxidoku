@@ -129,6 +129,13 @@ class Puzzle
   // The sequence of cell-changes and user-moves, for undo/redo purposes.
   List<CellChange> _cellChanges = [];
 
+  // Index ranges from 0 to the number of undoable moves that have been made,
+  // which is the length of the _cellChanges list. If 0, either no moves have
+  // been made yet or all the moves have been undone. If equal to the number
+  // of undoable moves, then all moves have been done or redone and Redo is
+  // not valid. 
+  int  _indexUndoRedo  = 0;
+
   int  selectedControl = 1;
   bool notesMode       = false;
   int  lastCellHit     = 0;
@@ -204,8 +211,10 @@ class Puzzle
       // Normal entry of a possible solution-value or a delete.
       newValue = symbol;
       if (newValue == currentValue) {
-        newValue  = VACANT;
-        newStatus = VACANT;
+        // newValue  = VACANT;
+        // newStatus = VACANT;
+        // Don't treat this as an Erase...
+        return CellState(currentStatus, currentValue);
       }
       else {
         newStatus = (newValue == _solution[n]) ? CORRECT : ERROR;
@@ -215,12 +224,44 @@ class Puzzle
     CellState newState = CellState(newStatus, newValue);
     CellState oldState = CellState(currentStatus, currentValue);
     _cellChanges.add(CellChange(n, oldState, newState));
-    _cellStatus[n]  = newStatus;
-    _stateOfPlay[n] = newValue;
+    // TODO - New move: truncate _cellChanges list, unless new move == undone???
+    _indexUndoRedo     = _cellChanges.length;
+    _cellStatus[n]     = newStatus;
+    _stateOfPlay[n]    = newValue;
 
     print('NEW MOVE: cell $n status $newStatus value $newValue');
     print('StateOfPlay $_stateOfPlay');
     lastCellHit = n;
     return newState;
+  }
+
+  bool undo() {
+    print('UNDO: index = $_indexUndoRedo, cell-changes {$_cellChanges.length}');
+    if (_indexUndoRedo <= 0) {
+      return false;		// No moves left to undo - or none made yet.
+    }
+
+    // Get details of the move to be undone and apply them.
+    _indexUndoRedo--;
+    CellChange change = _cellChanges[_indexUndoRedo];
+    int n = change.cellIndex;
+    _cellStatus[n]  = change.before.status;
+    _stateOfPlay[n] = change.before.cellValue;
+    return true;
+  }
+
+  bool redo() {
+    print('REDO: index = $_indexUndoRedo, cell-changes {$_cellChanges.length}');
+    if (_indexUndoRedo >= _cellChanges.length) {
+      return false;		// No moves left to redo - or none made yet.
+    }
+
+    // Get details of the move to be redone and apply them.
+    CellChange change = _cellChanges[_indexUndoRedo];
+    int n = change.cellIndex;
+    _cellStatus[n]  = change.after.status;
+    _stateOfPlay[n] = change.after.cellValue;
+    _indexUndoRedo++;
+    return true;
   }
 }
