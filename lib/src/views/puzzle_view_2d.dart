@@ -150,7 +150,7 @@ class _PuzzleView2DState extends State<PuzzleView2D>
         tooltip: 'Undo a move',
         onPressed: () {
           print('PRESSED UNDO ***********************************************');
-          // widget._puzzle.undo();
+          widget._puzzle.undo();
         },
       ),
       IconButton(
@@ -158,7 +158,7 @@ class _PuzzleView2DState extends State<PuzzleView2D>
         tooltip: 'Redo a move',
         onPressed: () {
           print('PRESSED REDO ***********************************************');
-          // widget._puzzle.redo();
+          widget._puzzle.redo();
         },
       ),
       IconButton(
@@ -206,11 +206,11 @@ class _PuzzleView2DState extends State<PuzzleView2D>
       return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
         body: Row(
           children: <Widget>[
-            // Expanded(
-            ConstrainedBox(
-              constraints: BoxConstraints.tight(const Size(700.0, 600.0)),
+            Expanded(
+            // ConstrainedBox(
+              // constraints: BoxConstraints.tight(const Size(700.0, 600.0)),
               child: Container(
-                // height: (MediaQuery.of(context).size.height),
+                height: (MediaQuery.of(context).size.height),
                 // child: puzzleArea,
                 child: Listener(
                   onPointerDown: _possibleHit,
@@ -286,8 +286,8 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
   @override
   void paint(Canvas canvas, Size size) {
     canvas.clipRect((Offset(0.0, 0.0) & size));
-    print('\n\nENTERED PuzzlePainter.paint(Canvas canvas, Size size)');
-    print('Size $size, previous size $prevSize');
+    // print('\n\nENTERED PuzzlePainter.paint(Canvas canvas, Size size)');
+    // print('Size $size, previous size $prevSize');
     bool sizeChanged = (size != prevSize);
     if (sizeChanged) {
       prevSize = size;
@@ -296,7 +296,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     // ******** DEBUG ********
     int w = size.width.floor();
     int h = size.height.floor();
-    print("W $w, H $h");
+    // print("W $w, H $h");
     // ***********************
 
     int  nSymbols      = paintingSpecs.nSymbols;
@@ -459,12 +459,23 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     }
 
     // ******** DEBUG ********
-    print('HIT SEEN at $hitPosition');
+    Offset old = paintingSpecs.lastHit;
+    Offset fake = Offset(1.0, 1.0);
     if (hitPosition.dx > 0.0 && hitPosition.dy > 0.0) {
-      print('Hit at $hitPosition');
+      if (hitPosition != fake) print('HIT SEEN at $hitPosition, last hit $old');
+      Offset diff = hitPosition - old;
+      double tol = 5.0;
+      if (diff.dx > -tol && diff.dy > -tol && diff.dx < tol && diff.dy < tol) {
+        // print('DUPLICATE HIT... tolerance $tol');
+        hitPosition = fake;	// In Canvas, but not in an active area.
+      }
+      else {
+        paintingSpecs.lastHit = hitPosition;
+        // print('NEW HIT....');
+      }
     }
     else {
-      print('NO HIT this time');
+      // print('NO HIT this time');
     }
     // ***********************
 
@@ -557,7 +568,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
                       controlSize * (1 - eraseDepth)), highlight);
     }
 
-    print('REACHED END of PuzzlePainter.paint()...');
+    // print('REACHED END of PuzzlePainter.paint()...');
   } // End void paint(Canvas canvas, Size size)
 
   @override
