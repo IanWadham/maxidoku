@@ -11,9 +11,11 @@
 
 
 import 'dart:math';
+import '../settings/settings_controller.dart';
 import '../globals.dart';
 import 'puzzlemap.dart';
 import 'puzzletypes.dart';
+import '../views/painting_specs_2d.dart';
 // import 'sudokusolver.dart';
 
 class CellChange
@@ -112,6 +114,12 @@ class Puzzle
     print (sw.elapsedMilliseconds);
     return;
   }
+
+  // Interface to the view, painting and scaling of 2D puzzle-types.
+  final PaintingSpecs _paintingSpecs = PaintingSpecs.empty();
+
+  PaintingSpecs get paintingSpecs => _paintingSpecs;
+
   // The starting position of the puzzle, +ve integers. Stays fixed during play.
   BoardContents    _puzzleGiven = [];
 
@@ -140,22 +148,50 @@ class Puzzle
   bool notesMode       = false;
   int  lastCellHit     = 0;
 
-  Puzzle({required int index})
+  static Puzzle? _instance;
+
+  // Puzzle({required SettingsController settings})
+    // Create the bridge to the 2D puzzle-view.
+    // : paintingSpecs = PaintingSpecs(this)
+  // {
+  // Puzzle._(({SettingsController settings}));
+
+  factory Puzzle([int index = 1])
   {
-    // Create a list of puzzle speciifications in textual form.
+    bool test = (_instance == null);
+    print('Puzzle constructor call: index $index, null _instance $test');
+    _instance ??= Puzzle._(index);
+
+    return _instance!;
+  }
+    ///.. Rest code
+
+  Puzzle._(int index)
+  {
+    // Create selected puzzle type.
+    // int index = int.tryParse(settings.puzzleSpecID, radix: 10) ?? 1;
+    print('Create Puzzle: index $index');
+
+    // Create a list of puzzle specifications in textual form.
     PuzzleTypesText puzzleList = PuzzleTypesText();
 
-    // Get a specification of a puzzle, using the index supplied by the caller..
+    // Get a specification of a puzzle, using the index supplied by Settings..
     List<String> puzzleMapSpec = puzzleList.puzzleTypeText(index);
 
     // Parse it and create the corresponding Puzzle Map, with an empty board.
     _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
+
+    // Create the bridge to the 2D puzzle-view.
+    PaintingSpecs _paintingSpecs = new PaintingSpecs(_puzzleMap);
+    // _paintingSpecs.puzzleMap = _puzzleMap;
+    print('CREATED _paintingSpecs');
 
     // Initialize the lists of cells, using deep copies.
     _puzzleGiven = [..._puzzleMap.emptyBoard];
     _solution    = [..._puzzleMap.emptyBoard];
     _stateOfPlay = [..._puzzleMap.emptyBoard];
     _cellStatus  = [..._puzzleMap.emptyBoard];
+    print('EXITING Puzzle singleton constructor');
   }
 
   CellState hitPuzzleArea(int n)
@@ -236,7 +272,8 @@ class Puzzle
   }
 
   bool undo() {
-    print('UNDO: index = $_indexUndoRedo, cell-changes {$_cellChanges.length}');
+    int l = _cellChanges.length;
+    print('UNDO: index = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo <= 0) {
       return false;		// No moves left to undo - or none made yet.
     }
@@ -251,7 +288,8 @@ class Puzzle
   }
 
   bool redo() {
-    print('REDO: index = $_indexUndoRedo, cell-changes {$_cellChanges.length}');
+    int l = _cellChanges.length;
+    print('REDO: index = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo >= _cellChanges.length) {
       return false;		// No moves left to redo - or none made yet.
     }

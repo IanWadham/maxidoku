@@ -127,6 +127,7 @@ class PuzzleMap
     bool   mapStarted = false;
     int    index = 0;
     int    nSpecs = specStrings.length;
+    if (nSpecs < 1) return;
     RegExp whiteSpace = RegExp(r'(\s+)');
 
     while (index < nSpecs) {

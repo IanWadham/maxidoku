@@ -73,9 +73,7 @@ class _MyListViewState extends State<MyListView>
 @override
   void _handleTap ()
   {
-    // print('handleTap(); selected item $_selectedIndex');
     widget.onChanged (_selectedIndex);
-    // print('widget.onChanged = ${widget.onChanged}');
   }
 
   Widget build(BuildContext context) {
@@ -88,12 +86,11 @@ class _MyListViewState extends State<MyListView>
     if (_selectedIndex == -1) {
       _selectedIndex = widget.initialSelection;
     }
-    Object obj;
     return ListView.builder(
       // Providing a restorationId allows the ListView to restore the
       // scroll position when a user leaves and returns to the app after it
       // has been killed while running in the background.
-      restorationId: 'sampleItemListView',
+      restorationId: 'puzzleListView',
       itemCount:     items.length,
       itemBuilder:   (BuildContext context, int index) {
         List<String> item = items.getItem(index);

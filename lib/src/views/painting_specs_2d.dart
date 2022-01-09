@@ -13,14 +13,22 @@ import '../models/puzzlemap.dart';
 // view and interface are necessarily different.
 
 const double baseSize = 60.0;	// Base-size for scaling text symbols up/down.
+const List<String> emptySpec = [];
  
 class PaintingSpecs
 {
-  Puzzle    _puzzle;
-  Puzzle    get puzzle           => _puzzle;
-  // ??? void      set puzzle(Puzzle p) => _puzzle = p;
+  PuzzleMap _puzzleMap = PuzzleMap(specStrings: emptySpec);
+  void set puzzleMap(PuzzleMap p) => _puzzleMap = p;
 
-  PaintingSpecs(Puzzle this._puzzle);
+  PaintingSpecs(PuzzleMap this._puzzleMap);
+
+  PaintingSpecs.empty();
+
+  // setPuzzleMap (PuzzleMap p)
+  // {
+    // _puzzleMap = p;
+    // // calculatePainting();
+  // }
 
   // A fixed text-painter and style for painting Sudoku symbols on a Canvas.
   final TextPainter _tp = TextPainter(
@@ -32,6 +40,8 @@ class PaintingSpecs
       color:      Colors.brown.shade400,
       fontSize:   baseSize,
       fontWeight: FontWeight.bold);
+
+  Offset lastHit = Offset(-1.0, -1.0);
 
   // A set of symbols, one per TextSpan, that has been type-set. A symbol just
   // needs to be positioned and scaled before being painted on a canvas.
@@ -85,11 +95,11 @@ class PaintingSpecs
     // _puzzle   = puzzle;
 
     // The fixed layout and attributes of the type of puzzle the user selected.
-    PuzzleMap puzzleMap    = _puzzle.puzzleMap;
+    // PuzzleMap puzzleMap    = _puzzle.puzzleMap;
 
-    _nSymbols = puzzleMap.nSymbols;
-    _sizeX    = puzzleMap.sizeX;
-    _sizeY    = puzzleMap.sizeY;
+    _nSymbols = _puzzleMap.nSymbols;
+    _sizeX    = _puzzleMap.sizeX;
+    _sizeY    = _puzzleMap.sizeY;
     print('nSymbols = ${_nSymbols}, sizeX = ${_sizeX}, sizeY = ${_sizeY}');
     print('Portrait orientation = ${_portrait}');
 
@@ -105,7 +115,7 @@ class PaintingSpecs
     // Some cells may have type UNUSABLE (-1). The rest will have type zero
     // (empty). Some may be later made into GIVEN, ERROR or SPECIAL types,
     // so the PaintingSpecs class makes a DEEP copy of the empty board's cells.
-    _cellBackG = _puzzle.puzzleMap.emptyBoard;
+    _cellBackG = _puzzleMap.emptyBoard;
     // print('cellBackG ${_cellBackG}');
 
     // TODO - Do something about XSudoku diagonals and one-cell cages.
@@ -121,12 +131,12 @@ class PaintingSpecs
     List<int> edgesEW     = List.filled(sizeX * (sizeY + 1), 0);
     List<int> edgesNS     = List.filled(sizeY * (sizeX + 1), 0);
 
-    PuzzleMap puzzleMap = _puzzle.puzzleMap;
+    // PuzzleMap puzzleMap = _puzzle.puzzleMap;
     BoardContents cellBackG = _cellBackG;
 
     for (int x = 0; x < sizeX; x++) {
       for (int y = 0; y < sizeY; y++) {
-      int index = puzzleMap.cellIndex(x, y);
+      int index = _puzzleMap.cellIndex(x, y);
         if (cellBackG[index] != UNUSABLE) {
           // Usable cell: surround it with thin edges.
           edgesEW[x * (sizeY + 1) + y] = 1;
@@ -137,20 +147,20 @@ class PaintingSpecs
       }
     }
 
-    int nGroups = puzzleMap.groupCount();
+    int nGroups = _puzzleMap.groupCount();
     for (int n = 0; n < nGroups; n++) {
-      List<int> group = puzzleMap.group(n);
-      int x = puzzleMap.cellPosX(group[0]);
-      int y = puzzleMap.cellPosY(group[0]);
+      List<int> group = _puzzleMap.group(n);
+      int x = _puzzleMap.cellPosX(group[0]);
+      int y = _puzzleMap.cellPosY(group[0]);
       bool isRow = true;
       bool isCol = true;
       for (int k = 1; k < nSymbols; k++) {
-        if (puzzleMap.cellPosX(group[k]) != x) isRow = false;
-        if (puzzleMap.cellPosY(group[k]) != y) isCol = false;
+        if (_puzzleMap.cellPosX(group[k]) != x) isRow = false;
+        if (_puzzleMap.cellPosY(group[k]) != y) isCol = false;
       }
       // print('x $x y $y isRow $isRow isCol $isCol GROUP $group');
       if (isRow || isCol) continue;
-      _markEdges(group, puzzleMap, cellBackG, edgesEW, edgesNS);
+      _markEdges(group, _puzzleMap, cellBackG, edgesEW, edgesNS);
     }
 
     // print('edgesEW, just calculated...');
@@ -199,11 +209,10 @@ class PaintingSpecs
     }
     if (n == 0) return;		// Skip empty cell.
 
-    PuzzleMap puzzleMap = puzzle.puzzleMap;
     double topMargin  = 0.05;
     double leftMargin = 0.05;
-    if ((puzzleMap.specificType == SudokuType.KillerSudoku) ||
-        (puzzleMap.specificType == SudokuType.Mathdoku)) {
+    if ((_puzzleMap.specificType == SudokuType.KillerSudoku) ||
+        (_puzzleMap.specificType == SudokuType.Mathdoku)) {
       if (isCell) {
         topMargin = 0.2;	// Allow space for cage value.
       }
@@ -263,7 +272,7 @@ class PaintingSpecs
   }
 
   void _markEdges (List<int> cells,
-                   PuzzleMap puzzleMap, BoardContents cellBackG,
+                   PuzzleMap _puzzleMap, BoardContents cellBackG,
                    List<int> edgesEW, List<int> edgesNS)
   {
     // Bits for left + right + above + below.
@@ -276,18 +285,18 @@ class PaintingSpecs
     // print('ENTERED _markEdges()');
     List<int> cellEdges = [];
     int edges = 0;
-    int limit = puzzleMap.sizeX - 1;
+    int limit = _puzzleMap.sizeX - 1;
 
     int nCells = cells.length;
     for (int n = 0; n < nCells; n++) {
-      int x = puzzleMap.cellPosX(cells[n]);
-      int y = puzzleMap.cellPosY(cells[n]);
+      int x = _puzzleMap.cellPosX(cells[n]);
+      int y = _puzzleMap.cellPosY(cells[n]);
       edges = all;
       List<int> neighbour    = [-1, -1, -1, -1];
-      neighbour[0] /*left */ = (x > 0)     ? puzzleMap.cellIndex(x-1, y) : -1;
-      neighbour[1] /*right*/ = (x < limit) ? puzzleMap.cellIndex(x+1, y) : -1;
-      neighbour[2] /*above*/ = (y > 0)     ? puzzleMap.cellIndex(x, y-1) : -1;
-      neighbour[3] /*right*/ = (y < limit) ? puzzleMap.cellIndex(x, y+1) : -1;
+      neighbour[0] /*left */ = (x > 0)     ? _puzzleMap.cellIndex(x-1, y) : -1;
+      neighbour[1] /*right*/ = (x < limit) ? _puzzleMap.cellIndex(x+1, y) : -1;
+      neighbour[2] /*above*/ = (y > 0)     ? _puzzleMap.cellIndex(x, y-1) : -1;
+      neighbour[3] /*right*/ = (y < limit) ? _puzzleMap.cellIndex(x, y+1) : -1;
       for (int nb = 0; nb < 4; nb++) {
         if ((neighbour[nb] < 0) || (cellBackG[neighbour[nb]] == UNUSABLE)) {
           continue;	// Edge of puzzle or unused cell on this side.
@@ -301,15 +310,15 @@ class PaintingSpecs
       }
       // Colour detached cells (as in XSudoku diagonals), but not 1-cell cages.
       if (edges == all) {
-        if (puzzleMap.specificType == SudokuType.XSudoku) {
+        if (_puzzleMap.specificType == SudokuType.XSudoku) {
           int cellPos = cells[n];
           cellBackG[cellPos] = SPECIAL;
         }
         continue;
       }
       // Now set up the edges we have found - to be drawn thick.
-      int sizeX = puzzleMap.sizeX;
-      int sizeY = puzzleMap.sizeY;
+      int sizeX = _puzzleMap.sizeX;
+      int sizeY = _puzzleMap.sizeY;
       if ((edges & left)  != 0) edgesNS[x * sizeY + y] = 2;
       if ((edges & right) != 0) edgesNS[(x + 1) * sizeY + y] = 2;
       if ((edges & above) != 0) edgesEW[x * (sizeY + 1) + y] = 2;
