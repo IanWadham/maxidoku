@@ -149,48 +149,27 @@ class Puzzle
   bool notesMode       = false;
   int  lastCellHit     = 0;
 
-  static Puzzle? _instance;
-
-  factory Puzzle([int index = 1])
+  Puzzle(int index)				// Create selected puzzle type.
   {
-    bool test = (_instance == null);
-    print('Puzzle constructor call: index $index, null _instance $test');
-    _instance ??= Puzzle._(index);
-
-    return _instance!;
-  }
-    ///.. Rest code
-
-  Puzzle._(int index)
-  {
-    // Create selected puzzle type.
-    // int index = int.tryParse(settings.puzzleSpecID, radix: 10) ?? 1;
     print('Create Puzzle: index $index');
 
     // Create a list of puzzle specifications in textual form.
     PuzzleTypesText puzzleList = PuzzleTypesText();
 
-    // Get a specification of a puzzle, using the index supplied by Settings..
+    // Get a specification of a puzzle, using the index supplied via the user.
     List<String> puzzleMapSpec = puzzleList.puzzleTypeText(index);
 
     // Parse it and create the corresponding Puzzle Map, with an empty board.
     _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
-
-    // Create the bridge to the 2D puzzle-view.
-    // PaintingSpecs _paintingSpecs = new PaintingSpecs(_puzzleMap);
-    // _paintingSpecs.puzzleMap = _puzzleMap;
-    print('PuzzleMap: sizeX ${_puzzleMap.sizeX}');
-    // print('CREATED _paintingSpecs');
 
     // Initialize the lists of cells, using deep copies.
     _puzzleGiven = [..._puzzleMap.emptyBoard];
     _solution    = [..._puzzleMap.emptyBoard];
     _stateOfPlay = [..._puzzleMap.emptyBoard];
     _cellStatus  = [..._puzzleMap.emptyBoard];
-    print('EXITING Puzzle singleton constructor');
   }
 
-  CellState hitPuzzleArea(int n)
+  CellState hitPuzzleArea(int n)		// User has hit a puzzle-cell.
   {
     CellValue  symbol = selectedControl;
     CellStatus status = _cellStatus[n];
@@ -205,11 +184,11 @@ class Puzzle
       return CellState(UNUSABLE, UNUSABLE);
     }
 
-    // Make the move. Return the status and value.
+    // Make a move. Return the status and value.
     return move(n, symbol);
   }
 
-  CellState move(int n, CellValue symbol)
+  CellState move(int n, CellValue symbol)	// Update the Puzzle state.
   { 
     CellStatus currentStatus = _cellStatus[n];
     CellValue  currentValue  = _stateOfPlay[n];
@@ -245,7 +224,7 @@ class Puzzle
       if (newValue == currentValue) {
         // newValue  = VACANT;
         // newStatus = VACANT;
-        // Don't treat this as an Erase...
+        // Don't treat this as an Erase... TODO - Reinstate Erase behaviour.
         return CellState(currentStatus, currentValue);
       }
       else {
@@ -267,7 +246,7 @@ class Puzzle
     return newState;
   }
 
-  bool undo() {
+  bool undo() {					// Undo a move.
     int l = _cellChanges.length;
     print('UNDO: index = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo <= 0) {
@@ -283,7 +262,7 @@ class Puzzle
     return true;
   }
 
-  bool redo() {
+  bool redo() {					// Redo a move.
     int l = _cellChanges.length;
     print('REDO: index = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo >= _cellChanges.length) {
