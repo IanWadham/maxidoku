@@ -115,10 +115,11 @@ class Puzzle
     return;
   }
 
-  // Interface to the view, painting and scaling of 2D puzzle-types.
-  final PaintingSpecs _paintingSpecs = PaintingSpecs.empty();
+  // A stash where View widgets can find a copy of the puzzle's Painting Specs.
+  PaintingSpecs _paintingSpecs = PaintingSpecs.empty();	// Dummy for compiling.
 
   PaintingSpecs get paintingSpecs => _paintingSpecs;
+  void set paintingSpecs(PaintingSpecs p) => _paintingSpecs = p;
 
   // The starting position of the puzzle, +ve integers. Stays fixed during play.
   BoardContents    _puzzleGiven = [];
@@ -150,12 +151,6 @@ class Puzzle
 
   static Puzzle? _instance;
 
-  // Puzzle({required SettingsController settings})
-    // Create the bridge to the 2D puzzle-view.
-    // : paintingSpecs = PaintingSpecs(this)
-  // {
-  // Puzzle._(({SettingsController settings}));
-
   factory Puzzle([int index = 1])
   {
     bool test = (_instance == null);
@@ -182,9 +177,10 @@ class Puzzle
     _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
 
     // Create the bridge to the 2D puzzle-view.
-    PaintingSpecs _paintingSpecs = new PaintingSpecs(_puzzleMap);
+    // PaintingSpecs _paintingSpecs = new PaintingSpecs(_puzzleMap);
     // _paintingSpecs.puzzleMap = _puzzleMap;
-    print('CREATED _paintingSpecs');
+    print('PuzzleMap: sizeX ${_puzzleMap.sizeX}');
+    // print('CREATED _paintingSpecs');
 
     // Initialize the lists of cells, using deep copies.
     _puzzleGiven = [..._puzzleMap.emptyBoard];

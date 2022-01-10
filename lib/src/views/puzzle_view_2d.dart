@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:community_material_icon/community_material_icon.dart';
 
-// import '../settings/settings_controller.dart';
 import '../settings/settings_view.dart';
 
 import '../globals.dart';
@@ -29,45 +28,21 @@ const double eraseDepth = 0.67;
 /// Displays a Sudoku puzzle of a selected type and size.
 class PuzzleView2D extends StatelessWidget
 {
-  // SettingsController settings;
+  final int       index;	// Position in puzzle-specifications list.
 
-  // final Puzzle    puzzle;	// Main object in puzzle's model and control.
-  final int       index;	// Its position in puzzle-specifications list.
-
-  // Specs for painting the 2D puzzle view and processing hits.
-  // late PaintingSpecs paintingSpecs;
-
-  // late PuzzleLayoutPainter  layoutPainter;	// Painter for background.
-  // late PuzzlePainter  puzzlePainter;	// Painter for background and symbols.
-
-  PuzzleView2D(this.index, {Key? key,})
-               : // puzzle = Puzzle(index),	// Create singleton puzzle.
-                 super(key: key);
-/*
-  {
-    int index     = int.tryParse(specID, radix: 10) ?? 1;
-    puzzle       = Puzzle(index: index);	// Create selected puzzle type.
-
-    // Precalculate and save the operations for paint(Canvas canvas, Size size).
-    // These are held in unit form and scaled up when the canvas-size is known.
-    paintingSpecs = PaintingSpecs(puzzle);
-    paintingSpecs.calculatePainting();
-
-    // layoutPainter   = PuzzleLayoutPainter(paintingSpecs);
-    puzzlePainter   = PuzzlePainter(paintingSpecs);
-  }
-*/
-  // final puzzlePainter   = PuzzlePainter(puzzle.paintingSpecs);
+  PuzzleView2D(this.index, {Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
 
+    print('In PuzzleView2D Widget build()');
+    Puzzle puzzle = new Puzzle(index);	// Create a Singleton Puzzle object.
+
     // Precalculate and save the operations for paint(Canvas canvas, Size size).
     // These are held in unit form and scaled up when the canvas-size is known.
-    Puzzle puzzle = new Puzzle(index);
-    // Puzzle encore = new Puzzle(index);
-    print('RETURNED FROM CREATING PUZZLE');
-    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
+    PaintingSpecs paintingSpecs = PaintingSpecs(puzzle.puzzleMap);
+;
+    puzzle.paintingSpecs = paintingSpecs;	// Save the reference.
     paintingSpecs.calculatePainting();
 
     // Set vertical/horizontal, depending on the device or window-dimensions.
@@ -166,25 +141,11 @@ class PuzzleView2D extends StatelessWidget
 
     if (! paintingSpecs.portrait) {	// Landscape orientation.
       // Paint the puzzle with the action icons in a column on the RHS.
-      return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
+      return Scaffold( appBar: AppBar( title: const Text('Puzzle'),),
         body: Row(
           children: <Widget>[
             Expanded(
-              // child: _PuzzleView2D(puzzle: puzzle),
-              child: _PuzzleView2D(),
-            // ConstrainedBox(
-              // constraints: BoxConstraints.tight(const Size(700.0, 600.0)),
-              // child: Container(
-                // height: (MediaQuery.of(context).size.height),
-                // child: puzzleArea,
-                // child: Listener(
-                  // onPointerDown: _possibleHit,
-                  // child: CustomPaint(
-                    // painter: widget.puzzlePainter,
-                  // ),
-                  // behavior: HitTestBehavior.deferToChild,
-                // ),
-              // ), // End Container(
+              child: _PuzzleView2D(puzzle),
             ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
@@ -196,7 +157,7 @@ class PuzzleView2D extends StatelessWidget
         ), // End body: Row(
       ); // End return Scaffold(
     }
-    else {					// Portrait orientation.
+    else {				// Portrait orientation.
       // Paint the puzzle with the action icons in a row at the top.
       return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
         body: Column (
@@ -208,18 +169,7 @@ class PuzzleView2D extends StatelessWidget
               ),
             ),
             Expanded(
-              // child: _PuzzleView2D(puzzle: puzzle),
-              child: _PuzzleView2D(),
-              // child: Container(
-                // width: (MediaQuery.of(context).size.width),
-                // child: puzzleArea,
-                // child: Listener(
-                  // onPointerDown: _possibleHit,
-                  // child: CustomPaint(
-                    // painter: widget.puzzlePainter,
-                  // ),
-                // ),
-              // ), // End Container(
+              child: _PuzzleView2D(puzzle),
             ),
           ],
         ), // End body: Column(
@@ -234,7 +184,8 @@ class PuzzleView2D extends StatelessWidget
 
 class _PuzzleView2D extends StatefulWidget
 {
-  const _PuzzleView2D({Key? key}) : super(key: key);
+  final Puzzle puzzle;
+  const _PuzzleView2D(this.puzzle, {Key? key}) : super(key: key);
 
   @override
   _PuzzleView2DState createState() => _PuzzleView2DState();
@@ -251,16 +202,10 @@ class _PuzzleView2D extends StatefulWidget
 class _PuzzleView2DState extends State<_PuzzleView2D>
 {
   Offset hitPos = Offset(-1.0, -1.0);
-  // Puzzle puzzle = Puzzle();	// Singleton: not new just get a reference.
-  // PaintingSpecs paintingSpecs = Puzzle().paintingSpecs;
-  late PuzzlePainter puzzlePainter; // = new PuzzlePainter(paintingSpecs);
+  late PuzzlePainter puzzlePainter;
 
-  // void _handleHit(PointerEvent details)
   void _possibleHit(PointerEvent details)
   {
-    // Offset checkPos = details.localPosition;
-    // if (checkPos.dx < 0.0 || checkPos.dy < 0 || checkPos.dx > 741.0 || checkPos.dy > 480.0) return;
-    // setState(() {hitPos = checkPos;} );
     setState(() {hitPos = details.localPosition;} );
     print('HIT ${hitPos.dx.toStringAsFixed(2)}, ${hitPos.dy.toStringAsFixed(2)}');
     // Tell the PuzzlePainter where the hit is and trigger a repaint.
@@ -271,15 +216,17 @@ class _PuzzleView2DState extends State<_PuzzleView2D>
   @override
   void initState() {
     super.initState();
-    PaintingSpecs paintingSpecs = Puzzle().paintingSpecs;
-    puzzlePainter = new PuzzlePainter(paintingSpecs);
+    print('In _PuzzleView2DState.initState()');
+    // PaintingSpecs paintingSpecs = Puzzle().paintingSpecs;
+    Puzzle puzzle = widget.puzzle;
+    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
+    puzzlePainter = new PuzzlePainter(puzzle, paintingSpecs);
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: (MediaQuery.of(context).size.height),
-      // child: puzzleArea,
       child: Listener(
         onPointerDown: _possibleHit,
         child: CustomPaint(
@@ -289,180 +236,8 @@ class _PuzzleView2DState extends State<_PuzzleView2D>
     );
   } // End Widget build()
 
-    // Set vertical/horizontal, depending on the device or window-dimensions.
-    // widget.puzzle.paintingSpecs.portrait =
-                  // (MediaQuery.of(context).orientation == Orientation.portrait);
-/*
-    // Create the list of action-icons.
-    List<Widget> actionIcons = [
-      IconButton(
-        icon: const Icon(CommunityMaterialIcons.exit_run), // exit_to_app),
-        tooltip: 'Return to list of puzzles',
-        onPressed: () {
-          Navigator.pop(context);
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.settings_outlined),
-        tooltip: 'Settings',
-        onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.save_outlined),
-        tooltip: 'Save puzzle',
-        onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.file_download),
-        tooltip: 'Restore puzzle',
-        onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
-        },
-      ),
-      IconButton(
-        icon: const Icon(CommunityMaterialIcons.lightbulb_on_outline),
-        tooltip: 'Get a hint',
-        onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.undo_outlined),
-        tooltip: 'Undo a move',
-        onPressed: () {
-          print('PRESSED UNDO ***********************************************');
-          widget.puzzle.undo();
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.redo_outlined),
-        tooltip: 'Redo a move',
-        onPressed: () {
-          print('PRESSED REDO ***********************************************');
-          widget.puzzle.redo();
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.devices_outlined),
-        tooltip: 'Generate a new puzzle',
-        onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.check_circle_outline_outlined),
-        tooltip: 'Check that the puzzle you have entered is valid',
-        onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.restart_alt_outlined),
-        tooltip: 'Start solving this puzzle again',
-        onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
-        },
-      ),
-    ]; // End list of action icons
-*/
-    // Listener listener = new Listener(
-      // onPointerDown: _possibleHit,
-    // );
-
-    // CustomPaint puzzleArea = new CustomPaint(
-      // painter: widget.puzzlePainter,
-      // child:   Listener(
-        // onPointerDown: _possibleHit,
-      // ),
-    // );
-
-    // if (! widget.puzzle.paintingSpecs.portrait) { // Landscape orientation.
-      // Paint the puzzle with the action icons in a column on the RHS.
-      // return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
-        // body: Row(
-          // children: <Widget>[
-            // Expanded(
-            // ConstrainedBox(
-              // constraints: BoxConstraints.tight(const Size(700.0, 600.0)),
-              // child: Container(
-              // child: Container(
-                // height: (MediaQuery.of(context).size.height),
-                // child: puzzleArea,
-                // child: Listener(
-                  // onPointerDown: _possibleHit,
-                  // child: CustomPaint(
-                    // painter: widget.puzzlePainter,
-                  // ),
-                  // behavior: HitTestBehavior.deferToChild,
-                // ),
-              // ), // End Container(
-            // ),
-            // Ink(   // Give puzzle-background colour to column of IconButtons.
-              // color: Colors.amber.shade100,
-              // child: Column(
-                // children: actionIcons,
-              // ),
-            // ),
-          // ], // End Row children: [
-        // ), // End body: Row(
-      // ); // End return Scaffold(
-    // }
-    // else {					// Portrait orientation.
-      // Paint the puzzle with the action icons in a row at the top.
-      // return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
-        // body: Column (
-          // children: <Widget> [
-            // Ink( // Give puzzle-background colour to row of IconButtons.
-              // color: Colors.amber.shade100,
-              // child: Row(
-                // children: actionIcons,
-              // ),
-            // ),
-            // Expanded(
-              // child: Container(
-                // width: (MediaQuery.of(context).size.width),
-                // // child: puzzleArea,
-                // child: Listener(
-                  // onPointerDown: _possibleHit,
-                  // child: CustomPaint(
-                    // painter: widget.puzzlePainter,
-                  // ),
-                // ),
-              // ), // End Container(
-            // ),
-          // ],
-        // ), // End body: Column(
-      // ); // End return Scaffold(
-    // } // End if-then-else
-  // } // End Widget build()
-
 } // End class _PuzzleView2DState extends State<PuzzleView2D>
 
-
-class PuzzlePainter extends ChangeNotifier implements CustomPainter
-{
-// TODO - Why is shouldRepaint() being called TWICE before paint() is entered?
-
-  PaintingSpecs paintingSpecs;
-  Offset hitPosition = Offset(-1.0, -1.0);
 
   // TODO - Find out for sure how to use Listenable and repaint param properly.
   //
@@ -470,9 +245,15 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
   //        Oh, and adding "repaint: repaint" to the super's parameters is
   //        harmless and might help us get re-painting on value-change later. 
 
-  PuzzlePainter(this.paintingSpecs);
+class PuzzlePainter extends ChangeNotifier implements CustomPainter
+{
+  final Puzzle puzzle;
+  final PaintingSpecs paintingSpecs;
+
+  PuzzlePainter(this.puzzle, this.paintingSpecs);
+
+  Offset hitPosition = Offset(-1.0, -1.0);
   Size prevSize = Size(10.0, 10.0);
-  // { print('PuzzleLayoutPainter size = ${Widget.size}'); }
 
   /* Paint or re-paint the puzzle-area, the puzzle-controls (symbols), *
    * the given-values (clues) for the puzzle and the symbols and notes *
@@ -490,7 +271,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     // ******** DEBUG ********
     int w = size.width.floor();
     int h = size.height.floor();
-    // print("W $w, H $h");
+    print("W $w, H $h");
     // ***********************
 
     int  nSymbols      = paintingSpecs.nSymbols;
@@ -507,7 +288,6 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     // Co-ordinates of top-left corner of puzzle-controls (symbols).
     double topLeftXc   = xy[2];
     double topLeftYc   = xy[3];
-    print('xy[3] ${xy[3]}');
 
     // Cell sizes for puzzle-area and controls (symbols).
     double cellSize    = xy[4];
@@ -582,9 +362,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       else {
         o1 = topLeftXc;
         o2 = topLeftYc + i * controlSize;
-        print('Landscape: topLeftYc $topLeftYc, i $i, cSize $controlSize, o2 $o2');
       } 
-      print('Paint CONTROLS: portrait $portrait, o1 $o1, o2 $o2, cSize $controlSize');
       canvas.drawRect(Offset(o1, o2) & Size(controlSize, controlSize), paint2);
     }
 
@@ -678,7 +456,8 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
 
     // Check for a hit in the puzzle-area (i.e. a user-move).
     Rect r = paintingSpecs.puzzleRect;
-    Puzzle puzzle = Puzzle(); // paintingSpecs.puzzle;
+    // print('In Canvas.paint()');
+    // Puzzle puzzle = Puzzle(); // paintingSpecs.puzzle;
     if (r.contains(hitPosition)) {
       print('Hit the Puzzle Area');
       Offset point = hitPosition - Offset(topLeftX, topLeftY);
@@ -806,7 +585,6 @@ List<double> calculatePuzzleLayout (bool portrait, Size size,
     longSide    = size.height;
     puzzleCells = paintingSpecs.sizeX;
   }
-  print('puzzleCells from PaintingSpecs: $puzzleCells');
   // Fix the size of the margin in relation to the canvas size.
   double margin   = shortSide / 35.0;
 
@@ -854,12 +632,8 @@ List<double> calculatePuzzleLayout (bool portrait, Size size,
     result = [longSide, shortSide,
               size.width - controlSize - margin, shortSide];
               // size.width - controlSize - margin, margin];
-    print('Layout RESULT: $result');
   }
   result.add(cellSize);
   result.add(controlSize);
-  print('Layout FINAL RESULT: $result');
-  // print('Cell sizes $cellSize $controlSize');
-  // print('RESULT $result');
   return result;
 }

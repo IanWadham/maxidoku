@@ -24,12 +24,6 @@ class PaintingSpecs
 
   PaintingSpecs.empty();
 
-  // setPuzzleMap (PuzzleMap p)
-  // {
-    // _puzzleMap = p;
-    // // calculatePainting();
-  // }
-
   // A fixed text-painter and style for painting Sudoku symbols on a Canvas.
   final TextPainter _tp = TextPainter(
           textAlign: TextAlign.center,
