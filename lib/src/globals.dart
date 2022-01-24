@@ -66,14 +66,11 @@ const String letters = '.ABCDEFGHIJKLMNOPQRSTUVWXY';
 enum SudokuType {Plain, XSudoku, Jigsaw, Samurai, TinySamurai, Roxdoku, Aztec,
                  Mathdoku, KillerSudoku, EndSudokuTypes, Invalid}
 
-/* TODO - Dart's enum cannot have pre-assigned values.
-enum Difficulty {VeryEasy  = 0, Easy = 1, Medium = 2, Hard = 3, Diabolical = 4,
-                 Unlimited = 5}
-*/
+enum Difficulty {VeryEasy, Easy, Medium, Hard, Diabolical, Unlimited}
 
 // TODO - Do we need the LAST_CHOICE id?
 enum Symmetry   {DIAGONAL_1, CENTRAL, LEFT_RIGHT, SPIRAL, FOURWAY,
-                 RANDOM_SYM, /* LAST_CHOICE = RANDOM_SYM, */ NONE, DIAGONAL_2}
+                 RANDOM_SYM, NONE, DIAGONAL_2}
 
 enum CageOperator {NoOperator, Divide, Subtract, Multiply, Add}
 
@@ -83,57 +80,20 @@ typedef CellStatus    = int;		// Cell status, see consts above.
 
 typedef BoardContents = List<int>;	// Cell values or statuses, see above.
 
+typedef Pair         = int;		// Two small integers packed into one.
+const int lowWidth   = 8;		// Right-hand value is 8 bits.
+const int lowMask    = 255;		// Mask for right-hand value.
+
+typedef Move         = Pair;		// Position (pairPos) | value (pairVal).
+typedef MoveList     = List<Move>;
+typedef MoveTypeList = List<MoveType>;
+
+enum    MoveType     {Single, Spot, Guess, Wrong, Deduce, Result}
+
 enum    GuessingMode {Random, NotRandom}
 
 // The maximum digit that can be used in a Mathdoku or Killer Sudoku puzzle.
 const int MaxMathOrder = 9;
-
-/*
-typedef Statistics = 
-struct {
-    char *     typeName;
-    SudokuType type;
-    int        blockSize;
-    int        order;
-    bool       generated;
-    qint32     seed;
-    int        nClues;
-    int        nCells;
-    int        nSingles;
-    int        nSpots;
-    int        nDeduces;
-    int        nGuesses;
-    int        firstGuessAt;
-    float      rating;
-    Difficulty difficulty;
-};
-*/
-
-/* TODO - Dart's enum cannot have pre-assigned values.
-enum ButtonState {
-	GivenValue     = 0,
-	CorrectValue   = 1,
-	WrongValue     = 2,
-	ObviouslyWrong = 3,
-	Marker         = 4
-}
-*/
-/*
-typedef Trio = int;	 	// Three small integers packed into one.
-        Trio setTrio    (int pos, int val, bool isNote )
-                                 => (pos << 9) + (isNote ? 256 : 0) + val;
-        int  trioPos    (Trio x) => x >> 9;
-        int  trioVal    (Trio x) => x & 255;
-        bool trioIsNote (Trio x) => ((x & 256) == 256);
-
-typedef UserMove = Trio;
-*/
-
-enum GameType {
-	TypeSudoku,
-	TypeRoxdoku,
-	TypeCustom
-}
 
 class CellState			// Used by model of puzzle and view of puzzle.
 {

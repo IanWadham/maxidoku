@@ -289,10 +289,11 @@ class PuzzleMap
 
   // Methods for calculating cell positions and X, Y and Z co-ordinates.
 
-  // In a BoardContents list the fastest variations are in Z, Y and X, in that order.
-  // The cells in a two-dimensional board are listed one complete column at a time.
+  // In a BoardContents list the fastest variations are in Z, Y and X, in that
+  // order. The cells in a two-dimensional board are listed one complete column
+  // at a time.
 
-  int cellIndex(int x, int y, [int z = 0])	// Index of (x,y,z) in BoardContents.
+  int cellIndex(int x, int y, [int z = 0])	// BoardContents index (x,y,z).
   {
     return (x * _sizeY + y) * _sizeZ + z;
   }
@@ -300,12 +301,14 @@ class PuzzleMap
   int cellPosX(int i) {				// X co-ordinate of cell i.
     if(_size <= 0) return 0;
     return i ~/ _sizeZ ~/ _sizeY;
-        // NOTE: Truncated integer operator is ~/ in Dart (/ converts to double).
+    // NOTE: Truncated integer operator is ~/ in Dart (/ converts to double).
   }
+
   int cellPosY(int i) {				// Y co-ordinate of cell i.
     if(_size <= 0) return 0;
     return i ~/ _sizeZ % _sizeY;
   }
+
   int cellPosZ(int i) {				// Z co-ordinate of cell i.
     if(_size <= 0) return 0;
     return i % _sizeZ;
@@ -426,7 +429,6 @@ class PuzzleMap
   List<Cage>       _cages = [];
 
   String           _name = 'PlainSudoku';
-  // GameType      _type; //  = GameType.TypeSudoku;
   SudokuType       _specificType = SudokuType.Plain;
 
   // Initialise the board to zero size until we know what size is required.
@@ -532,6 +534,8 @@ class PuzzleMap
             // Set cells in groups VACANT: cells not in groups are UNUSABLE.
             _emptyBoard [data.elementAt(n)] = VACANT;
         }
+        // print('ADD GROUP $data');
+        // printBoard(_emptyBoard);
   }
 
   // For time-efficiency in generating and solving puzzles, make an index from
@@ -642,7 +646,7 @@ class PuzzleMap
         if (value == UNUSABLE) {
           symbol = ' ';		// Hide unusable cells.
         }
-        else if (value < UNUSABLE) {
+        else if (value < 0) { // UNUSABLE) {
           symbol = '?';		// Flag null cells (if any).
         }
         else {

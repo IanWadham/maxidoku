@@ -106,10 +106,10 @@ class PaintingSpecs
 
   void _calculatePaintAreas()
   {
-    // Some cells may have type UNUSABLE (-1). The rest will have type zero
-    // (empty). Some may be later made into GIVEN, ERROR or SPECIAL types,
+    // Some cells may have type UNUSABLE. The rest will have type zero
+    // (VACANT). Some may be later made into GIVEN, ERROR or SPECIAL types,
     // so the PaintingSpecs class makes a DEEP copy of the empty board's cells.
-    _cellBackG = _puzzleMap.emptyBoard;
+    _cellBackG = [..._puzzleMap.emptyBoard];
     // print('cellBackG ${_cellBackG}');
 
     // TODO - Do something about XSudoku diagonals and one-cell cages.

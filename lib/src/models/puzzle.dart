@@ -16,7 +16,8 @@ import '../globals.dart';
 import 'puzzlemap.dart';
 import 'puzzletypes.dart';
 import '../views/painting_specs_2d.dart';
-// import 'sudokusolver.dart';
+import '../engines/sudoku_generator.dart';
+import '../engines/sudoku_solver.dart';
 
 class CellChange
 {
@@ -85,33 +86,59 @@ class Puzzle
   Random _random = Random(266133);	// Fixed seed: no sophistication needed.
 
   void testPuzzle() {
-    print('TEST Puzzle class');
-    print(boardValues);
+    SudokuGenerator generator = SudokuGenerator(_puzzleMap);
+    BoardContents puzzle = [];
+    BoardContents solution = [];
+    generator.generateSudokuRoxdoku(puzzle,
+                                    solution,
+                                    _SudokuMoves,
+                                    Difficulty.Easy,
+                                    Symmetry.SPIRAL);
+    return;
+    // print('TEST Puzzle class');
+    // print(boardValues);
     print('');
-    BoardContents board = boardValues;
-    _puzzleMap.printBoard(board);
+    BoardContents _testBoard = []; // = boardValues;
+    for (int n = 0; n < _puzzleMap.size; n++) {
+      _testBoard.add(_stateOfPlay[n]);
+      // _testBoard[n] = _stateOfPlay[n];
+      // if (boardValues[n] > 0) {
+        // _cellStatus[n] = GIVEN;
+      // }
+    }
+    // paintingSpecs.cellBackG = _cellStatus;
+    _puzzleMap.printBoard(_testBoard);
+
     // _setUpValueRequirements (board);
     // _deduceValues (board);
     // print('RETURNED FROM _deduceValues');
     /* ---------------------------------------------------------- */
-    /* SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap); */
+    SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
     /* ---------------------------------------------------------- */
     Stopwatch sw = Stopwatch();
     sw.start();
     /* ---------------------------------------------------------- */
-    /* board = solver.solveBoard(board, GuessingMode.Random); */
+    _testBoard = solver.solveBoard(_testBoard, GuessingMode.Random);
     /* ---------------------------------------------------------- */
     print('RETURNED FROM solveBoard');
-    _puzzleMap.printBoard(board);
-    print('ELAPSED TIME (msec)');
-    print (sw.elapsedMilliseconds);
-    for (int n = 0; n < 1; n++) {
+    _puzzleMap.printBoard(_testBoard);
+    // TODO - If _testBoard is empty, NO SOLUTION.
+    //        If not, need to enter solver again and check for >1 solution.
+    // TODO - If solution is unique and accepted by user, set up the lists for
+    //        _puzzleGiven, _solution, _stateOfPlay and _cellStatus. Then actual
+    //        play can begin...
+ 
+    // int result = solver.checkPuzzle(_testBoard); // TODO - IMPLEMENT THIS.
+    // print('Solver RESULT = $result');
+    // print('ELAPSED TIME (msec)');
+    // print (sw.elapsedMilliseconds);
+    // for (int n = 0; n < 1; n++) {
       /* --------------------------- */
       /* solver.createFilledBoard(); */
       /* --------------------------- */
-    }
-    print('ELAPSED TIME (msec)');
-    print (sw.elapsedMilliseconds);
+    // }
+    // print('ELAPSED TIME (msec)');
+    // print (sw.elapsedMilliseconds);
     return;
   }
 
@@ -126,14 +153,21 @@ class Puzzle
 
   // The full solution of the puzzle, +ve integers. Stays fixed during play.
   BoardContents    _solution    = [];
+  List<int>        _SudokuMoves = [];	// Move-list for Sudoku hints.
 
   // Current values of each cell, which may be +ve integers or bitmaps of Notes.
   BoardContents    _stateOfPlay = [];
   BoardContents get stateOfPlay => _stateOfPlay;
 
+  // The required difficulty and symmetry of the puzzle to be generated.
+  // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
+  Difficulty _difficulty = Difficulty.Diabolical;
+  Symmetry   _symmetry   = Symmetry.NONE;
+
   // The current status of each cell.
   // Possible values are UNUSABLE, VACANT, GIVEN, CORRECT, ERROR and NOTES.
   BoardContents    _cellStatus  = [];
+  BoardContents get cellStatus => _cellStatus;
 
   // The sequence of cell-changes and user-moves, for undo/redo purposes.
   List<CellChange> _cellChanges = [];
@@ -151,7 +185,7 @@ class Puzzle
 
   Puzzle(int index)				// Create selected puzzle type.
   {
-    print('Create Puzzle: index $index');
+    print('Create Puzzle: index $index hash ${hashCode}');
 
     // Create a list of puzzle specifications in textual form.
     PuzzleTypesText puzzleList = PuzzleTypesText();
@@ -167,6 +201,83 @@ class Puzzle
     _solution    = [..._puzzleMap.emptyBoard];
     _stateOfPlay = [..._puzzleMap.emptyBoard];
     _cellStatus  = [..._puzzleMap.emptyBoard];
+  }
+
+  // Generate a new puzzle of the type and size selected by the user.
+  void generatePuzzle()
+  {
+    SudokuType puzzleType = _puzzleMap.specificType;
+    switch (puzzleType) {
+      case SudokuType.Roxdoku:
+        // 3D puzzles not yet supported in Flutter and Multidoku.
+        // TODO - When they are, they can be generated by the "default:" branch
+        //        below, but should have a 3D CustomPainter() in the view.
+        // TODO - Issue a message.
+        return;
+      case SudokuType.Mathdoku:
+      case SudokuType.KillerSudoku:
+	// Generate variants of Killer Sudoku or Mathdoku (aka KenKen TM) types.
+        // MathdokuGenerator mg = MathdokuGenerator(_puzzleMap);
+	// int maxTries = 10;
+	// int numTries;
+        // for (numTries = 1; numTries <= maxTries; numTries++) {
+          // _solution = _fillBoard();
+          // if (mg.generateMathdokuKiller(_puzzleGiven, _solution, _SudokuMoves,
+                                        // _difficulty)) {
+            // return;
+          // } 
+        // }
+        // TODO - Issue a message.
+		// QWidget owner;
+		// if (KMessageBox::questionYesNo (&owner,
+			    // i18n("Attempts to generate a puzzle failed after "
+				 // "about 200 tries. Try again?"),
+			    // i18n("Mathdoku or Killer Sudoku Puzzle"))
+			    // == KMessageBox::No) {
+		    // return false;	// Go back to the Welcome screen.
+		// }
+		// numTries = 0;		// Try again.
+        break;
+      default:
+	// Generate variants of Sudoku (2D) and Roxdoku (3D) types.
+        SudokuGenerator srg = SudokuGenerator(_puzzleMap);
+	bool success = srg.generateSudokuRoxdoku(_puzzleGiven, _solution,
+                                                 _SudokuMoves,
+                                                 _difficulty, _symmetry);
+        if (success) {
+          print('_puzzleGiven $_puzzleGiven');
+          _stateOfPlay = [..._puzzleGiven];
+          for (int n = 0; n < _puzzleGiven.length; n++) {
+            if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
+              _cellStatus[n] = GIVEN;
+            }
+          }
+          _cellChanges.clear();		// No moves made yet.
+          print('PUZZLE\n');
+          _puzzleMap.printBoard(_stateOfPlay);
+          print('Cell statuses $_cellStatus');
+          print('Cell changes  $_cellChanges');
+        }
+        else {
+          // TODO - Issue messages.
+          //        Generator could have failed internally OR the user could
+          //        have rejected the best puzzle that was generated.
+        }
+        return;
+    }
+  }
+
+  BoardContents _fillBoard()
+  {
+    // This is in a function so that "solver" will release resources
+    // promptly, before the Mathdoku/Killer-Sudoku generator runs.
+    SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
+    return solver.createFilledBoard();
+  }
+
+  // Check the validity of a puzzle tapped in by the user.
+  void checkPuzzle()
+  {
   }
 
   CellState hitPuzzleArea(int n)		// User has hit a puzzle-cell.
@@ -222,10 +333,11 @@ class Puzzle
       // Normal entry of a possible solution-value or a delete.
       newValue = symbol;
       if (newValue == currentValue) {
-        // newValue  = VACANT;
-        // newStatus = VACANT;
+        // TODO - TEST various combinations of move, erase, prune & undo/redo.
+        newValue  = VACANT;
+        newStatus = VACANT;
         // Don't treat this as an Erase... TODO - Reinstate Erase behaviour.
-        return CellState(currentStatus, currentValue);
+        // return CellState(currentStatus, currentValue);
       }
       else {
         newStatus = (newValue == _solution[n]) ? CORRECT : ERROR;
@@ -234,22 +346,28 @@ class Puzzle
 
     CellState newState = CellState(newStatus, newValue);
     CellState oldState = CellState(currentStatus, currentValue);
+    // TODO - New move: prune _cellChanges list, unless new move == undone???
+    int nCellChanges = _cellChanges.length;
+    if (_indexUndoRedo < nCellChanges) {
+      print('PRUNE _indexUndoRedo $_indexUndoRedo nCellChanges $nCellChanges');
+      _cellChanges.removeRange(_indexUndoRedo, nCellChanges - 1);
+    }
     _cellChanges.add(CellChange(n, oldState, newState));
-    // TODO - New move: truncate _cellChanges list, unless new move == undone???
     _indexUndoRedo     = _cellChanges.length;
     _cellStatus[n]     = newStatus;
     _stateOfPlay[n]    = newValue;
 
-    print('NEW MOVE: cell $n status $newStatus value $newValue');
-    print('StateOfPlay $_stateOfPlay');
+    print('NEW MOVE: cell $n status $newStatus value $newValue changes ${_cellChanges.length} Undo/Redo $_indexUndoRedo');
+    // print('StateOfPlay $_stateOfPlay');
     lastCellHit = n;
     return newState;
   }
 
   bool undo() {					// Undo a move.
     int l = _cellChanges.length;
-    print('UNDO: index = $_indexUndoRedo, cell-changes $l');
+    print('UNDO: _indexUndoRedo = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo <= 0) {
+      print('NO MOVES available to Undo');
       return false;		// No moves left to undo - or none made yet.
     }
 
@@ -264,8 +382,9 @@ class Puzzle
 
   bool redo() {					// Redo a move.
     int l = _cellChanges.length;
-    print('REDO: index = $_indexUndoRedo, cell-changes $l');
+    print('REDO: _indexUndoRedo = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo >= _cellChanges.length) {
+      print('NO MOVES available to Redo');
       return false;		// No moves left to redo - or none made yet.
     }
 

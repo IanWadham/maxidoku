@@ -10,9 +10,8 @@ import '../models/puzzletypes.dart';
 import 'painting_specs_2d.dart';
 
 /* ************************************************************************** **
-   NEW ICON BUTTONS - enter a puzzle (no button: let a user enter something and
-   then check that they wishh to continue), check entered puzzle, generate a
-   puzzle, hint, solve, undo, redo, restart. Mark and go back to Mark???
+   ICON BUTTONS - Enter a puzzle (no button: let a user enter something and
+   then check that they wish to continue). Mark and go back to Mark???
 
    Set symmetry, set difficulty in Settings. Message to user about this???
 ** ************************************************************************** */
@@ -35,13 +34,12 @@ class PuzzleView2D extends StatelessWidget
   @override
   Widget build(BuildContext context) {
 
-    print('In PuzzleView2D Widget build()');
-    Puzzle puzzle = new Puzzle(index);	// Create a Singleton Puzzle object.
+    Puzzle puzzle = new Puzzle(index);	// Create the selected Puzzle object.
 
     // Precalculate and save the operations for paint(Canvas canvas, Size size).
     // These are held in unit form and scaled up when the canvas-size is known.
     PaintingSpecs paintingSpecs = PaintingSpecs(puzzle.puzzleMap);
-;
+
     puzzle.paintingSpecs = paintingSpecs;	// Save the reference.
     paintingSpecs.calculatePainting();
 
@@ -114,18 +112,16 @@ class PuzzleView2D extends StatelessWidget
         icon: const Icon(Icons.devices_outlined),
         tooltip: 'Generate a new puzzle',
         onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
+          print('PRESSED GENERATE *******************************************');
+          puzzle.generatePuzzle();
         },
       ),
       IconButton(
         icon: const Icon(Icons.check_circle_outline_outlined),
         tooltip: 'Check that the puzzle you have entered is valid',
         onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
+          print('PRESSED CHECK **********************************************');
+          puzzle.testPuzzle();
         },
       ),
       IconButton(
@@ -141,7 +137,7 @@ class PuzzleView2D extends StatelessWidget
 
     if (! paintingSpecs.portrait) {	// Landscape orientation.
       // Paint the puzzle with the action icons in a column on the RHS.
-      return Scaffold( appBar: AppBar( title: const Text('Puzzle'),),
+      return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
         body: Row(
           children: <Widget>[
             Expanded(
@@ -149,6 +145,7 @@ class PuzzleView2D extends StatelessWidget
             ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
+              // DEBUGGING width: 200.0,
               child: Column(
                 children: actionIcons,
               ),
@@ -160,7 +157,7 @@ class PuzzleView2D extends StatelessWidget
     else {				// Portrait orientation.
       // Paint the puzzle with the action icons in a row at the top.
       return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
-        body: Column (
+        body: Column(
           children: <Widget> [
             Ink( // Give puzzle-background colour to row of IconButtons.
               color: Colors.amber.shade100,
@@ -204,6 +201,7 @@ class _PuzzleView2DState extends State<_PuzzleView2D>
   Offset hitPos = Offset(-1.0, -1.0);
   late PuzzlePainter puzzlePainter;
 
+  // Handle the user's PointerDown actions on the puzzle-area and controls.
   void _possibleHit(PointerEvent details)
   {
     setState(() {hitPos = details.localPosition;} );
@@ -214,6 +212,8 @@ class _PuzzleView2DState extends State<_PuzzleView2D>
   }
 
   @override
+  // Make the Puzzle and PaintingSpecs objects accessible in the canvas() proc.
+  // Together, they specify the background to paint and symbols (moves) to show.
   void initState() {
     super.initState();
     print('In _PuzzleView2DState.initState()');
@@ -224,10 +224,13 @@ class _PuzzleView2DState extends State<_PuzzleView2D>
   }
 
   @override
+  // This widget contains the puzzle-area and puzzle-controls (symbols).
   Widget build(BuildContext context) {
     return Container(
+      // We wish to fill the parent, in either Portrait or Landscape layout.
       height: (MediaQuery.of(context).size.height),
-      child: Listener(
+      width:  (MediaQuery.of(context).size.width),
+      child:  Listener(
         onPointerDown: _possibleHit,
         child: CustomPaint(
           painter: puzzlePainter,
@@ -271,7 +274,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     // ******** DEBUG ********
     int w = size.width.floor();
     int h = size.height.floor();
-    print("W $w, H $h");
+    // print("W $w, H $h");
     // ***********************
 
     int  nSymbols      = paintingSpecs.nSymbols;
@@ -310,8 +313,15 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     var paint2 = Paint()		// Background colour of cells.
       ..color = Colors.amber.shade200
       ..style = PaintingStyle.fill;
+    var paint3 = Paint()		// Colour of Given cells.
+      // ..color = Colors.amberAccent.shade700
+      ..color = Color(0xffffd600)	// yellow.shade700
+      ..style = PaintingStyle.fill;
     var paintSpecial = Paint()		// Colour of Special cells.
-      ..color = Colors.amberAccent	// .shade400
+      ..color = Colors.lime.shade400	// amberAccent.shade400
+      ..style = PaintingStyle.fill;
+    var paintError = Paint()		// Colour of Error cells.
+      ..color = Colors.red.shade400
       ..style = PaintingStyle.fill;
     var thinLinePaint = Paint()		// Style for lines between cells.
       ..color = Colors.brown.shade400
@@ -345,10 +355,22 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     for (int i = 0; i < nCells; i++) {
       o1 = topLeftX + gap/2.0 + (i~/sizeY) * cellSize;
       o2 = topLeftY + gap/2.0 + (i %sizeY) * cellSize;
+      Paint cellPaint;
+      switch (paintingSpecs.cellBackG[i]) {
+        case GIVEN:
+          cellPaint = paint3;
+          break;
+        case SPECIAL:
+          cellPaint = paintSpecial;
+          break;
+        case VACANT:
+        default:
+          cellPaint = paint2;
+      }
       if (paintingSpecs.cellBackG[i] != UNUSABLE) {	// Skip unused areas.
         // Paint the cells that are within the puzzle-area (note Samurai type).
         canvas.drawRect(Offset(o1,o2) & Size(cellSize - gap, cellSize - gap),
-               paintingSpecs.cellBackG[i] == SPECIAL ? paintSpecial : paint2);
+                        cellPaint);
       }
     }
 
@@ -512,6 +534,16 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       int ns = puzzle.stateOfPlay[pos];
       if (ns == UNUSABLE) {
         continue;
+      }
+      int status = puzzle.cellStatus[pos];
+      if ((status == GIVEN) || (status == ERROR)) {
+        Paint cellPaint = (status == GIVEN) ? paint3 : paintError;
+        gap = 12.0;
+        o1 = topLeftX + gap/2.0 + (pos~/sizeY) * cellSize;
+        o2 = topLeftY + gap/2.0 + (pos %sizeY) * cellSize;
+        //canvas.drawRect(Offset(o1, o2) & Size(cellSize - gap, cellSize - gap),
+        canvas.drawOval(Offset(o1, o2) & Size(cellSize - gap, cellSize - gap),
+                        cellPaint);
       }
       int i = puzzle.puzzleMap.cellPosX(pos);
       int j = puzzle.puzzleMap.cellPosY(pos);
