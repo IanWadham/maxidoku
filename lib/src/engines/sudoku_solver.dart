@@ -70,8 +70,8 @@ class SudokuSolver
     }
     sequence.shuffle();
     print('Sequence $sequence');
-    List<int> cellList = _puzzleMap.group (22); // (_nGroups ~/ 2);
-    print('GROUP 13 NOT ${_nGroups ~/ 2}: cellList $cellList');
+    List<int> cellList = _puzzleMap.group (_nGroups ~/ 2);
+    print('GROUP ${_nGroups ~/ 2}: cellList $cellList');
     // TODO - NEEDED?? randomSequence (sequence);
     for (int n = 0; n < _nSymbols; n++) {
         _currentBoard [cellList[n]] = sequence[n];
@@ -152,7 +152,6 @@ class SudokuSolver
     _states.clear();
     _moves.clear();
     _moveTypes.clear();
-    print('States $_states | Moves $_moves | Move Types $_moveTypes');
 
     // Attempt to deduce the solution in one hit.
     GuessesList g = deduceValues (_currentBoard, gMode);
@@ -160,7 +159,7 @@ class SudokuSolver
     if (g.isEmpty) {
         // The entire solution can be deduced by applying the Sudoku rules.
         // dbo1 "NO GUESSES NEEDED, the solution can be entirely deduced.\n");
-        print('NO GUESSES NEEDED, the solution can be entirely deduced.\n');
+        // print('NO GUESSES NEEDED, the solution can be entirely deduced.\n');
         return _currentBoard;
     }
 
@@ -216,8 +215,8 @@ class SudokuSolver
         int pos   = pairPos(guesses[n]);
         int val   = pairVal(guesses[n]);
         // dbo2
-        print('\nNEXT GUESS: depth $depth, guess number $n move $guess');
-        print('  Pick pos $pos value $val');
+        // print('\nNEXT GUESS: depth $depth, guess number $n move $guess');
+        // print('  Pick pos $pos value $val');
                 // pairVal (guesses[n]), pairPos (guesses[n]),
                 // pairPos (guesses[n])/_boardSize + 1,
                 // pairPos (guesses[n])%_boardSize + 1);
@@ -232,7 +231,7 @@ class SudokuSolver
             return _currentBoard;
         }
         int ng = guesses.length;
-        print('\n\nADD ANOTHER STATE TO THE STACK... $ng guesses');
+        // print('\n\nADD ANOTHER STATE TO THE STACK... $ng guesses');
         _states.add (new State (guesses, 0, _currentBoard, _moves, _moveTypes));
         // TODO - limit++;
     }
@@ -254,7 +253,6 @@ class SudokuSolver
         iteration++;
         _moves.add (iteration);
         _moveTypes.add (MoveType.Deduce);
-        print('DEDUCE: Iteration $iteration\n');	// dbgLevel 1
         bool stuck = true;
         int  guessCounter = 0;
         guesses.clear();
@@ -408,7 +406,6 @@ class SudokuSolver
             } // Next number
         } // Next groupNumber
 
-        print('END OF CELLS AND GROUPS: stuck = $stuck, guesses = $guesses');
         if (stuck) {
             // dbo2 "Guess    ");
             for (int i = 0; i < guesses.length; i++) {
@@ -432,7 +429,7 @@ class SudokuSolver
             // dbo2 "\n");
 
             // TODO: We never get here. Why not?
-            print('STUCK: guesses $guesses\n');
+            // print('STUCK: guesses $guesses\n');
             return guesses;
         }
     } // End while (true)

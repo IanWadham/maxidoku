@@ -23,13 +23,6 @@ import 'sudoku_solver.dart';
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ****************************************************************************/
 
-// TODO - SudokuBoard, MathdokuGenerator, CageGenerator and DLXSolver could be
-//        factored better. At the moment, MathdokuGenerator needs SudokuBoard's
-//        fillBoard() method to create a square that satisfies Sudoku rules for
-//        Killer Sudoku or Mathdoku puzzles. But fillBoard() depends on large
-//        parts of SudokuBoard's solver logic... so we have two solver objects
-//        co-existing for now, but this happens only for a second or so.
-
 /**
  * @class SudokuBoard  sudokuboard.h
  * @short Generalized data-structures and methods for handling Sudoku puzzles.
@@ -76,7 +69,7 @@ import 'sudoku_solver.dart';
  * fill it with randomly chosen values (the solution).
  *
  * The main input to the puzzle generator/solver is a pointer to an object of
- * type SKGraph.  That object contains the shape, dimensions and rules for
+ * type PuzzleMap.  That object contains the shape, dimensions and rules for
  * grouping the cells of the particular type of Sudoku being played, including
  * Classic Sudoku in several sizes and variants, Samurai Sudoku with five
  * overlapping grids and the three-dimensional Roxdoku in several sizes.
@@ -96,7 +89,7 @@ import 'sudoku_solver.dart';
  * 3x3 cells.  These form 3 planes perpendicular to each of the X, Y and Z axes.
  *
  * All these configurations are represented by a table of groups (or cliques) in
- * the SKGraph object, which maps cell numbers into groups.  The SudokuBoard
+ * the PuzzleMap object, which maps cell numbers into groups.  The SudokuBoard
  * class itself is unaware of the type of puzzle it is generating or solving.
  */
 
@@ -108,11 +101,11 @@ import 'sudoku_solver.dart';
     /**
      * Construct a new SudokuBoard object with a required type and size.
      *
-     * @param graph         The layout, type and size of the board, including
+     * @param puzzleMap     The layout, type and size of the board, including
      *                      the grouping of cells into rows, columns and blocks,
      *                      as required by the type of puzzle being played.
      */
-    // SudokuGenerator (SKGraph * graph);
+    // SudokuGenerator (PuzzleMap * puzzleMap);
 
     /**
      * Generate a puzzle and its solution (see details in the class-header doc).
@@ -231,41 +224,6 @@ import 'sudoku_solver.dart';
                                                        // Difficulty    difficulty,
                                                        // Symmetry      symmetry);
 
-    // SKGraph *               _graph;
-    // int                     _vacant;
-    // int                     _unusable;
-    // Statistics              _stats;
-    // Statistics              _accum;
-    // MoveList                _moves;
-    // MoveList                _moveTypes;
-    // List<int>               _SudokuMoves;	// Move-list for KSudoku hints.
-
-    // QStack<State *>         _states;
-
-    // List<qint32>         _validCellValues;
-    // List<qint32>         _requiredGroupValues;
-
-    // These are the principal methods of the solver.  The key method is
-    // deduceValues().  It finds and fills cells that have only one possible
-    // value left.  If no more cells can be deduced, it returns a randomised
-    // list of guesses.  Very easy to Medium puzzles are usually entirely
-    // deducible, so solve() begins by trying that path.  If unsuccessful, it
-    // uses tryGuesses() to explore possibilities and backtrack when required.
-
-    // BoardContents &         solve          (GuessingMode gMode);
-    // BoardContents &         tryGuesses     (GuessingMode gMode);
-    // GuessesList             deduceValues   (BoardContents & cellValues,
-                                            // GuessingMode gMode);
-    // GuessesList             solutionFailed (GuessesList & guesses);
-
-    // These methods set up and maintain bit maps that indicate which values are
-    // (still) allowed in each cell and which values are (still) required in
-    // each group (row, column or block).
-
-    // void                    setUpValueRequirements
-                                      // (BoardContents & boardValues);
-    // void                    updateValueRequirements
-                                      // (BoardContents & boardValues, int cell);
 
     /**
      * Clear a board-vector and insert values into it from a solved board.  As
@@ -420,27 +378,10 @@ class Statistics
     Difficulty difficulty   = Difficulty.VeryEasy;
 }
 
-/*// Getters for PuzzleMap properties.
-  int get nSymbols   => _nSymbols;
-  int get blockSize  => _blockSize;
-
-  int get sizeX   => _sizeX;
-  int get sizeY   => _sizeY;
-  int get sizeZ   => _sizeZ;
-
-  int get size    => _size;
-
-  int get nGroups => _nGroups;
-
-  String get name =>  _name;
-
-  SudokuType    get specificType  => _specificType;
-  BoardContents get emptyBoard    => _emptyBoard; */
-
 
 class SudokuGenerator
 {
-    BoardContents _currentValues = [];	///< The current state of the
+    BoardContents _currentValues = [];		///< The current state of the
 						///< cell values during solve().
 
     SudokuType	  _type = SudokuType.Plain;	///< The type of Sudoku puzzle
@@ -472,11 +413,16 @@ class SudokuGenerator
     List<int>     _cellGroups = [];		///< A second-level index from
 						///< cells to individual groups
 						///< to which they belong.
-    PuzzleMap     _graph;
+
+    // The layout, type and size of the board, including the grouping of cells
+    // into rows, columns and blocks, as needed by the type of puzzle selected.
+    PuzzleMap     _puzzleMap;
+
+    // The solver for all types o puzzle except Mathdoku and Killer Sudoku.
     SudokuSolver  _solver;
 
-    int           _vacant = VACANT;
-    int           _unusable = UNUSABLE;
+    int           _vacant      = VACANT;
+    int           _unusable    = UNUSABLE;
 
     Statistics    _stats       = Statistics();
     Statistics    _accum       = Statistics();
@@ -484,40 +430,31 @@ class SudokuGenerator
     MoveTypeList  _moveTypes   = [];
     List<int>     _SudokuMoves = [];	// Move-list for Sudoku hints.
 
-    static const int dbgLevel = 0;
+    static const int dbgLevel  = 0;
 
 
-  SudokuGenerator (PuzzleMap graph)
+  SudokuGenerator (PuzzleMap puzzleMap)
     :
     _boardSize    = 0,
     _overlap      = 0,
-    _graph        = graph,
-    _solver       = SudokuSolver(puzzleMap: graph)
+    _puzzleMap    = puzzleMap,
+    _solver       = SudokuSolver(puzzleMap: puzzleMap)
   {
-    _type         = graph.specificType;
-    _order        = graph.nSymbols;
-    _blockSize    = graph.blockSize;
-    _boardArea    = graph.size;
-    _nGroups      = graph.nGroups;
+    _type         = puzzleMap.specificType;
+    _order        = puzzleMap.nSymbols;
+    _blockSize    = puzzleMap.blockSize;
+    _boardArea    = puzzleMap.size;
+    _nGroups      = puzzleMap.nGroups;
     _groupSize    = _order;
 
     _stats.type      = _type;
     _stats.blockSize = _blockSize;
     _stats.order     = _order;
-    _boardSize       = graph.sizeX;
-    // dbe "SudokuBoard: type %d %s, block %d, order %d, BoardArea %d\n",
-	// _type, graph.name().toAscii().constData(),
-        // _blockSize, _order, _boardArea);
+    _boardSize       = puzzleMap.sizeX;
   }
 
-    // Methods for packing two small integers into one and unpacking them.  Used
-    // for speed and efficiency in the solver and other places.
-    // Pair             setPair (int p, int v ) { return (p << 8) + v; }
-    // int              pairPos (Pair x)  { return (x >> 8);     }
-    // int              pairVal (Pair x)  { return (x & 255);    }
-
-void setSeed()
-{
+  void setSeed()
+  {
     // static bool started = false;  TODO - Dart can't have static inside here.
     bool started = false;
     if (started) {
@@ -530,59 +467,7 @@ void setSeed()
         // qsrand (_stats.seed);
         // dbo1 "setSeed(): SEED = %d\n", _stats.seed);
     }
-}
-
-/*
-bool generatePuzzle             (BoardContents puzzle,
-                                              BoardContents solution,
-                                              Difficulty difficultyRequired,
-                                              Symmetry symmetry)
-{
-    // dbe "Entered generatePuzzle(): difficulty %d, symmetry %d\n",
-        // difficultyRequired, symmetry);
-    setSeed();
-
-    SudokuType puzzleType = _graph.specificType;
-    if ((puzzleType == SudokuType.Mathdoku) ||
-        (puzzleType == SudokuType.KillerSudoku)) {
-
-	// Generate variants of Mathdoku (aka KenKen TM) or Killer Sudoku types.
-	int maxTries = 10;
-	int numTries = 0;
-	bool success = false;
-	while (true) {
-            // TODO - How to wire MathdokuGenerator into the Puzzle environment.
-	    // MathdokuGenerator mg (_graph);
-	    // Find numbers to satisfy Sudoku rules: they will be the solution.
-	    solution = _solver.createFilledBoard();
-	    // Generate a Mathdoku or Killer Sudoku puzzle having this solution.
-	    numTries++;
-	    success = mg.generateMathdokuTypes (puzzle, solution,
-				    _SudokuMoves, difficultyRequired);
-	    if (success) {
-		return true;
-	    }
-	    else if (numTries >= maxTries) {
-		QWidget owner;
-		if (KMessageBox::questionYesNo (&owner,
-			    i18n("Attempts to generate a puzzle failed after "
-				 "about 200 tries. Try again?"),
-			    i18n("Mathdoku or Killer Sudoku Puzzle"))
-			    == KMessageBox::No) {
-		    return false;	// Go back to the Welcome screen.
-		}
-		numTries = 0;		// Try again.
-	    }
-	}
-        return false;
-    }
-    else {
-	// Generate variants of Sudoku (2D) and Roxdoku (3D) types.
-	return generateSudokuRoxdoku (puzzle, solution, _SudokuMoves,
-                                      difficultyRequired, symmetry);
-    }
-}
-*/
+  }
 
   bool generateSudokuRoxdoku (BoardContents puzzle,
                               BoardContents solution,
@@ -605,25 +490,22 @@ bool generatePuzzle             (BoardContents puzzle,
 
     // TODO - Rationalise the use of Random and seeding across all Classes.
     Random random = Random(DateTime.now().millisecondsSinceEpoch);
-/*
+
     // This is a quick-and-dirty test for getSymmetricIndices().
     // TODO - Restore the code for handling RANDOM_SYM and DIAGONAL-12.
-    for (count = 0; count < 5; count++) {
+    // for (count = 0; count < 5; count++) {
 
     symmetry = Symmetry.RANDOM_SYM;	// TESTING ONLY.
     // QTime t;
     // t.start();
-    if (_graph.sizeZ > 1) {
+    if (_puzzleMap.sizeZ > 1) {
 	symmetry = Symmetry.NONE;	// Symmetry not implemented in 3-D.
     }
     if (symmetry == Symmetry.RANDOM_SYM) {	// Choose a symmetry at random.
       List<Symmetry> choices = [Symmetry.DIAGONAL_1, Symmetry.CENTRAL,
                        Symmetry.LEFT_RIGHT, Symmetry.SPIRAL, Symmetry.FOURWAY];
-      // TODO - symmetry = (Symmetry) (qrand() % (int) LAST_CHOICE);
-      // print('ORDERED:  $choices');
       choices.shuffle();
       symmetry = choices[0];
-      // print('SHUFFLED: $choices');
     }
 
     if (symmetry == Symmetry.DIAGONAL_1) {
@@ -631,28 +513,21 @@ bool generatePuzzle             (BoardContents puzzle,
       List<Symmetry> choices = [Symmetry.DIAGONAL_1, Symmetry.DIAGONAL_2];
       choices.shuffle();
       symmetry = choices[0];
-      // print('DIAGONAL: $choices');
     }
+
     print('Symmetry for generateSudokuRoxdoku is $symmetry');
-    int index = random.nextInt(_boardSize * _boardSize);
-    List<int> indices = List.filled(8, 0, growable: false);
-    int n = getSymmetricIndices (_boardSize, symmetry, index, indices);
-    print('Returned $n indices: $indices');
-    }
-    return false;
-*/
+
     while (true) {
         // Fill the board with values that satisfy the Sudoku rules but are
         // chosen in a random way: these values are the solution of the puzzle.
         currSolution = _solver.createFilledBoard();
+
         // dbo1 "RETURN FROM fillBoard()\n");
         // dbo1 "Time to fill board: %d msec\n", t.elapsed());
         if (currSolution.isEmpty) {
           print('FAILED to find a solution from which to generate a puzzle.');
           break;
         }
-        // DEBUG - Aztec, Jigsaw, Sohei.
-        // break;
 
         // Randomly insert solution-values into an empty board until a point is
         // reached where all the cells in the solution can be logically deduced.
@@ -698,19 +573,11 @@ bool generatePuzzle             (BoardContents puzzle,
 After $maxTries tries, the best difficulty level achieved
  is $bestDifficulty, with internal difficulty rating $bestRating, but you
  requested difficulty level $difficultyRequired. Do you wish to try
- again or accept the puzzle as is?\n
-\n
+ again or accept the puzzle as is?
+
 If you accept the puzzle, it may help to change to
  No Symmetry or some low symmetry type, then try
  generating another puzzle.''';
-		    // maxTries, bestDifficulty,
-		    // ratingStr, difficultyRequired),
-                    // i18n("Difficulty Level"),
-                    // KGuiItem(i18n("&Try Again")), KGuiItem(i18n("&Accept")));
-            // if (ans == KMessageBox::Yes) {
-                // count = 0;	// Continue on if the puzzle is not hard enough.
-                // continue;
-            // }
             print(message);
             break;		// Exit if the puzzle is accepted.
 	}
@@ -723,33 +590,17 @@ If you accept the puzzle, it may help to change to
                 int movesToGo = (_stats.nCells - bestNClues);
 		String message = '''
 It will be possible to solve the generated puzzle
- by logic alone. No guessing will be required.\n
-\n
+ by logic alone. No guessing will be required.
+
 The internal difficulty rating is $bestRating. There are
  $bestNClues clues at the start and $movesToGo moves to go.''';
-			    // ratingStr, bestNClues,
-			    // (_stats.nCells - bestNClues)),
-		            // i18n("Difficulty Level"),
-                            // KGuiItem(i18n("&OK")), KGuiItem(i18n("&Retry")));
               print(message);
             }
             else {
-              // QString avGuessStr = ki18n("%1").subs(((double) bestNGuesses) /
-                   // 5.0, 0, 'f', 1).toString(); // Format as for ratingStr.
-              // ans = KMessageBox::questionYesNo (&owner,
-              // i18n("Solving the generated puzzle will require an "
-              // "average of %1 guesses or branch points and if you "
-              // "guess wrong, backtracking will be necessary. The "
-              // "first guess should come after %2 moves.\n"
-              // "\n"
               int movesToGo = (_stats.nCells - bestNClues);
               String message = '''
 The internal difficulty rating is $bestRating, there are
  %4 clues at the start and %5 moves to go.''';
-              // avGuessStr, bestFirstGuessAt, ratingStr,
-              // bestNClues, (_stats.nCells - bestNClues)),
-              // i18n("Difficulty Level"),
-              // KGuiItem(i18n("&OK")), KGuiItem(i18n("&Retry")));
               print(message);
             }
 
@@ -776,9 +627,9 @@ The internal difficulty rating is $bestRating, there are
 
     // if (dbgLevel > 0) {
         print('FINAL PUZZLE\n');
-        _graph.printBoard(bestPuzzle);
+        _puzzleMap.printBoard(bestPuzzle);
         print('\nSOLUTION\n');
-        _graph.printBoard(bestSolution);
+        _puzzleMap.printBoard(bestSolution);
     // }
     for (int n = 0; n < _boardArea; n++) {
       puzzle[n] = bestPuzzle[n];	// TODO - Maybe clear() and add().
@@ -787,9 +638,9 @@ The internal difficulty rating is $bestRating, there are
     return true;
 }
 
-Difficulty calculateRating (BoardContents puzzle,
+  Difficulty calculateRating (BoardContents puzzle,
                                          int nSamples)
-{
+  {
     double avGuesses;
     double avDeduces;
     double avDeduced;
@@ -797,7 +648,7 @@ Difficulty calculateRating (BoardContents puzzle,
     _accum.nSingles = _accum.nSpots = _accum.nGuesses = _accum.nDeduces = 0;
     _accum.rating   = 0.0;
 
-    BoardContents solution = [..._graph.emptyBoard];	// Deep copy.
+    BoardContents solution = [..._puzzleMap.emptyBoard];	// Deep copy.
 
     setSeed();
 
@@ -836,116 +687,20 @@ Difficulty calculateRating (BoardContents puzzle,
         // avGuesses, avDeduces, avDeduced, _accum.rating, _accum.difficulty);
 
     return _accum.difficulty;
-}
+  }
 
-void getMoveList (List<int> moveList)
-{
+ 
+  void getMoveList (List<int> moveList)
+  {
     moveList = _SudokuMoves;
-}
-
-/*
-BoardContents & SudokuBoard::solveBoard (const BoardContents & boardValues,
-                                               GuessingMode gMode)
-{
-    if (dbgLevel >= 2) {
-        dbo "solveBoard()\n");
-        print (boardValues);
-    }
-    _currentValues = boardValues;
-    return solve (gMode);
-}
-
-BoardContents & SudokuBoard::solve (GuessingMode gMode = Random)
-{
-    // Eliminate any previous solver work.
-    qDeleteAll (_states);
-    _states.clear();
-
-    _moves.clear();
-    _moveTypes.clear();
-    int nClues = 0;
-    int nCells = 0;
-    int value  = 0;
-    for (int n = 0; n < m_boardArea; n++) {
-        value = m_currentValues.at(n);
-        if (value != m_unusable) {
-            nCells++;
-            if (value != m_vacant) {
-                nClues++;
-            }
-        }
-    }
-    m_stats.nClues = nClues;
-    m_stats.nCells = nCells;
-    dbo1 "STATS: CLUES %d, CELLS %d, PERCENT %.1f\n", nClues, nCells,
-                                        nClues * 100.0 / float (nCells));
-
-    // Attempt to deduce the solution in one hit.
-    GuessesList g = deduceValues (m_currentValues, gMode);
-    if (g.isEmpty()) {
-        // The entire solution can be deduced by applying the Sudoku rules.
-        dbo1 "NO GUESSES NEEDED, the solution can be entirely deduced.\n");
-        return m_currentValues;
-    }
-
-    // We need to use a mix of guessing, deducing and backtracking.
-    m_states.push (new State (this, g, 0,
-                   m_currentValues, m_moves, m_moveTypes));
-    return tryGuesses (gMode);
-}
-
-BoardContents & SudokuBoard::tryGuesses (GuessingMode gMode = Random)
-{
-    while (m_states.count() > 0) {
-        GuessesList guesses = m_states.top()->guesses();
-        int n = m_states.top()->guessNumber();
-        if ((n >= guesses.count()) || (guesses.at (0) == -1)) {
-            dbo2 "POP: Out of guesses at level %d\n", m_states.count());
-            delete m_states.pop();
-            if (m_states.count() > 0) {
-                m_moves.clear();
-                m_moveTypes.clear();
-                m_moves = m_states.top()->moves();
-                m_moveTypes = m_states.top()->moveTypes();
-            }
-            continue;
-        }
-        m_states.top()->setGuessNumber (n + 1);
-        m_currentValues = m_states.top()->values();
-        m_moves.append (guesses.at(n));
-        m_moveTypes.append (Guess);
-        m_currentValues [pairPos (guesses.at(n))] = pairVal (guesses.at(n));
-        dbo2 "\nNEXT GUESS: level %d, guess number %d\n",
-                m_states.count(), n);
-        dbo2 "  Pick %d %d row %d col %d\n",
-                pairVal (guesses.at(n)), pairPos (guesses.at(n)),
-                pairPos (guesses.at(n))/m_boardSize + 1,
-                pairPos (guesses.at(n))%m_boardSize + 1);
-
-        guesses = deduceValues (m_currentValues, gMode);
-
-        if (guesses.isEmpty()) {
-            // NOTE: We keep the stack of states.  It is needed by checkPuzzle()
-	    //       for the multiple-solutions test and deleted when its parent
-	    //       SudokuBoard object (i.e. this->) is deleted.
-            return m_currentValues;
-        }
-        m_states.push (new State (this, guesses, 0,
-                       m_currentValues, m_moves, m_moveTypes));
-    }
-
-    // No solution.
-    m_currentValues.clear();
-    return m_currentValues;
-}
-*/
+  }
 
   BoardContents insertValues (BoardContents solution,
                                          Difficulty      required,
                                          Symmetry        symmetry)
   {
-    BoardContents puzzle = [..._graph.emptyBoard];	// Deep copy.
-    BoardContents filled = [..._graph.emptyBoard];	// Deep copy.
+    BoardContents puzzle = [..._puzzleMap.emptyBoard];	// Deep copy.
+    BoardContents filled = [..._puzzleMap.emptyBoard];	// Deep copy.
 
     // Make a shuffled list of all the cell-indexes on the board.
     List<int> sequence   = [];
@@ -977,15 +732,13 @@ BoardContents & SudokuBoard::tryGuesses (GuessingMode gMode = Random)
         }
     }
     print('INSERTIONS COMPLETED - PUZZLE\n');
-    _graph.printBoard(puzzle);
+    _puzzleMap.printBoard(puzzle);
     print('\nFILLABLE AREA\n');
-    _graph.printBoard(filled);
+    _puzzleMap.printBoard(filled);
     print('BoardArea $_boardArea, examined $index');
     if (dbgLevel > 0) print (puzzle);
 
-    int limit = 0;
-    // while (true) {
-    while (limit < 30) {
+    while (true) {
         // Check the difficulty of the puzzle.
         _solver.solveBoard (puzzle, GuessingMode.Random);
         analyseMoves (_stats);
@@ -1014,17 +767,16 @@ BoardContents & SudokuBoard::tryGuesses (GuessingMode gMode = Random)
         // dbo1 "At index %d, added value %d, cell %d, row %d, col %d\n",
                 // index, solution.at (cell),
                 // cell, cell/_boardSize + 1, cell%_boardSize + 1);
-        limit++;
     }
     if (dbgLevel > 0) print (puzzle);
     return puzzle;
   }
 
-BoardContents removeValues (BoardContents solution,
+  BoardContents removeValues (BoardContents solution,
                             BoardContents puzzle,
                             Difficulty    required,
                             Symmetry      symmetry)
-{
+  {
     // Make the puzzle harder by removing values at random, making sure at each
     // step that the puzzle has a solution, the correct solution and only one
     // solution.  Stop when these conditions can no longer be met and the
@@ -1037,7 +789,7 @@ BoardContents removeValues (BoardContents solution,
     List<int> sequence   = [];
     randomSequence (sequence, _boardArea);
 
-    BoardContents vacant = [..._graph.emptyBoard];	// Deep copy.
+    BoardContents vacant = [..._puzzleMap.emptyBoard];	// Deep copy.
 
     int       cell          = 0;
     int       value         = 0;
@@ -1129,10 +881,10 @@ BoardContents removeValues (BoardContents solution,
         }
     }
     return puzzle;
-}
+  }
 
-void analyseMoves (Statistics s)
-{
+  void analyseMoves (Statistics s)
+  {
     // Get references to the current Moves and MoveTypes from the SudokuSolver.
     _moves     = _solver.moves;
     _moveTypes = _solver.moveTypes;
@@ -1151,8 +903,8 @@ void analyseMoves (Statistics s)
         mType   = _moveTypes.removeAt(0);
 	int val = m & lowMask;		// Was pairVal(m);
 	int pos = m >> lowWidth;	// Was pairPos(m);
-	int row = _graph.cellPosY (pos);
-	int col = _graph.cellPosX (pos);
+	int row = _puzzleMap.cellPosY (pos);
+	int col = _puzzleMap.cellPosX (pos);
 
         switch (mType) {
         case MoveType.Single:
@@ -1199,10 +951,10 @@ void analyseMoves (Statistics s)
          // s.nClues, s.nCells, ((double) s.nClues / s.nCells) * 100.0,
          // s.nSingles, s.nSpots, s.nGuesses, (s.nSingles + s.nSpots + s.nGuesses),
          // s.nDeduces, s.rating, s.difficulty, s.firstGuessAt);
-}
+  }
 
-Difficulty calculateDifficulty (double rating)
-{
+  Difficulty calculateDifficulty (double rating)
+  {
     // These ranges of the rating were arrived at empirically by solving a few
     // dozen published puzzles and comparing SudokuBoard's rating value with the
     // description of difficulty given by the publisher, e.g. Diabolical or Evil
@@ -1227,244 +979,7 @@ Difficulty calculateDifficulty (double rating)
     }
 
     return d;
-}
-
-/*
-void SudokuBoard::print (const BoardContents & boardValues)
-{
-    // Used for test and debug, but the format is also parsable and loadable.
-
-    char nLabels[] = "123456789";
-    char aLabels[] = "abcdefghijklmnopqrstuvwxy";
-    int index, value;
-
-    if (boardValues.size() != m_boardArea) {
-        printf ("Error: %d board values to be printed, %d values required.\n\n",
-            boardValues.size(), m_boardArea);
-        return;
-    }
-
-    int depth = m_graph->sizeZ;		// If 2-D, depth == 1, else depth > 1.
-    for (int k = 0; k < depth; k++) {
-      int z = (depth > 1) ? (depth - k - 1) : k;
-      for (int j = 0; j < m_graph->sizeY(); j++) {
-	if ((j != 0) && (j % m_blockSize == 0)) {
-	    printf ("\n");		// Gap between square blocks.
-	}
-        int y = (depth > 1) ? (m_graph->sizeY() - j - 1) : j;
-        for (int x = 0; x < m_graph->sizeX(); x++) {
-            index = m_graph->cellIndex (x, y, z);
-            value = boardValues.at (index);
-            if (x % m_blockSize == 0) {
-                printf ("  ");		// Gap between square blocks.
-            }
-            if (value == m_unusable) {
-                printf (" '");		// Unused cell (e.g. in Samurai).
-            }
-            else if (value == 0) {
-                printf (" -");		// Empty cell (to be solved).
-            }
-            else {
-                value--;
-                char label = (m_order > 9) ? aLabels[value] : nLabels[value];
-                printf (" %c", label);	// Given cell (or clue).
-            }
-        }
-        printf ("\n");			// End of row.
-      }
-      printf ("\n");			// Next Z or end of 2D puzzle/solution.
-    }
-}
-
-GuessesList SudokuBoard::deduceValues (BoardContents & boardValues,
-                                       GuessingMode gMode = Random)
-{
-    int iteration = 0;
-    setUpValueRequirements (boardValues);
-    while (true) {
-        iteration++;
-        m_moves.append (iteration);
-        m_moveTypes.append (Deduce);
-        dbo2 "DEDUCE: Iteration %d\n", iteration);
-        bool stuck = true;
-        int  count = 0;
-        GuessesList guesses;
-
-        for (int cell = 0; cell < m_boardArea; cell++) {
-            if (boardValues.at (cell) == m_vacant) {
-                GuessesList newGuesses;
-                qint32 numbers = m_validCellValues.at (cell);
-                dbo3 "Cell %d, valid numbers %03o\n", cell, numbers);
-                if (numbers == 0) {
-                    dbo2 "SOLUTION FAILED: RETURN at cell %d\n", cell);
-                    return solutionFailed (guesses);
-                }
-                int validNumber = 1;
-                while (numbers != 0) {
-                    dbo3 "Numbers = %03o, validNumber = %d\n",
-                            numbers, validNumber);
-                    if (numbers & 1) {
-                        newGuesses.append (setPair (cell, validNumber));
-                    }
-                    numbers = numbers >> 1;
-                    validNumber++;
-                }
-                if (newGuesses.count() == 1) {
-                    m_moves.append (newGuesses.first());
-                    m_moveTypes.append (Single);
-                    boardValues [cell] = pairVal (newGuesses.takeFirst());
-                    dbo3 "  Single Pick %d %d row %d col %d\n",
-                            boardValues.at (cell), cell,
-                            cell/m_boardSize + 1, cell%m_boardSize + 1);
-                    updateValueRequirements (boardValues, cell);
-                    stuck = false;
-                }
-                else if (stuck) {
-                    // Select a list of guesses.
-                    if (guesses.isEmpty() ||
-                        (newGuesses.count() < guesses.count())) {
-                        guesses = newGuesses;
-                        count = 1;
-                    }
-                    else if (newGuesses.count() > guesses.count()) {
-                        ;
-                    }
-                    else if (gMode == Random) {
-			// ERROR: This can lead to a divide-by-zero.
-			//        Should do count++ first.
-                        if ((qrand() % count) == 0) {
-                            guesses = newGuesses;
-                        }
-                        count++;
-                    }
-                }
-            } // End if
-        } // Next cell
-
-        for (int group = 0; group < m_nGroups; group++) {
-	    List<int> cellList = m_graph->clique (group);
-            qint32 numbers = m_requiredGroupValues.at (group);
-            dbo3 "Group %d, valid numbers %03o\n", group, numbers);
-            if (numbers == 0) {
-                continue;
-            }
-            int    validNumber = 1;
-            qint32 bit         = 1;
-            int    cell        = 0;
-            while (numbers != 0) {
-                if (numbers & 1) {
-                    GuessesList newGuesses;
-                    int index = group * m_groupSize;
-                    for (int n = 0; n < m_groupSize; n++) {
-			cell = cellList.at (n);
-                        if ((m_validCellValues.at (cell) & bit) != 0) {
-                            newGuesses.append (setPair (cell, validNumber));
-                        }
-                        index++;
-                    }
-                    if (newGuesses.isEmpty()) {
-                        dbo2 "SOLUTION FAILED: RETURN at group %d\n", group);
-                        return solutionFailed (guesses);
-                    }
-                    else if (newGuesses.count() == 1) {
-                        m_moves.append (newGuesses.first());
-                        m_moveTypes.append (Spot);
-                        cell = pairPos (newGuesses.takeFirst());
-                        boardValues [cell] = validNumber;
-                        dbo3 "  Single Spot in Group %d value %d %d "
-                                "row %d col %d\n",
-                                group, validNumber, cell,
-                                cell/m_boardSize + 1, cell%m_boardSize + 1);
-                        updateValueRequirements (boardValues, cell);
-                        stuck = false;
-                    }
-                    else if (stuck) {
-                        // Select a list of guesses.
-                        if (guesses.isEmpty() ||
-                            (newGuesses.count() < guesses.count())) {
-                            guesses = newGuesses;
-                            count = 1;
-                        }
-                        else if (newGuesses.count() > guesses.count()) {
-                            ;
-                        }
-                        else if (gMode == Random){
-                            if ((qrand() % count) == 0) {
-                                guesses = newGuesses;
-                            }
-                            count++;
-                        }
-                    }
-                } // End if (numbers & 1)
-                numbers = numbers >> 1;
-                bit     = bit << 1;
-                validNumber++;
-            } // Next number
-        } // Next group
-
-        if (stuck) {
-            GuessesList original = guesses;
-            if (gMode == Random) {
-                // Shuffle the guesses.
-                List<int> sequence (guesses.count());
-                randomSequence (sequence);
-
-                guesses.clear();
-                for (int i = 0; i < original.count(); i++) {
-                    guesses.append (original.at (sequence.at (i))); 
-                }
-            }
-            dbo2 "Guess    ");
-            for (int i = 0; i < original.count(); i++) {
-                dbo3 "%d,%d ",
-                        pairPos (original.at(i)), pairVal (original.at(i)));
-            }
-            dbo2 "\n");
-            dbo2 "Shuffled ");
-            for (int i = 0; i < guesses.count(); i++) {
-                dbo3 "%d,%d ",
-                        pairPos (guesses.at (i)), pairVal (guesses.at(i)));
-            }
-            dbo2 "\n");
-            return guesses;
-        }
-    } // End while (true)
-}
-
-GuessesList SudokuBoard::solutionFailed (GuessesList & guesses)
-{
-    guesses.clear();
-    guesses.append (-1);
-    return guesses;
-}
-
-void SudokuBoard::clear (BoardContents & boardValues)
-{
-    boardValues = m_graph->emptyBoard();	// Set cells vacant or unusable.
-}
-
-BoardContents & SudokuBoard::fillBoard()
-{
-    // Solve the empty board, thus filling it with values at random.  These
-    // values can be the starting point for generating a puzzle and also the 
-    // final solution of that puzzle.
-
-    clear (m_currentValues);
-
-    // Fill a central block with values 1 to m_order in random sequence.  This
-    // reduces the solveBoard() time considerably, esp. if blockSize is 4 or 5.
-    List<int> sequence (m_order);
-    List<int> cellList = m_graph->clique (m_nGroups / 2);
-    randomSequence (sequence);
-    for (int n = 0; n < m_order; n++) {
-        m_currentValues [cellList.at (n)] = sequence.at (n) + 1;
-    }
-
-    solveBoard (m_currentValues);
-    dbo1 "BOARD FILLED\n");
-    return m_currentValues;
-}
-*/
+  }
 
   void randomSequence (List<int> sequence, int length)
   {
@@ -1481,124 +996,9 @@ BoardContents & SudokuBoard::fillBoard()
     sequence.shuffle();
   }
 
-/*
-{
-    // Shuffle the integers. Using a random number generator.
-    int last = size;
-    int z    = 0;
-    int temp = 0;
-    for (int i = 0; i < size; i++) {
-        z = qrand() % last;
-        last--;
-        temp            = sequence.at (z);
-        sequence [z]    = sequence.at (last);
-        sequence [last] = temp;
-    }
-}
-
-void SudokuBoard::setUpValueRequirements (BoardContents & boardValues)
-{
-    // Set a 1-bit for each possible cell-value in this order of Sudoku, for
-    // example 9 bits for a 9x9 grid with 3x3 blocks.
-    qint32 allValues = (1 << m_order) - 1;
-
-    dbo2 "Enter setUpValueRequirements()\n");
-    if (dbgLevel >= 2) {
-        this->print (boardValues);
-    }
-
-    // Set bit-patterns to show what values each row, col or block needs.
-    // The starting pattern is allValues, but bits are set to zero as the
-    // corresponding values are supplied during puzzle generation and solving.
-
-    m_requiredGroupValues.fill (0, m_nGroups);
-    int    index = 0;
-    qint32 bitPattern = 0;
-    for (int group = 0; group < m_nGroups; group++) {
-	dbo3 "Group %3d ", group);
-	List<int> cellList = m_graph->clique (group);
-        bitPattern = 0;
-        for (int n = 0; n < m_groupSize; n++) {
-            int value = boardValues.at (cellList.at (n)) - 1;
-            if (value != m_unusable) {
-                bitPattern |= (1 << value);	// Add bit for each value found.
-            }
-	    dbo3 "%3d=%2d ", cellList.at (n), value + 1);
-            index++;
-        }
-        // Reverse all the bits, giving values currently not found in the group.
-        m_requiredGroupValues [group] = bitPattern ^ allValues;
-	dbo3 "bits %03o\n", m_requiredGroupValues.at (group));
-    }
-
-    // Set bit-patterns to show that each cell can accept any value.  Bits are
-    // set to zero as possibilities for each cell are eliminated when solving.
-    m_validCellValues.fill (allValues, m_boardArea);
-    for (int i = 0; i < m_boardArea; i++) {
-        if (boardValues.at (i) == m_unusable) {
-            // No values are allowed in unusable cells (e.g. in Samurai type).
-            m_validCellValues [i] = 0;
-        }
-        if (boardValues.at (i) != m_vacant) {
-            // Cell is already filled in.
-            m_validCellValues [i] = 0;
-        }
-    }
-
-    // Now, for each cell, retain bits for values that are required by every
-    // group to which that cell belongs.  For example, if the row already has 1,
-    // 2, 3, the column has 3, 4, 5, 6 and the block has 6, 9, then the cell
-    // can only have 7 or 8, with bit value 192.
-    index = 0;
-    for (int group = 0; group < m_nGroups; group++) {
-	List<int> cellList = m_graph->clique (group);
-        for (int n = 0; n < m_order; n++) {
-	    int cell = cellList.at (n);
-            m_validCellValues [cell] &= m_requiredGroupValues.at (group);
-            index++;
-        }   
-    }
-    dbo2 "Finished setUpValueRequirements()\n");
-
-    dbo3 "allowed:\n");
-    for (int i = 0; i < m_boardArea; i++) {
-         dbo3 "'%03o', ", m_validCellValues.at (i));
-        if ((i + 1) % m_boardSize == 0) dbo3 "\n");
-    }
-    dbo3 "needed:\n");
-    for (int group = 0; group < m_nGroups; group++) {
-        dbo3 "'%03o', ", m_requiredGroupValues.at (group));
-        if ((group + 1) % m_order == 0) dbo3 "\n");
-    }
-    dbo3 "\n");
-}
-
-void SudokuBoard::updateValueRequirements (BoardContents & boardValues, int cell)
-{
-    // Set a 1-bit for each possible cell-value in this order of Sudoku.
-    qint32 allValues  = (1 << m_order) - 1;
-    // Set a complement-mask for this cell's new value.
-    qint32 bitPattern = (1 << (boardValues.at (cell) - 1)) ^ allValues;
-    // Show that this cell no longer requires values: it has been filled.
-    m_validCellValues [cell] = 0;
-
-    // Update the requirements for each group to which this cell belongs.
-    List<int> groupList = m_graph->cliqueList(cell);
-    foreach (int group, groupList) {
-        m_requiredGroupValues [group] &= bitPattern;
-
-	List<int> cellList = m_graph->clique (group);
-        for (int n = 0; n < m_order; n++) {
-	    int cell = cellList.at (n);
-            m_validCellValues [cell] &= bitPattern;
-        }   
-    }
-}
-*/
-
-void changeClues (BoardContents to, int cell, Symmetry type,
+  void changeClues (BoardContents to, int cell, Symmetry type,
                                BoardContents from)
-{
+  {
     // TODO - This must line up with TODO in getSymmetricIndices.
     int nSymm = 1;
     List<int> indices = List.filled(8, 0, growable: false);
@@ -1607,25 +1007,18 @@ void changeClues (BoardContents to, int cell, Symmetry type,
         cell = indices [k];
         to[cell] = from[cell];
     }
-}
+  }
 
-// TODO - The return should probably be List<int>... (last param WAS int *).
-//
-//        Sort this: the last param was a C array of size 8, the return value
-//        was the number of filled elements (from 1 to 8) in the array. A fill
-//        of 1 means that the "index" cell transforms into itself (e.g. it is
-//        at the centre of the board). Should be able to drop last parameter.
-//        Alternatively we could make the last parameter a List of size 8.
-int getSymmetricIndices (int size, Symmetry type, int index, List<int> out)
-{
+  int getSymmetricIndices (int size, Symmetry type, int index, List<int> out)
+  {
     out[0]     = index;
     int result = 1;
     if (type == Symmetry.NONE) {
 	return result;
     }
 
-    int row    = _graph.cellPosY (index);
-    int col    = _graph.cellPosX (index);
+    int row    = _puzzleMap.cellPosY (index);
+    int col    = _puzzleMap.cellPosX (index);
     int lr     = size - col - 1;		// For left-to-right reflection.
     int tb     = size - row - 1;		// For top-to-bottom reflection.
 
@@ -1635,14 +1028,14 @@ int getSymmetricIndices (int size, Symmetry type, int index, List<int> out)
 	    // reflection in the NW-SE diagonal the same as for NE-SW diagonal.
             row = tb;
             col = lr;
-            out[1] = _graph.cellIndex(row, col);
+            out[1] = _puzzleMap.cellIndex(row, col);
             result = (out[1] == out[0]) ? 1 : 2;
             break;
             // TODO - Sort this out... Do we have 2 DIAGONAL types, or only 1?
             // No break; WAS fall through to case DIAGONAL_2.
         case Symmetry.DIAGONAL_2:
 	    // Reflect (col, row) in the main NW-SE diagonal by swapping coords.
-            out[1] = _graph.cellIndex(row, col);
+            out[1] = _puzzleMap.cellIndex(row, col);
             result = (out[1] == out[0]) ? 1 : 2;
             break;
         case Symmetry.CENTRAL:
@@ -1652,19 +1045,19 @@ int getSymmetricIndices (int size, Symmetry type, int index, List<int> out)
 	case Symmetry.SPIRAL:
 	    if ((size % 2 != 1) || (row != col) || (col != (size - 1)/2)) {
 		result = 4;			// This is not the central cell.
-		out[1] = _graph.cellIndex(lr,  tb);
-		out[2] = _graph.cellIndex(row, lr);
-		out[3] = _graph.cellIndex(tb,  col);
+		out[1] = _puzzleMap.cellIndex(lr,  tb);
+		out[2] = _puzzleMap.cellIndex(row, lr);
+		out[3] = _puzzleMap.cellIndex(tb,  col);
 	    }
             break;
         case Symmetry.FOURWAY:
-	    out[1] = _graph.cellIndex(row, col);	// Interchange X and Y.
-	    out[2] = _graph.cellIndex(lr,  row);	// Left-to-right.
-	    out[3] = _graph.cellIndex(row, lr);		// Interchange X and Y.
-	    out[4] = _graph.cellIndex(col, tb);		// Top-to-bottom.
-	    out[5] = _graph.cellIndex(tb,  col);	// Interchange X and Y.
-	    out[6] = _graph.cellIndex(lr,  tb);		// Both L-R and T-B.
-	    out[7] = _graph.cellIndex(tb,  lr);		// Interchange X and Y.
+	    out[1] = _puzzleMap.cellIndex(row, col);	// Interchange X and Y.
+	    out[2] = _puzzleMap.cellIndex(lr,  row);	// Left-to-right.
+	    out[3] = _puzzleMap.cellIndex(row, lr);	// Interchange X and Y.
+	    out[4] = _puzzleMap.cellIndex(col, tb);	// Top-to-bottom.
+	    out[5] = _puzzleMap.cellIndex(tb,  col);	// Interchange X and Y.
+	    out[6] = _puzzleMap.cellIndex(lr,  tb);	// Both L-R and T-B.
+	    out[7] = _puzzleMap.cellIndex(tb,  lr);	// Interchange X and Y.
 
 	    int k;
 	    for (int n = 1; n < 8; n++) {
@@ -1680,13 +1073,12 @@ int getSymmetricIndices (int size, Symmetry type, int index, List<int> out)
 	    }
             break;
         case Symmetry.LEFT_RIGHT:
-	    out[1] = _graph.cellIndex(lr,  row);
+	    out[1] = _puzzleMap.cellIndex(lr,  row);
             result = (out[1] == out[0]) ? 1 : 2;
             break;
         default:
             break;
     }
     return result;
-}
-
+  }
 }

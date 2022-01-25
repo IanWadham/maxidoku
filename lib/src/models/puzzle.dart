@@ -245,7 +245,7 @@ class Puzzle
                                                  _SudokuMoves,
                                                  _difficulty, _symmetry);
         if (success) {
-          print('_puzzleGiven $_puzzleGiven');
+          // print('_puzzleGiven $_puzzleGiven');
           _stateOfPlay = [..._puzzleGiven];
           for (int n = 0; n < _puzzleGiven.length; n++) {
             if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
@@ -255,7 +255,7 @@ class Puzzle
           _cellChanges.clear();		// No moves made yet.
           print('PUZZLE\n');
           _puzzleMap.printBoard(_stateOfPlay);
-          print('Cell statuses $_cellStatus');
+          // print('Cell statuses $_cellStatus');
           print('Cell changes  $_cellChanges');
         }
         else {
