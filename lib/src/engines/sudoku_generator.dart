@@ -625,12 +625,13 @@ The internal difficulty rating is $bestRating, there are
       return false;	// Generator FAILED or the user rejected the puzzle.
     }
 
-    // if (dbgLevel > 0) {
+    if (dbgLevel > 0) {
         print('FINAL PUZZLE\n');
         _puzzleMap.printBoard(bestPuzzle);
+    }
         print('\nSOLUTION\n');
         _puzzleMap.printBoard(bestSolution);
-    // }
+
     for (int n = 0; n < _boardArea; n++) {
       puzzle[n] = bestPuzzle[n];	// TODO - Maybe clear() and add().
       solution[n] = bestSolution[n];
@@ -731,11 +732,11 @@ The internal difficulty rating is $bestRating, there are
             }
         }
     }
-    print('INSERTIONS COMPLETED - PUZZLE\n');
-    _puzzleMap.printBoard(puzzle);
-    print('\nFILLABLE AREA\n');
-    _puzzleMap.printBoard(filled);
-    print('BoardArea $_boardArea, examined $index');
+    // print('INSERTIONS COMPLETED - PUZZLE\n');
+    // _puzzleMap.printBoard(puzzle);
+    // print('\nFILLABLE AREA\n');
+    // _puzzleMap.printBoard(filled);
+    // print('BoardArea $_boardArea, examined $index');
     if (dbgLevel > 0) print (puzzle);
 
     while (true) {
@@ -743,19 +744,19 @@ The internal difficulty rating is $bestRating, there are
         _solver.solveBoard (puzzle, GuessingMode.Random);
         analyseMoves (_stats);
         _stats.difficulty = calculateDifficulty (_stats.rating);
-        print('REQUIRED $required, CALCULATED ${_stats.difficulty}, RATING ${_stats.rating}');
+        // print('REQUIRED $required, CALCULATED ${_stats.difficulty}, RATING ${_stats.rating}');
         if (_stats.difficulty.index <= required.index) {
             break;	// The difficulty is as required or not enough yet.
         }
         // The puzzle needs to be made easier.  Add randomly-selected clues.
         for (int n = index; n < _boardArea; n++) {
             cell  = sequence[n];
-            print('Examining sequence $n, puzzle cell $cell with value ${puzzle[cell]}');
+            // print('Examining sequence $n, puzzle cell $cell with value ${puzzle[cell]}');
             if (puzzle[cell] == 0) {
-                print('Change clues: cell $cell to value ${solution[cell]}');
+                // print('Change clues: cell $cell to value ${solution[cell]}');
                 changeClues (puzzle, cell, symmetry, solution);
                 index = n;
-                print('INDEX = $index');
+                // print('INDEX = $index');
                 break;
             }
         }
