@@ -26,11 +26,11 @@ import 'messages.dart';
 const double eraseDepth = 0.67;
 
 /// Displays a Sudoku puzzle of a selected type and size.
-class PuzzleView2D extends StatelessWidget
+class PuzzleView extends StatelessWidget
 {
   final int       index;	// Position in puzzle-specifications list.
 
-  PuzzleView2D(this.index, {Key? key,}) : super(key: key);
+  PuzzleView(this.index, {Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +144,7 @@ class PuzzleView2D extends StatelessWidget
         body: Row(
           children: <Widget>[
             Expanded(
-              child: _PuzzleView2D(puzzle),
+              child: _PuzzleView(puzzle),
             ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
@@ -169,7 +169,7 @@ class PuzzleView2D extends StatelessWidget
               ),
             ),
             Expanded(
-              child: _PuzzleView2D(puzzle),
+              child: _PuzzleView(puzzle),
             ),
           ],
         ), // End body: Column(
@@ -211,29 +211,29 @@ class PuzzleView2D extends StatelessWidget
     }
   }
 
-  static const routeName = '/puzzle_view_2d';
+  static const routeName = '/puzzle_view';
 
-} // End class PuzzleView2D
+} // End class PuzzleView
 
 
-class _PuzzleView2D extends StatefulWidget
+class _PuzzleView extends StatefulWidget
 {
   final Puzzle puzzle;
-  const _PuzzleView2D(this.puzzle, {Key? key}) : super(key: key);
+  const _PuzzleView(this.puzzle, {Key? key}) : super(key: key);
 
   @override
-  _PuzzleView2DState createState() => _PuzzleView2DState();
+  _PuzzleViewState createState() => _PuzzleViewState();
 
-} // End class _PuzzleView2D extends StatefulWidget
+} // End class _PuzzleView extends StatefulWidget
 
 // TODO - Resolve what is to be passed here, if anything, and whether to create Puzzle() at the App level first. Surely the 2D View and the puzzle contents (current solution state) should not just disappear if we go back to PuzzleListView, for example...
 
-// TODO - I think we should have a stateless part of View2D, which is the puzzle layout and controls, plus any solution and clues. Then there should be a variable part of the view that supports symbol-entry by the user and undo/redo - perhaps a transparent overlay containing (opaque) symbols - notes and parts of the user's solution so far. The underlying data for the latter must persist for as long as the app does and maybe longer (e.g. if the device switches to another app or is put to sleep).
+// TODO - I think we should have a stateless part of View, which is the puzzle layout and controls, plus any solution and clues. Then there should be a variable part of the view that supports symbol-entry by the user and undo/redo - perhaps a transparent overlay containing (opaque) symbols - notes and parts of the user's solution so far. The underlying data for the latter must persist for as long as the app does and maybe longer (e.g. if the device switches to another app or is put to sleep).
 
 // TODO - 1. Calculate the allocation of space. 2. Calculate and draw an empty area and set of symbols from the PuzzleMap. 3. Generate a puzzle, if required. 4. Display the puzzle contents. 5. Accept clicks and update the user's solution.
 
 
-class _PuzzleView2DState extends State<_PuzzleView2D>
+class _PuzzleViewState extends State<_PuzzleView>
 {
   Offset hitPos = Offset(-1.0, -1.0);
   late PuzzlePainter puzzlePainter;
@@ -253,7 +253,7 @@ class _PuzzleView2DState extends State<_PuzzleView2D>
   // Together, they specify the background to paint and symbols (moves) to show.
   void initState() {
     super.initState();
-    print('In _PuzzleView2DState.initState()');
+    print('In _PuzzleViewState.initState()');
     // PaintingSpecs paintingSpecs = Puzzle().paintingSpecs;
     Puzzle puzzle = widget.puzzle;
     PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
@@ -276,7 +276,7 @@ class _PuzzleView2DState extends State<_PuzzleView2D>
     );
   } // End Widget build()
 
-} // End class _PuzzleView2DState extends State<PuzzleView2D>
+} // End class _PuzzleViewState extends State<PuzzleView>
 
 
   // TODO - Find out for sure how to use Listenable and repaint param properly.

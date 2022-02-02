@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../settings/settings_view.dart';
 import '../settings/settings_controller.dart';
 import '../models/puzzle_list.dart';
-import 'puzzle_view_2d.dart';
+import 'puzzle_view.dart';
 
 /// Displays a list of Sudoku puzzles of various sizes and layouts.
 class PuzzleListView extends StatelessWidget
@@ -119,7 +119,7 @@ class _MyListViewState extends State<MyListView>
             // in the background, the navigation stack is restored.
             Navigator.restorablePushNamed(
               context,
-              PuzzleView2D.routeName,
+              PuzzleView.routeName,
             );
           } // End onTap: ()
         ); // End ListTile

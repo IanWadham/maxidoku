@@ -3,7 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'models/puzzle.dart';
-import 'views/puzzle_view_2d.dart';
+import 'views/puzzle_view.dart';
 import 'views/puzzle_list_view.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
@@ -77,10 +77,10 @@ class MyApp extends StatelessWidget {
                 switch (routeSettings.name) {
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
-                  case PuzzleView2D.routeName:
+                  case PuzzleView.routeName:
                     String puzzleSpecID = settingsController.puzzleSpecID;
                     int index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
-                    return PuzzleView2D(index);
+                    return PuzzleView(index);
                   case PuzzleListView.routeName:
                   default:
                     return PuzzleListView(settings: settingsController);
