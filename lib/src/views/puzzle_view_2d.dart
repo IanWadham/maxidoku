@@ -8,6 +8,7 @@ import '../models/puzzle.dart';
 import '../models/puzzlemap.dart';
 import '../models/puzzletypes.dart';
 import 'painting_specs_2d.dart';
+import 'messages.dart';
 
 /* ************************************************************************** **
    ICON BUTTONS - Enter a puzzle (no button: let a user enter something and
@@ -34,7 +35,8 @@ class PuzzleView2D extends StatelessWidget
   @override
   Widget build(BuildContext context) {
 
-    Puzzle puzzle = new Puzzle(index);	// Create the selected Puzzle object.
+    // Create the selected Puzzle object.
+    final Puzzle puzzle = new Puzzle(index);
 
     // Precalculate and save the operations for paint(Canvas canvas, Size size).
     // These are held in unit form and scaled up when the canvas-size is known.
@@ -53,7 +55,7 @@ class PuzzleView2D extends StatelessWidget
         icon: const Icon(CommunityMaterialIcons.exit_run), // exit_to_app),
         tooltip: 'Return to list of puzzles',
         onPressed: () {
-          Navigator.pop(context);
+          exitScreen(context);
         },
       ),
       IconButton(
@@ -96,7 +98,6 @@ class PuzzleView2D extends StatelessWidget
         icon: const Icon(Icons.undo_outlined),
         tooltip: 'Undo a move',
         onPressed: () {
-          print('PRESSED UNDO ***********************************************');
           puzzle.undo();
         },
       ),
@@ -104,7 +105,6 @@ class PuzzleView2D extends StatelessWidget
         icon: const Icon(Icons.redo_outlined),
         tooltip: 'Redo a move',
         onPressed: () {
-          print('PRESSED REDO ***********************************************');
           puzzle.redo();
         },
       ),
@@ -112,16 +112,19 @@ class PuzzleView2D extends StatelessWidget
         icon: const Icon(Icons.devices_outlined),
         tooltip: 'Generate a new puzzle',
         onPressed: () {
-          print('PRESSED GENERATE *******************************************');
-          puzzle.generatePuzzle();
+          generatePuzzle(puzzle, context);
         },
       ),
       IconButton(
         icon: const Icon(Icons.check_circle_outline_outlined),
         tooltip: 'Check that the puzzle you have entered is valid',
-        onPressed: () {
+        onPressed: () async {
           print('PRESSED CHECK **********************************************');
-          puzzle.testPuzzle();
+          await infoMessage(context, 'Check Puzzle',
+                  'OK, check the puzzle now.',
+                  okText: 'Done');
+          print('AFTER Info Message');
+          // puzzle.testPuzzle();
         },
       ),
       IconButton(
@@ -173,6 +176,40 @@ class PuzzleView2D extends StatelessWidget
       ); // End return Scaffold(
     } // End if-then-else
   } // End Widget build
+
+  // Procedures for icon actions and user messages.
+
+  void generatePuzzle(Puzzle puzzle, BuildContext context)
+  async
+  {
+    bool newPuzzleOK = (puzzle.puzzlePlay == Play.NotStarted) ||
+                       (puzzle.puzzlePlay == Play.ReadyToStart);
+    if (! newPuzzleOK) {
+      newPuzzleOK = await questionMessage(
+        context,
+        'Generate a new puzzle?',
+        'You could lose your work so far. Do you '
+        ' really want to generate a new puzzle?',
+      );
+    }
+    if (newPuzzleOK) {
+      puzzle.generatePuzzle();
+      // TODO - Ensure that a repaint is done, to show the new puzzle.
+    }
+  }
+
+  void exitScreen(BuildContext context)
+  async
+  {
+    bool okToQuit = await questionMessage(
+      context,
+      'Quit?',
+      'You could lose your work so far. Do you really want to quit?',
+    );
+    if (okToQuit) {
+      Navigator.pop(context);
+    }
+  }
 
   static const routeName = '/puzzle_view_2d';
 
@@ -274,7 +311,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     // ******** DEBUG ********
     int w = size.width.floor();
     int h = size.height.floor();
-    // print("W $w, H $h");
+    // print('W $w, H $h');
     // ***********************
 
     int  nSymbols      = paintingSpecs.nSymbols;
@@ -301,8 +338,8 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     paintingSpecs.puzzleRect = Rect.fromLTWH(
           topLeftX, topLeftY, sizeX * cellSize, sizeY * cellSize);
     Size controlRectSize = paintingSpecs.portrait ?
-          Size(controlSize * (nSymbols + 1), controlSize) : // Horizontal.
-          Size(controlSize, controlSize * (nSymbols + 1));  // Vertical.
+          Size(controlSize * (nSymbols + 2), controlSize) : // Horizontal.
+          Size(controlSize, controlSize * (nSymbols + 2));  // Vertical.
     paintingSpecs.controlRect = Rect.fromLTWH(
           topLeftXc, topLeftYc, controlRectSize.width, controlRectSize.height);
 
@@ -374,8 +411,8 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       }
     }
 
-    // Paint the backgrounds of the control_cells (symbols), including "erase".
-    for (int i = 0; i < (nSymbols + 1); i++) {
+    // Paint backgrounds of control_cells (symbols), including Erase and Notes.
+    for (int i = 0; i < (nSymbols + 2); i++) {
       double o1, o2;
       if (portrait) {
         o1 = topLeftXc + i * controlSize;
@@ -390,7 +427,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
 
     // TODO - Draw thin edges first, then thick edges. Use different "heights"?
 
-    // Draw light and dark edges of cells, as required by the puzzle type.
+    // Draw light and dark edges of puzzle-area, as required by the puzzle type.
     int nEdges   = sizeY * (sizeX + 1);
     for (int i = 0; i < nEdges; i++) {
       double o1 = topLeftX + (i~/(sizeY + 1)) * cellSize;
@@ -411,34 +448,27 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     }
 
     // Paint framework of control-area, thick lines last, to cover thin ends.
-
-    // Start with divider between Notes and Erase (it is always horizontal).
-    double notesDividerY = topLeftYc + eraseDepth * controlSize;
-    canvas.drawLine(Offset(topLeftXc, notesDividerY),
-                    Offset(topLeftXc + controlSize, notesDividerY),
-                    thinLinePaint);
-
-    // Draw the other lines between cells, horizontal or vertical, as required.
+    // Draw the lines between cells, horizontal or vertical, as required.
     if (portrait) {
       // Horizontal - at the bottom of the screen or window.
-      for (int n = 0; n < nSymbols; n++) {
+      for (int n = 0; n < nSymbols + 1; n++) {
         double o1 = topLeftXc + (n + 1) * controlSize;
         double o2 = topLeftYc + controlSize;
         canvas.drawLine(Offset(o1, topLeftYc), Offset(o1, o2), thinLinePaint);
       }
       canvas.drawRect(Offset(topLeftXc, topLeftYc) &
-                      Size((nSymbols + 1) * controlSize, controlSize),
+                      Size((nSymbols + 2) * controlSize, controlSize),
                       thickLinePaint);
     }
     else {
       // Vertical - at the side of the screen or window.
-      for (int n = 0; n < nSymbols; n++) {
+      for (int n = 0; n < nSymbols + 1; n++) {
         double o1 = topLeftXc + controlSize;
         double o2 = topLeftYc + (n + 1) * controlSize;
         canvas.drawLine(Offset(topLeftXc, o2), Offset(o1, o2), thinLinePaint);
       }
       canvas.drawRect(Offset(topLeftXc, topLeftYc) &
-                      Size(controlSize, (nSymbols + 1) * controlSize),
+                      Size(controlSize, (nSymbols + 2) * controlSize),
                       thickLinePaint);
     }
 
@@ -446,10 +476,12 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     Offset cellPos;
     for (int n = 1; n <= nSymbols; n++) {
       if (portrait) {
-        cellPos = Offset(topLeftXc + n * controlSize, topLeftYc);
+        // Step over Erase and Notes at the left, then add the symbols.
+        cellPos = Offset(topLeftXc + (n + 1) * controlSize, topLeftYc);
       }
       else {
-        cellPos = Offset(topLeftXc, topLeftYc + n * controlSize);
+        // Step over Erase and Notes at the top, then add the symbols.
+        cellPos = Offset(topLeftXc, topLeftYc + (n + 1) * controlSize);
       }
       paintingSpecs.paintSymbol(canvas, n, cellPos, controlSize,
                                 isNote: false, isCell: false);
@@ -501,6 +533,9 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
         }
         else {
           print('Change cell $n to status ${m.status}, value ${m.cellValue}');
+          if (puzzle.puzzlePlay == Play.NotStarted) {
+            // xxxx TODO - What goes here?
+          }
         }
       }
     }
@@ -509,7 +544,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     else if (paintingSpecs.controlRect.contains(hitPosition)) {
       print('Hit the Control Area');
       Rect r = paintingSpecs.controlRect;
-      int nCells = paintingSpecs.nSymbols + 1;
+      int nCells = paintingSpecs.nSymbols + 2;
       bool portrait = paintingSpecs.portrait;
       double cellSize = portrait ? r.width / nCells : r.height / nCells;
       Offset point = hitPosition - Offset(topLeftXc, topLeftYc);
@@ -517,14 +552,18 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       int y = (point.dy / cellSize).floor();
       print('Hit is at cell ($x, $y)');
       int selection = portrait ? x : y;		// Get the selected symbol.
-      if ((selection == 0) && (point.dy > eraseDepth * cellSize)) {
-        // The bottom part of symbol zero toggles Notes Mode on or off.
-        // The top part acts as an Erase button.
-        puzzle.notesMode = !puzzle.notesMode;
+      if (selection == 0) {
+        if ((puzzle.puzzlePlay == Play.NotStarted) ||
+            (puzzle.puzzlePlay == Play.BeingEntered)) {
+          puzzle.notesMode = false;		// Entered Puzzle has no Notes.
+        }
+        else {
+          puzzle.notesMode = !puzzle.notesMode;	// Switch Notes when solving.
+        }
       }
       else {
         // The value selected is treated as a cell-value, a note or an erase.
-        puzzle.selectedControl = selection;
+        puzzle.selectedControl = selection - 1; // + 1;
       }
     }
 
@@ -541,7 +580,6 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
         gap = 12.0;
         o1 = topLeftX + gap/2.0 + (pos~/sizeY) * cellSize;
         o2 = topLeftY + gap/2.0 + (pos %sizeY) * cellSize;
-        //canvas.drawRect(Offset(o1, o2) & Size(cellSize - gap, cellSize - gap),
         canvas.drawOval(Offset(o1, o2) & Size(cellSize - gap, cellSize - gap),
                         cellPaint);
       }
@@ -557,21 +595,19 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
 
     // Highlight the user's latest control-selection.
     cellPos   = Offset(topLeftXc, topLeftYc);
-    int    n  = puzzle.selectedControl;
+    int    n  = puzzle.selectedControl + 1;
     double d  = n * controlSize;
-    double hh = (n == 0) ? eraseDepth * controlSize : controlSize;
     cellPos  = cellPos + (paintingSpecs.portrait ? Offset(d, 0) : Offset(0, d));
-    canvas.drawRect(cellPos & Size(controlSize, hh), highlight);
+    canvas.drawRect(cellPos & Size(controlSize, controlSize), highlight);
 
     // Add the label for the Notes button and highlight it, if required.
-    cellPos = Offset(topLeftXc, notesDividerY);
+    cellPos = Offset(topLeftXc, topLeftYc);
     for (int n = 1; n <= 3; n++) {
       paintingSpecs.paintSymbol(canvas, n, cellPos,
                 controlSize, isNote: true, isCell: false);
     }
     if (puzzle.notesMode) {
-      canvas.drawRect(cellPos & Size(controlSize,
-                      controlSize * (1 - eraseDepth)), highlight);
+      canvas.drawRect(cellPos & Size(controlSize, controlSize), highlight);
     }
 
     // print('REACHED END of PuzzlePainter.paint()...');
@@ -602,7 +638,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
 
 
 // ************************************************************************** //
-//   This function is outside any class... It is used by LayoutPuzzlePainter.
+//   This function is outside any class... It is used by class PuzzlePainter.
 // ************************************************************************** //
 List<double> calculatePuzzleLayout (bool portrait, Size size,
                                     PaintingSpecs paintingSpecs)
@@ -628,7 +664,8 @@ List<double> calculatePuzzleLayout (bool portrait, Size size,
   // Calculate the space allocations. Initially assume that the puzzle-area
   // will fill the short side, except for the two margins.
   double cellSize        = shortSide / puzzleCells;	// Calculate cell size.
-  int    nControls       = paintingSpecs.nSymbols + 1;	// Add 1 for "erase" op.
+  // int    nControls       = paintingSpecs.nSymbols + 1;	// Add 1 for "erase" op.
+  int    nControls       = paintingSpecs.nSymbols + 2;	// Add Erase and Notes.
   double controlSize     = shortSide / nControls;
   double padding         = longSide - shortSide - controlSize;
   bool   longSidePadding = (padding >= 1.0);	// Enough space for padding?
