@@ -69,9 +69,9 @@ class SudokuSolver
       sequence.add(n);
     }
     sequence.shuffle();
-    print('Sequence $sequence');
+    // print('Sequence $sequence');
     List<int> cellList = _puzzleMap.group (_nGroups ~/ 2);
-    print('GROUP ${_nGroups ~/ 2}: cellList $cellList');
+    // print('GROUP ${_nGroups ~/ 2}: cellList $cellList');
     // TODO - NEEDED?? randomSequence (sequence);
     for (int n = 0; n < _nSymbols; n++) {
         _currentBoard [cellList[n]] = sequence[n];
@@ -79,7 +79,7 @@ class SudokuSolver
 
     // _puzzleMap.printBoard(_currentBoard);
     BoardContents b = solveBoard (_currentBoard, GuessingMode.Random);
-    print(b.isEmpty ? 'SOLVE BOARD FAILED\n' : 'BOARD FILLED\n');
+    // print(b.isEmpty ? 'SOLVE BOARD FAILED\n' : 'BOARD FILLED\n');
     // _puzzleMap.printBoard(_currentBoard);
     return _currentBoard;
   }
@@ -164,7 +164,7 @@ class SudokuSolver
     }
 
     int n = g.length;
-    print('\n\nTIME TO START GUESSING... ADD FIRST STATE TO STACK $n guesses');
+    // print('\n\nTIME TO START GUESSING... ADD FIRST STATE TO STACK $n guesses');
     // _puzzleMap.printBoard(_currentBoard);
     // We need to use a mix of guessing, deducing and backtracking.
     _states.add (new State (g, 0, _currentBoard, _moves, _moveTypes));
@@ -191,8 +191,8 @@ class SudokuSolver
         int n = _states.last.guessNumber;
         // print('NStates $nStates top guesses $guesses guess number $n');
         if ((n >= guesses.length) || ((guesses[0]) == -1)) {
-            print('POP: Out of guesses at level $nStates\n');
-            print('\n\nREMOVE A STATE FROM THE STACK...');
+            // print('POP: Out of guesses at level $nStates\n');
+            // print('\n\nREMOVE A STATE FROM THE STACK...');
             _states.removeLast();
             if (_states.length > 0) {
                 _moves.clear();
@@ -267,8 +267,8 @@ class SudokuSolver
                 // dbo3 "Cell %d, valid numbers %03o\n", cell, numbers);
                 if (numbers == 0) {
                     // dbo2 "SOLUTION FAILED: RETURN at cell %d\n", cell);
-                    print('SOLUTION FAILED: RETURN at cell $cell');
-                    print('Guesses $guesses\n');
+                    // print('SOLUTION FAILED: RETURN at cell $cell');
+                    // print('Guesses $guesses\n');
                     // _puzzleMap.printBoard(_currentBoard);
                     return solutionFailed (guesses);
                 }
@@ -357,8 +357,8 @@ class SudokuSolver
                     }
                     if (newGuesses.isEmpty) {
                         // dbo2 "SOLUTION FAILED: RETURN at group %d\n", groupNumber);
-                        print('SOLUTION FAILED: RETURN at group $groupNumber');
-                        print('Guesses $guesses\n');
+                        // print('SOLUTION FAILED: RETURN at group $groupNumber');
+                        // print('Guesses $guesses\n');
                         return solutionFailed (guesses);
                     }
                     else if (newGuesses.length == 1) {
@@ -439,7 +439,7 @@ class SudokuSolver
   {
     guesses.clear();
     guesses.add (-1);
-    print('Guesses set by solutionFailed() $guesses\n');
+    // print('Guesses set by solutionFailed() $guesses\n');
     return guesses;
   }
 
