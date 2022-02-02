@@ -24,6 +24,8 @@ class PaintingSpecs
 
   PaintingSpecs.empty();
 
+  Offset lastHit = Offset(-1.0, -1.0);
+
   // A fixed text-painter and style for painting Sudoku symbols on a Canvas.
   final TextPainter _tp = TextPainter(
           textAlign: TextAlign.center,
@@ -35,25 +37,20 @@ class PaintingSpecs
       fontSize:   baseSize,
       fontWeight: FontWeight.bold);
 
-  Offset lastHit = Offset(-1.0, -1.0);
-
-  // A set of symbols, one per TextSpan, that has been type-set. A symbol just
-  // needs to be positioned and scaled before being painted on a canvas.
+  // A set of symbols, one per TextSpan, that has been type-set. A symbol only
+  // has to be positioned, scaled and laid out before being painted on a canvas.
   List<TextSpan> symbolTexts = [];
 
-  // This group of properties defines details for the background painter during
-  // the puzzler-generation phase. They remain fixed while the puzzle is solved
-  // and until the solution is either completed or abandoned.
-  bool      _portrait    = true;
-  int       _nSymbols    = 9;
-  int       _sizeX       = 9;
-  int       _sizeY       = 9;
-  List<int> _cellBackG   = [];
-  List<int> _edgesEW     = [];
-  List<int> _edgesNS     = [];
-  Size      _canvasSize  = Size(10.0, 10.0);
-  Rect      _puzzleRect  = Rect.fromLTWH(10.0, 10.0, 10.0, 10.0);
-  Rect      _controlRect = Rect.fromLTWH(20.0, 20.0, 20.0, 20.0);
+  // This group of properties defines details for the background of the puzzle.
+  // They are fixed in appearance while the selected puzzle is in play, but can
+  // be repainted or resized many times.
+  bool      _portrait    = true;	// Orientation.
+  int       _nSymbols    = 9;		// Number of symbols (4, 9, 16 or 25).
+  int       _sizeX       = 9;		// X size of board-area (# of cells).
+  int       _sizeY       = 9;		// Y size of board-area (# of cells).
+  List<int> _cellBackG   = [];		// Backgrounds of cells.
+  List<int> _edgesEW     = [];		// East-West edges of cells.
+  List<int> _edgesNS     = [];		// North-South edges of cells.
 
   bool      get portrait    => _portrait;
   int       get nSymbols    => _nSymbols;
@@ -71,7 +68,11 @@ class PaintingSpecs
   void set edgesEW(List<int> edges)   => _edgesEW    = [...edges];
   void set edgesNS(List<int> edges)   => _edgesNS    = [...edges];
 
-  // This group of properties may change as the solution progresses.
+  // These properties may change size during puzzle play in a desktop window.
+  Size      _canvasSize  = Size(10.0, 10.0);
+  Rect      _puzzleRect  = Rect.fromLTWH(10.0, 10.0, 10.0, 10.0);
+  Rect      _controlRect = Rect.fromLTWH(20.0, 20.0, 20.0, 20.0);
+
   Size      get canvasSize  => _canvasSize;
   Rect      get puzzleRect  => _puzzleRect;
   Rect      get controlRect => _controlRect;
@@ -83,8 +84,8 @@ class PaintingSpecs
   Offset    _hitPos = Offset(-10.0, -10.0);
 
 
-  // Pre-calculate details of puzzle background (fixed at start of puzzle-play).
   void calculatePainting() // PaintingSpecs paintingSpecs, Puzzle puzzle)
+  // Pre-calculate details of puzzle background (fixed at start of puzzle-play).
   {
     // _puzzle   = puzzle;
 
@@ -185,51 +186,45 @@ class PaintingSpecs
     }
   }
 
-    // TODO - Split the first control-cell and make half for "erase"
-    //        and half for enter/leave Notes mode of data-entry. Maybe
-    //        we can have another control for whether to pin down the
-    //        symbol to be repeatedly entered or the cell in which to
-    //        enter one or more symbols.
-
   void paintSymbol(Canvas canvas, int n, Offset cellPos, double cellSize,
                    {bool isNote = false, bool isCell = true})
   {
-    // TODO - What about controls? Same cell-fraction as symbols on puzzle area?
-    //        The painter must decide this and pass the required symbol size.
-
     if ((n < 0) || ((n == UNUSABLE) || ((n > nSymbols) && (!isNote)))) {
       print('Invalid value of cell');
       return;
     }
     if (n == 0) return;		// Skip empty cell.
 
-    double topMargin  = 0.05;
-    double leftMargin = 0.05;
+    double topMargin     = 0.17;
+    double bottomMargin  = 0.17;
     if ((_puzzleMap.specificType == SudokuType.KillerSudoku) ||
         (_puzzleMap.specificType == SudokuType.Mathdoku)) {
       if (isCell) {
         topMargin = 0.2;	// Allow space for cage value.
       }
     }
+
     double symbolSize;
     Offset offset;
+    double leftOffset    = 0.0;
     if (isNote) {
       // Lay out and paint one or more notes in this cell.
       int gridWidth  = (nSymbols <= 9) ? 3 : (nSymbols <= 16) ? 4 : 5;
       symbolSize = ((1 - topMargin - 0.05) / gridWidth) * cellSize;  
+
       int notes = n;
-      int val = 0;
       if ((notes & NotesBit) > 0) {	// Bitmap of one or more notes.
         notes = notes ^ NotesBit;	// Clear the Notes bit.
       }
-      else if (n > nSymbols) {
+      else if ((n > nSymbols) || (n < 1)) {
         print('Invalid value of note');
         return;
       }
       else {
-        val   = notes;			// Single value: no bitmap.
-        notes = 1;			// Make sure the outer loop gets done.
+        notes = 1 << n;			// Convert single value to bitmap.
       }
+
+      int val = 0;
       while (notes > 0) {
         // print('Notes before >> $notes');
         notes = notes >> 1;
@@ -241,16 +236,17 @@ class PaintingSpecs
         }
         int x = (val - 1) %  gridWidth;
         int y = (val - 1) ~/ gridWidth;
-        leftMargin = (cellSize - gridWidth * symbolSize) / 2.0;	// Absolute pix.
-        offset = Offset(leftMargin  + symbolSize * x,
+        leftOffset = (cellSize - gridWidth * symbolSize) / 2.0;	// Absolute pix.
+        offset = Offset(leftOffset  + symbolSize * x,
                         topMargin  * cellSize + symbolSize * y);
         _paintOneSymbol(canvas, val, symbolSize, cellPos + offset);
       }
     }
     else {
       // Paint a single full-sized symbol in this cell.
-      symbolSize = (1 - topMargin - 0.05) * cellSize;
-      offset = Offset(leftMargin * cellSize, topMargin * cellSize);
+      symbolSize = (1 - topMargin - bottomMargin) * cellSize;
+      leftOffset = (cellSize - symbolSize) / 2.0;
+      offset = Offset(leftOffset /* cellSize*/, topMargin * cellSize);
       _paintOneSymbol(canvas, n, symbolSize, cellPos + offset);
     }
   }
