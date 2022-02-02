@@ -36,6 +36,9 @@ const int MaxValue1 = MaxValue + 1;
 
 const int NotesBit  = 1 << MaxValue1;
 
+// Play-status of the Puzzle. Determines what user-actions are valid any time.
+enum Play {NotStarted, BeingEntered, ReadyToStart, InProgress, Solved, HasError}
+
 // Integers used as cell-statuses during puzzle-generation and play.
 
 // Each type may also have its own colour or highlight. All except SPECIAL are
