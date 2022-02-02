@@ -5,8 +5,8 @@ import '../settings/settings_view.dart';
 
 import '../globals.dart';
 import '../models/puzzle.dart';
-import '../models/puzzlemap.dart';
-import '../models/puzzletypes.dart';
+import '../models/puzzle_map.dart';
+import '../models/puzzle_types.dart';
 import 'painting_specs_2d.dart';
 import 'messages.dart';
 

@@ -107,7 +107,7 @@ enum StructureType { SudokuGroups, RoxdokuGroups, Groups }
 class PuzzleMap
 {
   // The constructor uses a list of lines, with line-endings (\n) removed, taken
-  // from a const List<String> of multi-line strings in file puzzletypes.dart.
+  // from a const List<String> of multi-line strings in file puzzle_types.dart.
   // The file has one string per puzzle-type specification, containing Name,
   // Description and layout details for the puzzle map.
 

@@ -1,4 +1,4 @@
-import 'puzzletypes.dart';
+import 'puzzle_types.dart';
 
 /// A placeholder class that represents an entity or model.
 class PuzzleList

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../globals.dart';
 import '../models/puzzle.dart';
-import '../models/puzzlemap.dart';
+import '../models/puzzle_map.dart';
 
 // This is the interface between the 2D view and the Multidoku models, control
 // and engines, which are written in Dart, with no Flutter objects or graphics.

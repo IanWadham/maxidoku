@@ -1,8 +1,8 @@
 import 'dart:math';
 import '../settings/settings_controller.dart';
 import '../globals.dart';
-import 'puzzlemap.dart';
-import 'puzzletypes.dart';
+import 'puzzle_map.dart';
+import 'puzzle_types.dart';
 import '../views/painting_specs_2d.dart';
 import '../engines/sudoku_generator.dart';
 import '../engines/sudoku_solver.dart';

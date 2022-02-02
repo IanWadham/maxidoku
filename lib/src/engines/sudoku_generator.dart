@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import '../globals.dart';
-import '../models/puzzlemap.dart';
+import '../models/puzzle_map.dart';
 import 'sudoku_solver.dart';
 
 /****************************************************************************
