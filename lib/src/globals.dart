@@ -52,11 +52,12 @@ const int GIVEN    = 1;		// A clue given by a puzzle-generator.
 const int CORRECT  = 2;		// Contains a symbol that matches the solution.
 const int ERROR    = 3;		// Optionally painted to show a user-error.
 const int NOTES    = 4;		// Contains a bit-map of Notes.
+const int INVALID  = 5;		// No move: the user's move was invalid.
 
 // The following is used ONLY for a colour in 2D Painting Specs and Puzzle View.
 
-const int SPECIAL  =  5;	// Painted a special colour (eg. XSudoku diags).
-    
+const int SPECIAL  =  6;	// Painted a special colour (eg. XSudoku diags).
+
 // Symbols used when displaying, printing or storing puzzles.
 // Digits are used for sizes up to 9x9, letters for sizes 16x16 and 25x25.
 const String digits  = '.123456789';
@@ -98,6 +99,13 @@ enum    GuessingMode {Random, NotRandom}
 // The maximum digit that can be used in a Mathdoku or Killer Sudoku puzzle.
 const int MaxMathOrder = 9;
 
+class Message
+{
+  String     messageType;
+  String     messageText;
+  Message(this.messageType, this.messageText);
+}
+
 class CellState			// Used by model of puzzle and view of puzzle.
 {
   CellStatus status;		// Cell status: values defined above.
@@ -106,3 +114,19 @@ class CellState			// Used by model of puzzle and view of puzzle.
   CellState(this.status, this.cellValue);
 }
 
+class PuzzleState		// Used by model of puzzle and view of puzzle.
+{
+  int        position;		// Position of last move.
+  CellState  cellState;		// Cell state: values defined above.
+  Play       playBefore;
+  Play       playAfter;
+  Message    _message = Message('', '');
+
+  PuzzleState(this.position, this.cellState, this.playBefore, this.playAfter);
+
+  String get messageType => _message.messageType;
+  String get message     => _message.messageText;
+
+  void   set messageType(String t) => _message.messageType = t;
+  void   set message(String s)     => _message.messageText = s;
+}

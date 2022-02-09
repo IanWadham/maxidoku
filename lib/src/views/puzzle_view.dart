@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:community_material_icon/community_material_icon.dart';
+import 'package:flutter/src/foundation/binding.dart';
+import 'package:flutter/scheduler.dart';
+import 'dart:async';
 
 import '../settings/settings_view.dart';
 
@@ -144,7 +147,7 @@ class PuzzleView extends StatelessWidget
         body: Row(
           children: <Widget>[
             Expanded(
-              child: _PuzzleView(puzzle),
+              child: _PuzzleView(puzzle, context),
             ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
@@ -169,7 +172,7 @@ class PuzzleView extends StatelessWidget
               ),
             ),
             Expanded(
-              child: _PuzzleView(puzzle),
+              child: _PuzzleView(puzzle, context),
             ),
           ],
         ), // End body: Column(
@@ -182,6 +185,7 @@ class PuzzleView extends StatelessWidget
   void generatePuzzle(Puzzle puzzle, BuildContext context)
   async
   {
+    print('GENERATE Puzzle: Play status ${puzzle.puzzlePlay}');
     bool newPuzzleOK = (puzzle.puzzlePlay == Play.NotStarted) ||
                        (puzzle.puzzlePlay == Play.ReadyToStart);
     if (! newPuzzleOK) {
@@ -192,8 +196,19 @@ class PuzzleView extends StatelessWidget
         ' really want to generate a new puzzle?',
       );
     }
-    if (newPuzzleOK) {
-      puzzle.generatePuzzle();
+    bool trying = true;
+    while (trying) {
+      Message m = puzzle.generatePuzzle();
+      if (m.messageType == 'Q') {
+        trying = await questionMessage(
+                         context, 'Generate Puzzle', m.messageText);
+        // If trying == true, keep looping to try for the required Difficulty.
+      }
+      else if (m.messageType != '') {
+        // Inform the user about the puzzle that was generated, then return.
+        await infoMessage(context, 'Generate Puzzle', m.messageText);
+        break;
+      }
       // TODO - Ensure that a repaint is done, to show the new puzzle.
     }
   }
@@ -219,7 +234,8 @@ class PuzzleView extends StatelessWidget
 class _PuzzleView extends StatefulWidget
 {
   final Puzzle puzzle;
-  const _PuzzleView(this.puzzle, {Key? key}) : super(key: key);
+  final BuildContext context;
+  const _PuzzleView(this.puzzle, this.context, {Key? key}) : super(key: key);
 
   @override
   _PuzzleViewState createState() => _PuzzleViewState();
@@ -254,7 +270,6 @@ class _PuzzleViewState extends State<_PuzzleView>
   void initState() {
     super.initState();
     print('In _PuzzleViewState.initState()');
-    // PaintingSpecs paintingSpecs = Puzzle().paintingSpecs;
     Puzzle puzzle = widget.puzzle;
     PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
     puzzlePainter = new PuzzlePainter(puzzle, paintingSpecs);
@@ -262,7 +277,8 @@ class _PuzzleViewState extends State<_PuzzleView>
 
   @override
   // This widget contains the puzzle-area and puzzle-controls (symbols).
-  Widget build(BuildContext context) {
+  Widget build(context) {
+    WidgetsBinding.instance?.addPostFrameCallback((_) {executeAfterBuild();});
     return Container(
       // We wish to fill the parent, in either Portrait or Landscape layout.
       height: (MediaQuery.of(context).size.height),
@@ -271,11 +287,44 @@ class _PuzzleViewState extends State<_PuzzleView>
         onPointerDown: _possibleHit,
         child: CustomPaint(
           painter: puzzlePainter,
+          // painter: PuzzlePainter(widget.puzzle, widget.puzzle.paintingSpecs, context),
         ),
       ),
     );
   } // End Widget build()
 
+  Future<void> executeAfterBuild() async
+  {
+    // TODO - Not seeing the HasError message. Seems to happen when last move
+    //        is an error, but seems OK if an earlier move is incorrect.
+    // TODO - All messages keep repeating if you tap on empty areas
+    //        or on a finished puzzle.
+    Play playNow = widget.puzzle.puzzlePlay;
+    if (widget.puzzle.isPlayUnchanged()) {
+      return;
+    }
+    // Play-status of Puzzle has changed. Need to issue a message to the user?
+    if (playNow == Play.BeingEntered) {
+      await questionMessage(
+                        context,
+                        'Tap In Own Puzzle?',
+                        'Do you wish to tap in your own puzzle?');
+    }
+    else if (playNow == Play.Solved) {
+      await infoMessage(context,
+                        'CONGRATULATIONS!!!',
+                        'You have solved the puzzle!!!\n\n'
+                        'If you wish, you can use Undo and Redo to review'
+                        ' your moves -'
+                        ' or you could generate another puzzle...');
+    }
+    else if (playNow == Play.HasError) {
+      await infoMessage(context,
+                        'Incorrect Solution',
+                        'Your solution contains one or more errors.'
+                        ' Please correct them and try again.');
+    }
+  }
 } // End class _PuzzleViewState extends State<PuzzleView>
 
 
@@ -319,7 +368,11 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     int  sizeY         = paintingSpecs.sizeY;
 
     bool portrait      = paintingSpecs.portrait;
-    List<double> xy    = calculatePuzzleLayout (portrait, size, paintingSpecs);
+    bool hideNotes     = (puzzle.puzzlePlay == Play.NotStarted) ||
+                         (puzzle.puzzlePlay == Play.BeingEntered);
+    int  nControls     = hideNotes ? nSymbols + 1 : nSymbols + 2;
+    List<double> xy    = calculatePuzzleLayout (portrait, size,
+                                                paintingSpecs, hideNotes);
 
     // Co-ordinates of top-left corner of puzzle-area.
     double topLeftX    = xy[0];
@@ -338,8 +391,8 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     paintingSpecs.puzzleRect = Rect.fromLTWH(
           topLeftX, topLeftY, sizeX * cellSize, sizeY * cellSize);
     Size controlRectSize = paintingSpecs.portrait ?
-          Size(controlSize * (nSymbols + 2), controlSize) : // Horizontal.
-          Size(controlSize, controlSize * (nSymbols + 2));  // Vertical.
+          Size(controlSize * nControls, controlSize) : // Horizontal.
+          Size(controlSize, controlSize * nControls);  // Vertical.
     paintingSpecs.controlRect = Rect.fromLTWH(
           topLeftXc, topLeftYc, controlRectSize.width, controlRectSize.height);
 
@@ -412,7 +465,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     }
 
     // Paint backgrounds of control_cells (symbols), including Erase and Notes.
-    for (int i = 0; i < (nSymbols + 2); i++) {
+    for (int i = 0; i < nControls; i++) {
       double o1, o2;
       if (portrait) {
         o1 = topLeftXc + i * controlSize;
@@ -451,7 +504,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     // Draw the lines between cells, horizontal or vertical, as required.
     if (portrait) {
       // Horizontal - at the bottom of the screen or window.
-      for (int n = 0; n < nSymbols + 1; n++) {
+      for (int n = 0; n < nControls - 1; n++) {
         double o1 = topLeftXc + (n + 1) * controlSize;
         double o2 = topLeftYc + controlSize;
         canvas.drawLine(Offset(o1, topLeftYc), Offset(o1, o2), thinLinePaint);
@@ -462,26 +515,27 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     }
     else {
       // Vertical - at the side of the screen or window.
-      for (int n = 0; n < nSymbols + 1; n++) {
+      for (int n = 0; n < nControls - 1; n++) {
         double o1 = topLeftXc + controlSize;
         double o2 = topLeftYc + (n + 1) * controlSize;
         canvas.drawLine(Offset(topLeftXc, o2), Offset(o1, o2), thinLinePaint);
       }
       canvas.drawRect(Offset(topLeftXc, topLeftYc) &
-                      Size(controlSize, (nSymbols + 2) * controlSize),
+                      Size(controlSize, nControls * controlSize),
                       thickLinePaint);
     }
 
     // Add the graphics for the control symbols.
     Offset cellPos;
+    int st = hideNotes ? 0 : 1;
     for (int n = 1; n <= nSymbols; n++) {
       if (portrait) {
         // Step over Erase and Notes at the left, then add the symbols.
-        cellPos = Offset(topLeftXc + (n + 1) * controlSize, topLeftYc);
+        cellPos = Offset(topLeftXc + (n + st) * controlSize, topLeftYc);
       }
       else {
         // Step over Erase and Notes at the top, then add the symbols.
-        cellPos = Offset(topLeftXc, topLeftYc + (n + 1) * controlSize);
+        cellPos = Offset(topLeftXc, topLeftYc + (n + st) * controlSize);
       }
       paintingSpecs.paintSymbol(canvas, n, cellPos, controlSize,
                                 isNote: false, isCell: false);
@@ -527,15 +581,26 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       }
       else {
         // Record the user's move, if it is valid.
-        CellState m = puzzle.hitPuzzleArea(n);
-        if (m.status == UNUSABLE) {
+        PuzzleState p = puzzle.hitPuzzleArea(n);
+        if (p.cellState.status == INVALID) {
           print('Invalid move. Cell $n cannot be played.');
         }
         else {
-          print('Change cell $n to status ${m.status}, value ${m.cellValue}');
-          if (puzzle.puzzlePlay == Play.NotStarted) {
+          print('Change cell $n to status ${p.cellState.status},'
+                ' value ${p.cellState.cellValue}');
+          // TODO - If Puzzle Play status has changed, may need to get a
+          //        message back to the user - but how???
+          // if (puzzle.puzzlePlay == Play.NotStarted) {
             // xxxx TODO - What goes here?
-          }
+            // TODO - May need a new class to be returned by Puzzle, to convey
+            //        more status, message and action information - e.g. end of
+            //        play (puzzle-solved), board filled but errors in the
+            //        solution, start of tapping in a puzzle, end of tapping in,
+            //        transition to playing the tapped-in puzzle, etc.
+            //
+            //        Puzzle knows what the state-transitions should be, but
+            //        only PuzzleView can talk to the user via its BuildContext.
+          // }
         }
       }
     }
@@ -544,7 +609,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     else if (paintingSpecs.controlRect.contains(hitPosition)) {
       print('Hit the Control Area');
       Rect r = paintingSpecs.controlRect;
-      int nCells = paintingSpecs.nSymbols + 2;
+      int nCells = nControls;
       bool portrait = paintingSpecs.portrait;
       double cellSize = portrait ? r.width / nCells : r.height / nCells;
       Offset point = hitPosition - Offset(topLeftXc, topLeftYc);
@@ -552,18 +617,12 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       int y = (point.dy / cellSize).floor();
       print('Hit is at cell ($x, $y)');
       int selection = portrait ? x : y;		// Get the selected symbol.
-      if (selection == 0) {
-        if ((puzzle.puzzlePlay == Play.NotStarted) ||
-            (puzzle.puzzlePlay == Play.BeingEntered)) {
-          puzzle.notesMode = false;		// Entered Puzzle has no Notes.
-        }
-        else {
-          puzzle.notesMode = !puzzle.notesMode;	// Switch Notes when solving.
-        }
+      if (! hideNotes && (selection == 0)) {
+        puzzle.notesMode = !puzzle.notesMode;	// Switch Notes when solving.
       }
       else {
         // The value selected is treated as a cell-value, a note or an erase.
-        puzzle.selectedControl = selection - 1; // + 1;
+        puzzle.selectedControl = selection - (hideNotes ? 0 : 1);
       }
     }
 
@@ -595,19 +654,22 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
 
     // Highlight the user's latest control-selection.
     cellPos   = Offset(topLeftXc, topLeftYc);
-    int    n  = puzzle.selectedControl + 1;
+    int    n  = puzzle.selectedControl + (hideNotes ? 0 : 1);
     double d  = n * controlSize;
     cellPos  = cellPos + (paintingSpecs.portrait ? Offset(d, 0) : Offset(0, d));
     canvas.drawRect(cellPos & Size(controlSize, controlSize), highlight);
 
     // Add the label for the Notes button and highlight it, if required.
     cellPos = Offset(topLeftXc, topLeftYc);
-    for (int n = 1; n <= 3; n++) {
-      paintingSpecs.paintSymbol(canvas, n, cellPos,
-                controlSize, isNote: true, isCell: false);
-    }
-    if (puzzle.notesMode) {
-      canvas.drawRect(cellPos & Size(controlSize, controlSize), highlight);
+    if (! hideNotes) {
+      cellPos = Offset(topLeftXc, topLeftYc);
+      for (int n = 1; n <= 3; n++) {
+        paintingSpecs.paintSymbol(canvas, n, cellPos,
+                  controlSize, isNote: true, isCell: false);
+      }
+      if (puzzle.notesMode) {
+        canvas.drawRect(cellPos & Size(controlSize, controlSize), highlight);
+      }
     }
 
     // print('REACHED END of PuzzlePainter.paint()...');
@@ -641,7 +703,8 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
 //   This function is outside any class... It is used by class PuzzlePainter.
 // ************************************************************************** //
 List<double> calculatePuzzleLayout (bool portrait, Size size,
-                                    PaintingSpecs paintingSpecs)
+                                    PaintingSpecs paintingSpecs,
+                                    bool hideNotes)
 {
   // Set up the layout calculation for landscape orientation.
   double shortSide   = size.height;
@@ -664,8 +727,8 @@ List<double> calculatePuzzleLayout (bool portrait, Size size,
   // Calculate the space allocations. Initially assume that the puzzle-area
   // will fill the short side, except for the two margins.
   double cellSize        = shortSide / puzzleCells;	// Calculate cell size.
-  // int    nControls       = paintingSpecs.nSymbols + 1;	// Add 1 for "erase" op.
-  int    nControls       = paintingSpecs.nSymbols + 2;	// Add Erase and Notes.
+  int    x               = hideNotes ? 1 : 2;
+  int    nControls       = paintingSpecs.nSymbols + x;	// Add Erase and Notes.
   double controlSize     = shortSide / nControls;
   double padding         = longSide - shortSide - controlSize;
   bool   longSidePadding = (padding >= 1.0);	// Enough space for padding?
