@@ -390,7 +390,7 @@ class Puzzle
       if (_cellStatus[n] == ERROR) {
         hasError = true;
       }
-      if ((_cellStatus[n] == VACANT) || (_cellStatus == NOTES)) {
+      if ((_cellStatus[n] == VACANT) || (_cellStatus[n] == NOTES)) {
         // Not finished yet: found Notes or an empty cell.
         return _puzzlePlay;
       }
