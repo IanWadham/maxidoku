@@ -8,8 +8,7 @@ typedef GuessesList  = MoveList;
 
 class SudokuSolver
 {
-  Random _random = Random(DateTime.now().millisecondsSinceEpoch);
-  // Random _random = Random(266133);	// Fixed seed: no sophistication needed.
+  Random _random;
 
   final int _unusable         = UNUSABLE;
   final int _vacant           = VACANT;
@@ -45,6 +44,7 @@ class SudokuSolver
   SudokuSolver({required PuzzleMap puzzleMap})
       :
     _puzzleMap = puzzleMap,
+    _random    = puzzleMap.random,
     _nSymbols  = puzzleMap.nSymbols,
     _nGroups   = puzzleMap.nGroups,
     _boardArea = puzzleMap.size
@@ -112,16 +112,41 @@ class SudokuSolver
   // TODO - This should be part of the SudokuSolver????
   int checkSolutionIsValid (BoardContents puzzle, BoardContents solution)
   {
+    // Classic 4x4 Sudoku - test cases.
+    // puzzle   = [1,0,0,0, 0,2,0,0, 0,0,1,0, 0,0,0,2];	// More than 1 solution.
+    // puzzle   = [1,0,0,0, 0,2,0,0, 0,0,1,3, 0,0,0,2];	// Has only 1 solution.
+    // answer   = [1,3,2,4, 4,2,3,1, 2,4,1,3, 3,1,4,2];	// The solver's answer.
+    // solution = [];					// OK if empty solution.
+    // solution = [1,3,2,4, 4,2,3,1, 2,4,1,3, 3,1,4,2];	// == solution on file.
+    // solution = [1,3,2,4, 4,3,2,1, 2,4,1,3, 3,1,4,2];	// Diffs at cells 5 & 6.
+    // solution = [1,3,2,4, 4,2,3,1, 2,4,1,3, 3,1,4,2,0]; // Too long.
+    // solution = [1,3,2,4, 4,2,3,1, 2,4,1,3, 3,1,4];	// Too short.
+
     BoardContents answer = solveBoard (puzzle, GuessingMode.Random);
     if (answer.isEmpty) {
-        // dbo1 "checkPuzzle: There is NO SOLUTION.\n");
-        return -1;		// There is no solution.
+      return -1;		// There is no solution.
     }
-    if ((! solution.isEmpty) && (answer != solution)) {
-        // dbo1 "checkPuzzle: The SOLUTION DIFFERS from the one supplied.\n");
-        return -2;		// The solution differs from the one supplied.
+    if (solution.isEmpty) {
+      return 0;			// A solution exists.
     }
-    return 0;			// OK so far.
+    // Check that "answer" agrees with "solution" loaded from a file.
+    int result = 0;
+    if (answer.length != solution.length) {
+      print('Wrong length: ans ${answer.length}, sol ${solution.length}'); 
+      result = -2;		// The solution differs from the one supplied.
+    }
+    else {
+      for (int n = 0; n < answer.length; n++) {
+        if (answer[n] != solution[n]) {
+          print('Clash at cell $n: ans ${answer[n]}, sol ${solution[n]}');
+          print('ANS $answer');
+          print('SOL $solution');
+          result = -2;		// The solution differs from the one supplied.
+          break;
+        }
+      }
+    }
+    return result;
   }
 
   int checkSolutionIsUnique (BoardContents puzzle, BoardContents solution)
@@ -132,7 +157,7 @@ class SudokuSolver
         // dbo1 "checkPuzzle: There is MORE THAN ONE SOLUTION.\n");
         return -3;		// There is more than one solution.
     }
-    return 0;			// Solution is unique.
+    return 0;			// The solution is unique.
   }
 
   BoardContents solveBoard (BoardContents boardValues, GuessingMode gMode)

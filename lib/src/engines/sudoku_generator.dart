@@ -1,4 +1,4 @@
-import 'dart:math';
+// import 'dart:math'; // Relies on List.shuffle() for now.
 
 import '../globals.dart';
 import '../models/puzzle_map.dart';
@@ -485,7 +485,7 @@ class SudokuGenerator
     Message       response         = Message('', '');;
 
     // TODO - Rationalise the use of Random and seeding across all Classes.
-    Random random = Random(DateTime.now().millisecondsSinceEpoch);
+    // Random random = Random(DateTime.now().millisecondsSinceEpoch);
 
     symmetry = Symmetry.RANDOM_SYM;	// TESTING ONLY.
     // QTime t;
@@ -624,9 +624,12 @@ class SudokuGenerator
     print('\nSOLUTION\n');
     _puzzleMap.printBoard(bestSolution);
 
+    // Use clear() and add(): solution[] and puzzle[] states could be uncertain.
+    puzzle.clear();
+    solution.clear();
     for (int n = 0; n < _boardArea; n++) {
-      puzzle[n] = bestPuzzle[n];	// TODO - Maybe clear() and add().
-      solution[n] = bestSolution[n];
+      puzzle.add(bestPuzzle[n]);
+      solution.add(bestSolution[n]);
     }
     return response;
   }

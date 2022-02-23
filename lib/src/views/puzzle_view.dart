@@ -14,8 +14,7 @@ import 'painting_specs_2d.dart';
 import 'messages.dart';
 
 /* ************************************************************************** **
-   ICON BUTTONS - Enter a puzzle (no button: let a user enter something and
-   then check that they wish to continue). Mark and go back to Mark???
+   ICON BUTTONS - Mark and go back to Mark???
 
    Set symmetry, set difficulty in Settings. Message to user about this???
 ** ************************************************************************** */
@@ -26,20 +25,42 @@ import 'messages.dart';
   // info on MacOS, Linux, Windows, etc.
 ** ************************************************************************** */
 
-const double eraseDepth = 0.67;
+class PuzzleAncestor extends InheritedWidget
+{
+  // The object that contains all of the current internal state of the puzzle.
+  final Puzzle puzzle;
+
+  PuzzleAncestor({
+    Key?     key,
+    required PuzzleView child,
+    required this.puzzle,	// From app.dart, selected in PuzzleListView.
+  }) : super(key: key, child: child);
+
+  static PuzzleAncestor of(BuildContext context) {
+    final PuzzleAncestor? result =
+            context.dependOnInheritedWidgetOfExactType<PuzzleAncestor>();
+    assert(result != null, 'No PuzzleAncestor Widget found in context');
+    return result!;
+  }
+
+  @override
+  bool updateShouldNotify(PuzzleAncestor old) => false;
+}
 
 /// Displays a Sudoku puzzle of a selected type and size.
 class PuzzleView extends StatelessWidget
 {
-  final int       index;	// Position in puzzle-specifications list.
+  // TODO - DROP final int       index;	// Position in puzzle-specifications list.
 
-  PuzzleView(this.index, {Key? key,}) : super(key: key);
+  const PuzzleView({Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
 
-    // Create the selected Puzzle object.
-    final Puzzle puzzle = new Puzzle(index);
+    // Find the selected Puzzle object.
+    // final Puzzle puzzle = new Puzzle(index);
+    final Puzzle puzzle = PuzzleAncestor.of(context).puzzle;
+
 
     // Precalculate and save the operations for paint(Canvas canvas, Size size).
     // These are held in unit form and scaled up when the canvas-size is known.
@@ -122,12 +143,7 @@ class PuzzleView extends StatelessWidget
         icon: const Icon(Icons.check_circle_outline_outlined),
         tooltip: 'Check that the puzzle you have entered is valid',
         onPressed: () async {
-          print('PRESSED CHECK **********************************************');
-          await infoMessage(context, 'Check Puzzle',
-                  'OK, check the puzzle now.',
-                  okText: 'Done');
-          print('AFTER Info Message');
-          // puzzle.testPuzzle();
+          checkPuzzle(puzzle, context);
         },
       ),
       IconButton(
@@ -141,13 +157,15 @@ class PuzzleView extends StatelessWidget
       ),
     ]; // End list of action icons
 
+    final _PuzzleView puzzleView = _PuzzleView(puzzle);
+    // final _PuzzleView puzzleView = _PuzzleView();
     if (! paintingSpecs.portrait) {	// Landscape orientation.
       // Paint the puzzle with the action icons in a column on the RHS.
       return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
         body: Row(
           children: <Widget>[
             Expanded(
-              child: _PuzzleView(puzzle, context),
+              child: puzzleView, //// _PuzzleView(puzzle), ///// , context),
             ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
@@ -172,7 +190,7 @@ class PuzzleView extends StatelessWidget
               ),
             ),
             Expanded(
-              child: _PuzzleView(puzzle, context),
+              child: puzzleView, //// _PuzzleView(puzzle), ///// , context),
             ),
           ],
         ), // End body: Column(
@@ -213,6 +231,58 @@ class PuzzleView extends StatelessWidget
     }
   }
 
+  void checkPuzzle(Puzzle puzzle, BuildContext context)
+  async
+  {
+    print('CHECK Puzzle: Play status ${puzzle.puzzlePlay}');
+    int error = puzzle.checkPuzzle();
+    switch(error) {
+      case 0:
+        bool finished = await questionMessage(
+          context,
+          'Finished?',
+          'Your puzzle has a single solution and is ready to be played.'
+          ' Would you like to make it into a finished puzzle, ready to'
+          ' solve, or continue working on it?',
+          okText:     'Finish Up',
+          cancelText: 'Continue'
+        );
+        if (finished) {
+          // Convert the entered data into a Puzzle and re-display it.
+          puzzle.convertDataToPuzzle();
+          // TODO - Need to trigger a repaint here.
+          // TODO - Suggest saving the puzzle to a file before playing it.
+        }
+        return;
+      case -1:
+        await infoMessage(
+          context,
+          'No Solution Found',
+          'Your puzzle has no solution. Please check that you entered all'
+          ' the data correctly and with no omissions, then edit it and try'
+          ' again.'
+        );
+        return;
+      case -2:
+        await infoMessage(
+          context,
+          '',
+          ''
+        );
+        return;
+      case -3:
+        await infoMessage(
+          context,
+          'Solution Is Not Unique',
+          'Your puzzle has more than one solution. Please check that you'
+          ' entered all the data correctly and with no omissions, then edit it'
+          ' and try again - maybe add some clues to narrow the possibilities.'
+        );
+        return;
+      default:
+    }
+  }
+
   void exitScreen(BuildContext context)
   async
   {
@@ -234,8 +304,9 @@ class PuzzleView extends StatelessWidget
 class _PuzzleView extends StatefulWidget
 {
   final Puzzle puzzle;
-  final BuildContext context;
-  const _PuzzleView(this.puzzle, this.context, {Key? key}) : super(key: key);
+  // final Puzzle puzzle = PuzzleAncestor.of(context).puzzle;
+  /////// final BuildContext context;
+  const _PuzzleView(this.puzzle, /* this.context, */ {Key? key}) : super(key: key);
 
   @override
   _PuzzleViewState createState() => _PuzzleViewState();
@@ -251,17 +322,18 @@ class _PuzzleView extends StatefulWidget
 
 class _PuzzleViewState extends State<_PuzzleView>
 {
-  Offset hitPos = Offset(-1.0, -1.0);
+  Offset hitPos    = Offset(-1.0, -1.0);
+  String dummyValue = ' ';
   late PuzzlePainter puzzlePainter;
 
   // Handle the user's PointerDown actions on the puzzle-area and controls.
   void _possibleHit(PointerEvent details)
   {
-    setState(() {hitPos = details.localPosition;} );
-    print('HIT ${hitPos.dx.toStringAsFixed(2)}, ${hitPos.dy.toStringAsFixed(2)}');
-    // Tell the PuzzlePainter where the hit is and trigger a repaint.
+    hitPos = details.localPosition;
+    dummyValue = dummyValue == ' ' ? '  ' : ' ';	// TODO - KLUDGE.
+    print ('_possibleHit at $hitPos');
     puzzlePainter.hitPosition = hitPos;
-    puzzlePainter.notifyListeners();
+    setState(() {} );
   }
 
   @override
@@ -287,7 +359,8 @@ class _PuzzleViewState extends State<_PuzzleView>
         onPointerDown: _possibleHit,
         child: CustomPaint(
           painter: puzzlePainter,
-          // painter: PuzzlePainter(widget.puzzle, widget.puzzle.paintingSpecs, context),
+            child: Text('$dummyValue'
+          ),
         ),
       ),
     );
@@ -297,8 +370,9 @@ class _PuzzleViewState extends State<_PuzzleView>
   {
     // TODO - Not seeing the HasError message. Seems to happen when last move
     //        is an error, but seems OK if an earlier move is incorrect.
-    // TODO - All messages keep repeating if you tap on empty areas
-    //        or on a finished puzzle.
+    // Check to see if there was any major change during the last repaint of
+    // the Puzzle. If so, issue appropriate messages. Flutter does not allow
+    // them to be issued or automatically queued during a repaint.
     Play playNow = widget.puzzle.puzzlePlay;
     if (widget.puzzle.isPlayUnchanged()) {
       return;
@@ -309,6 +383,7 @@ class _PuzzleViewState extends State<_PuzzleView>
                         context,
                         'Tap In Own Puzzle?',
                         'Do you wish to tap in your own puzzle?');
+    // TODO - Expand this message a bit. Make it more explanatory.
     }
     else if (playNow == Play.Solved) {
       await infoMessage(context,
@@ -316,7 +391,7 @@ class _PuzzleViewState extends State<_PuzzleView>
                         'You have solved the puzzle!!!\n\n'
                         'If you wish, you can use Undo and Redo to review'
                         ' your moves -'
-                        ' or you could generate another puzzle...');
+                        ' or you could just try another puzzle...');
     }
     else if (playNow == Play.HasError) {
       await infoMessage(context,
@@ -334,12 +409,15 @@ class _PuzzleViewState extends State<_PuzzleView>
   //        Oh, and adding "repaint: repaint" to the super's parameters is
   //        harmless and might help us get re-painting on value-change later. 
 
-class PuzzlePainter extends ChangeNotifier implements CustomPainter
+class PuzzlePainter extends CustomPainter
 {
   final Puzzle puzzle;
   final PaintingSpecs paintingSpecs;
 
   PuzzlePainter(this.puzzle, this.paintingSpecs);
+
+  Offset topLeft  = Offset (0.0, 0.0);
+  double cellSide = 1.0;
 
   Offset hitPosition = Offset(-1.0, -1.0);
   Size prevSize = Size(10.0, 10.0);
@@ -360,7 +438,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     // ******** DEBUG ********
     int w = size.width.floor();
     int h = size.height.floor();
-    // print('W $w, H $h');
+    // print('ENTERED PuzzlePainter W $w, H $h');
     // ***********************
 
     int  nSymbols      = paintingSpecs.nSymbols;
@@ -377,6 +455,8 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     // Co-ordinates of top-left corner of puzzle-area.
     double topLeftX    = xy[0];
     double topLeftY    = xy[1];
+    topLeft            = Offset(xy[0], xy[1]);
+    cellSide           = xy[4];
 
     // Co-ordinates of top-left corner of puzzle-controls (symbols).
     double topLeftXc   = xy[2];
@@ -386,6 +466,9 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
     double cellSize    = xy[4];
     double controlSize = xy[5];
 
+    var lightScheme = ColorScheme.fromSeed(seedColor: Colors.amber.shade200);
+    var darkScheme  = ColorScheme.fromSeed(seedColor: Colors.amber.shade200,
+                                           brightness: Brightness.dark);
     // Save the resulting rectangles for use in hit tests.
     paintingSpecs.canvasSize = size;
     paintingSpecs.puzzleRect = Rect.fromLTWH(
@@ -395,7 +478,6 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
           Size(controlSize, controlSize * nControls);  // Vertical.
     paintingSpecs.controlRect = Rect.fromLTWH(
           topLeftXc, topLeftYc, controlRectSize.width, controlRectSize.height);
-
     // Paints (and brushes/pens) for areas and lines.
     var paint1 = Paint()		// Background colour of canvas.
       ..color = Colors.amber.shade100
@@ -411,7 +493,7 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       ..color = Colors.lime.shade400	// amberAccent.shade400
       ..style = PaintingStyle.fill;
     var paintError = Paint()		// Colour of Error cells.
-      ..color = Colors.red.shade400
+      ..color = Colors.red.shade300
       ..style = PaintingStyle.fill;
     var thinLinePaint = Paint()		// Style for lines between cells.
       ..color = Colors.brown.shade400
@@ -424,13 +506,20 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
       ..strokeCap = StrokeCap.round
       ..strokeJoin  = StrokeJoin.round;
     var highlight      = Paint()	// Style for highlights.
-      ..color = Colors.red
+      ..color = Colors.red.shade400
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin  = StrokeJoin.round;
+    var cageLinePaint = Paint()		// Style for lines around cages.
+      // ..color = Colors.lime.shade800
+      ..color = Colors.lightGreen
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin  = StrokeJoin.round;
 
     // Calculated widths of lines, depending on canvas size and puzzle size.
     thinLinePaint.strokeWidth  = cellSize / 30.0;
+    cageLinePaint.strokeWidth  = cellSize / 30.0;
     thickLinePaint.strokeWidth = cellSize / 15.0;
     highlight.strokeWidth      = cellSize / 15.0;
 
@@ -498,6 +587,11 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
         canvas.drawLine(Offset(o1, o2), Offset(o1, o2 + cellSize), p);
       }
       // print('i = $i x = ${i~/(nSymbols + 1)} y = ${i%(nSymbols + 1)} EW = ${paintingSpecs.edgesEW[i]} NS = ${paintingSpecs.edgesNS[i]}');
+    }
+
+    if (puzzle.puzzleMap.cageCount() > 0) {
+      paintCages(canvas, puzzle.puzzleMap.cageCount(),
+                paint3, paint2, cageLinePaint);
     }
 
     // Paint framework of control-area, thick lines last, to cover thin ends.
@@ -588,19 +682,6 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
         else {
           print('Change cell $n to status ${p.cellState.status},'
                 ' value ${p.cellState.cellValue}');
-          // TODO - If Puzzle Play status has changed, may need to get a
-          //        message back to the user - but how???
-          // if (puzzle.puzzlePlay == Play.NotStarted) {
-            // xxxx TODO - What goes here?
-            // TODO - May need a new class to be returned by Puzzle, to convey
-            //        more status, message and action information - e.g. end of
-            //        play (puzzle-solved), board filled but errors in the
-            //        solution, start of tapping in a puzzle, end of tapping in,
-            //        transition to playing the tapped-in puzzle, etc.
-            //
-            //        Puzzle knows what the state-transitions should be, but
-            //        only PuzzleView can talk to the user via its BuildContext.
-          // }
         }
       }
     }
@@ -688,15 +769,130 @@ class PuzzlePainter extends ChangeNotifier implements CustomPainter
   {
     // print('ENTERED PuzzlePainter hitTest: hitPosition = $position');
     // hitPosition = position;
-    return true;
+    return null;
   }
-
+/* TODO - Not needed now?
   // Dummy methods: needed because we are re-implementing CustomPainter (above).
   get semanticsBuilder => null;
 
   bool shouldRebuildSemantics(covariant CustomPainter oldDelegate) => false;
+*/
 
-} // End class PuzzlePainter extends ChangeNotifier implements CustomPainter
+  void paintCages(Canvas canvas, int cageCount, 
+                 Paint labelPaint_fg, Paint labelPaint_bg, Paint cageLinePaint)
+  {
+    List<int> cageBoundaryBits = paintingSpecs.cageBoundaries;
+    double inset = cellSide/12.0;
+
+    for (int n = 0; n < puzzle.puzzleMap.size; n++) {
+      // paintingSpecs.drawOneCage(n, cageLinePaint);
+      int lineBits = cageBoundaryBits[n];
+      // TODO - Single-cell cages are NOT displaying NOR behaving as GIVENS.
+      if (lineBits == 1170) {
+        // Single-cell cages are not painted (1170 = octal 2222).
+        continue;
+      }
+      for (int side = 0; side < 4; side++) {
+        int bits = lineBits & 7;
+        lineBits = lineBits >> 3;
+        if (bits == 0) {
+          continue;
+        }
+        int i = puzzle.puzzleMap.cellPosX(n);
+        int j = puzzle.puzzleMap.cellPosY(n);
+        Offset cellOrigin = topLeft + Offset(i * cellSide, j * cellSide);
+        double x1 = 0.0, x2 = 0.0;
+        // double x2 = 0.0;
+        double y1 = 0.0;
+        double y2 = 0.0;
+        switch(side) {
+        case 0:
+          x1 = cellSide - inset;
+          x2 = x1;
+          y1 = (bits & 1) > 0 ? 0.0 : inset;
+          y2 = (bits & 4) > 0 ? cellSide : cellSide - inset;
+          break;
+        case 1:
+          x1 = (bits & 1) > 0 ? cellSide : cellSide - inset;
+          x2 = (bits & 4) > 0 ? 0.0 : inset;
+          y1 = cellSide - inset;
+          y2 = y1; 
+          break;
+        case 2:
+          x1 = inset;
+          x2 = x1; 
+          y1 = (bits & 1) > 0 ? cellSide : cellSide - inset;
+          y2 = (bits & 4) > 0 ? 0.0 : inset;
+          break;
+        case 3:
+          x1 = (bits & 1) > 0 ? 0.0 : inset;
+          x2 = (bits & 4) > 0 ? cellSide : cellSide - inset;
+          y1 = inset;
+          y2 = y1;
+          break;
+        }
+        canvas.drawLine(cellOrigin + Offset(x1, y1),
+                        cellOrigin + Offset(x2, y2), cageLinePaint);
+      }
+    }
+    // print('CAGE COUNT ${puzzle.puzzleMap.cageCount()}');
+    PuzzleMap map = puzzle.puzzleMap;
+    for (int cageNum = 0; cageNum < map.cageCount(); cageNum++) {
+      String cageLabel  = getCageLabel(map, cageNum);
+
+      int labelCell     = map.cageTopLeft(cageNum);
+      int cellX         = map.cellPosX(labelCell);
+      int cellY         = map.cellPosY(labelCell);
+      double textSize   = cellSide / 6.0;
+      Offset cellOrigin = topLeft + Offset(cellX * cellSide, cellY * cellSide);
+      paintingSpecs.paintCageLabelText(canvas, cageLabel,
+                                       textSize, cellOrigin,
+                                       labelPaint_fg, labelPaint_bg);
+    }
+  }
+
+  String getCageLabel (PuzzleMap map, int cageNum) // bool killerStyle)
+  {
+    bool killerStyle = false;	// TODO - For testing only.
+    if (map.cage(cageNum).length < 2) {
+	return '';		// 1-cell cages are displayed as Givens (clues).
+    }
+
+    String cLabel = map.cageValue(cageNum).toString();
+    if (! killerStyle) {	// No operator is shown in KillerSudoku.
+        int opNum = map.cageOperator(cageNum).index;
+	cLabel = cLabel + " /-x+".substring(opNum, opNum + 1);
+    }
+    // print('Cage Label $cLabel, cage $cageNum, cell $topLeft');
+    return cLabel;
+  }
+
+  // Result: 12 bits for each cell in the cage.
+  //           bits 0-2   East side,
+  //           bits 3-5   South side,
+  //           bits 6-8   West side,
+  //           bits 9-11  North side.
+  //
+  //         Within a cell, there are 3 bits for each possible cell-boundary
+  //         line. The three bits represent:
+  //           bit  0     First part of possible cage-boundary line,
+  //           bit  1     Second or middle part,
+  //           bit  2     Third part.
+  //
+  // If the three bits == 0, that side of the cell is not a cage-boundary.
+  // If the three bits == 7, the boundary line is full-length. Values 6, 3
+  // or 2, mean that the boundary turns a corner at one end or the other or
+  // both. Values 1, 4 and 5 are not used: the line would have no middle part.
+
+  // TODO: Does "first" mean nearest to top-left origin or first in ESWN order?
+
+  // List<Offset> outerCorners = [(lSide, 0.0),       (lSide, lSide),
+                               // (0.0, lSide),       (0.0, 0.0)];
+  // List<Offset> innerCorners = [(lSide - 1.0, 1.0), (lSide - 1.0, lSide - 1.0),
+                               // (1.0, lSide - 1.0), (1.0, 1.0)];
+// TODO - Maybe use the above in PuzzlePainter?
+
+} // End class PuzzlePainter extends CustomPainter
 
 
 // ************************************************************************** //

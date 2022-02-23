@@ -15,6 +15,18 @@ import '../models/puzzle_map.dart';
 const double baseSize = 60.0;	// Base-size for scaling text symbols up/down.
 const List<String> emptySpec = [];
  
+// Bits for right, below, left, above or E, S, W, N (cell v neighbour/boundary).
+const int right = 1;
+const int below = 2;
+const int left  = 4;
+const int above = 8;
+const int all   = right + below + left + above;	// Or E + S + W + N.
+
+const int E     = 1;
+const int S     = 2;
+const int W     = 4;
+const int N     = 8;
+
 class PaintingSpecs
 {
   PuzzleMap _puzzleMap = PuzzleMap(specStrings: emptySpec);
@@ -44,21 +56,26 @@ class PaintingSpecs
   // This group of properties defines details for the background of the puzzle.
   // They are fixed in appearance while the selected puzzle is in play, but can
   // be repainted or resized many times.
-  bool      _portrait    = true;	// Orientation.
-  int       _nSymbols    = 9;		// Number of symbols (4, 9, 16 or 25).
-  int       _sizeX       = 9;		// X size of board-area (# of cells).
-  int       _sizeY       = 9;		// Y size of board-area (# of cells).
-  List<int> _cellBackG   = [];		// Backgrounds of cells.
-  List<int> _edgesEW     = [];		// East-West edges of cells.
-  List<int> _edgesNS     = [];		// North-South edges of cells.
+  bool      _portrait       = true;	// Orientation.
+  int       _nSymbols       = 9;	// Number of symbols (4, 9, 16 or 25).
+  int       _sizeX          = 9;	// X size of board-area (# of cells).
+  int       _sizeY          = 9;	// Y size of board-area (# of cells).
+  List<int> _cellBackG      = [];	// Backgrounds of cells.
+  List<int> _edgesEW        = [];	// East-West edges of cells.
+  List<int> _edgesNS        = [];	// North-South edges of cells.
 
-  bool      get portrait    => _portrait;
-  int       get nSymbols    => _nSymbols;
-  int       get sizeX       => _sizeX;
-  int       get sizeY       => _sizeY;
-  List<int> get cellBackG   => _cellBackG;
-  List<int> get edgesEW     => _edgesEW;
-  List<int> get edgesNS     => _edgesNS;
+  // Four three-bit values showing what cage boundaries (if any) cross the cell.
+  List<int> _cageBoundaries = [];
+
+  bool      get portrait       => _portrait;
+  int       get nSymbols       => _nSymbols;
+  int       get sizeX          => _sizeX;
+  int       get sizeY          => _sizeY;
+  List<int> get cellBackG      => _cellBackG;
+  List<int> get edgesEW        => _edgesEW;
+  List<int> get edgesNS        => _edgesNS;
+
+  List<int> get cageBoundaries => _cageBoundaries;
 
   void set portrait(bool orientation) => _portrait   = orientation;
   void set nSymbols(int n)            => _nSymbols   = n;
@@ -261,51 +278,40 @@ class PaintingSpecs
     _tp.paint(canvas, Offset(o.dx + centering, o.dy));
   }
 
+  void paintCageLabelText(Canvas canvas, String cageLabel, double textSize,
+                          Offset offset, Paint cageLabel_fg, Paint cageLabel_bg)
+  {
+    double padding = 0.25 * textSize;
+    _tp.text = TextSpan(style: symbolStyle, text: cageLabel);
+    _tp.textScaleFactor = textSize / baseSize;
+    _tp.layout();
+    Rect labelRect = Rect.fromPoints(offset, offset + Offset(padding + _tp.width, textSize * 5.0 / 4.0));
+    // print('LABEL RECT $labelRect, point 1 = $offset,'
+          // ' W ${padding + _tp.width}, H ${textSize * 5.0 / 4.0}');
+    canvas.drawRect(labelRect, cageLabel_bg);
+    _tp.paint(canvas, offset + Offset(padding, 0.0));
+  }
+
   void _markEdges (List<int> cells,
                    PuzzleMap _puzzleMap, BoardContents cellBackG,
                    List<int> edgesEW, List<int> edgesNS)
   {
-    // Bits for left + right + above + below.
-    const int left  = 1;
-    const int right = 2;
-    const int above = 4;
-    const int below = 8;
-    const int all   = left + right + above + below;
-
     // print('ENTERED _markEdges()');
-    List<int> cellEdges = [];
-    int edges = 0;
-    int limit = _puzzleMap.sizeX - 1;
+    List<int> edgeCellFlags = findOutsideEdges(cells, _puzzleMap);
 
     int nCells = cells.length;
     for (int n = 0; n < nCells; n++) {
-      int x = _puzzleMap.cellPosX(cells[n]);
-      int y = _puzzleMap.cellPosY(cells[n]);
-      edges = all;
-      List<int> neighbour    = [-1, -1, -1, -1];
-      neighbour[0] /*left */ = (x > 0)     ? _puzzleMap.cellIndex(x-1, y) : -1;
-      neighbour[1] /*right*/ = (x < limit) ? _puzzleMap.cellIndex(x+1, y) : -1;
-      neighbour[2] /*above*/ = (y > 0)     ? _puzzleMap.cellIndex(x, y-1) : -1;
-      neighbour[3] /*right*/ = (y < limit) ? _puzzleMap.cellIndex(x, y+1) : -1;
-      for (int nb = 0; nb < 4; nb++) {
-        if ((neighbour[nb] < 0) || (cellBackG[neighbour[nb]] == UNUSABLE)) {
-          continue;	// Edge of puzzle or unused cell on this side.
-        }
-        // Now see if the neighbour is also in this group or cage.
-        for (int k = 0; k < nCells; k++) {
-          if (cells[k] == neighbour[nb]) {
-            edges = edges - (1 << nb);	// If so, no thick edge needed here.
-          }
-        }
-      }
       // Colour detached cells (as in XSudoku diagonals), but not 1-cell cages.
+      int edges = edgeCellFlags[n];
       if (edges == all) {
         if (_puzzleMap.specificType == SudokuType.XSudoku) {
           int cellPos = cells[n];
-          cellBackG[cellPos] = SPECIAL;
+          cellBackG[cellPos] = SPECIAL;	// i.e. On an XSudoku diagonal.
         }
         continue;
       }
+      int x = _puzzleMap.cellPosX(cells[n]);
+      int y = _puzzleMap.cellPosY(cells[n]);
       // Now set up the edges we have found - to be drawn thick.
       int sizeX = _puzzleMap.sizeX;
       int sizeY = _puzzleMap.sizeY;
@@ -317,4 +323,103 @@ class PaintingSpecs
       // print('$edgesEW');
     }
   }
+
+  List<int> findOutsideEdges (List<int> cells, PuzzleMap puzzleMap)
+  {
+    List<int> cellEdges = [];
+    int edges = 0;
+    int limit = _puzzleMap.sizeX - 1;
+
+    int nCells = cells.length;
+    for (int n = 0; n < nCells; n++) {
+      int x = _puzzleMap.cellPosX(cells[n]);
+      int y = _puzzleMap.cellPosY(cells[n]);
+      edges = all;
+      List<int> neighbour    = [-1, -1, -1, -1];
+      neighbour[0] = (x < limit) ? _puzzleMap.cellIndex(x+1, y) : -1; // E/right
+      neighbour[1] = (y < limit) ? _puzzleMap.cellIndex(x, y+1) : -1; // S/below
+      neighbour[2] = (x > 0)     ? _puzzleMap.cellIndex(x-1, y) : -1; // W/left
+      neighbour[3] = (y > 0)     ? _puzzleMap.cellIndex(x, y-1) : -1; // N/above
+      for (int nb = 0; nb < 4; nb++) {
+        if ((neighbour[nb] < 0) || (cellBackG[neighbour[nb]] == UNUSABLE)) {
+          continue;	// Edge of puzzle or unused cell on this side.
+        }
+        // Now see if the neighbour is also in this group or cage.
+        for (int k = 0; k < nCells; k++) {
+          if (cells[k] == neighbour[nb]) {
+            edges = edges - (1 << nb);	// If so, not an outside edge.
+          }
+        }
+      }
+      cellEdges.add(edges);
+    }
+    print('Cell list $cells');
+    print('Cell edges $cellEdges');
+    return cellEdges;
+  }
+
+  void markCageBoundaries(PuzzleMap puzzleMap)
+  {
+    // After generating a Mathdoku or Killer Sudoku puzzle, set up
+    // the painting specifications for thw boundaries of the cages.
+    int nCages = puzzleMap.cageCount();
+    if (nCages <= 0) {
+      return;				// No cages in this puzzle.
+    }
+
+    List<int> cycle = [N, E, S, W, N, E];
+
+    // Cage-boundary values will be filled in randomly, so pre-fill the list.
+    _cageBoundaries.clear();
+    _cageBoundaries = List.filled(_sizeX * _sizeY, 0);
+
+    for (int cageNum = 0; cageNum < nCages; cageNum++)	// For each cage...
+    {
+      // Get the list of cells in the cage.
+      List<int> cage = puzzleMap.cage(cageNum);
+      print('Find boundaries of $cage');
+
+      // Find the outer boundaries of the cage, represented as 4 bits per cell.
+      List<int> edges = findOutsideEdges(cage, puzzleMap);
+      print('Edges of cage      $edges');
+
+      // For each cell in the cage...
+      for (int n = 0; n < cage.length; n++)
+      {
+        int cell = cage[n];
+        int edge = edges[n];
+        int cellCageBoundaries = 0;
+        for (int e = 1; e < 5; e++)
+        {
+          // print('EdgeNum $e edges $edge mask ${cycle[e]}'
+                   // ' prev ${cycle[e-1]} next ${cycle[e+1]}');
+          int lineBits = 0;
+          if ((edge & cycle[e]) > 0) {	// This side has part of cage-boundary.
+            lineBits = 2;		// Start with middle of boundary line.
+            if ((edge & cycle[e - 1]) == 0) {
+              // No corner before: extend line backwards to edge of cell.
+              lineBits |= 1;
+            }
+            if ((edge & cycle[e + 1]) == 0) {
+              // No corner after: extend line forwards to edge of cell.
+              lineBits |= 4;
+            }
+          }
+          // Place the boundary-line bits into the 12-bit result for the cell.
+          int shift = 3 * (e - 1);
+          cellCageBoundaries |= lineBits << shift;
+          // print('Cage $cageNum cell $cell edges $edge edge $e'
+                // ' lineBits $lineBits shift $shift');
+          // print('Cage $cageNum cell $cell'
+                // ' cellCageBoundaries $cellCageBoundaries');
+        }
+        // Save the cage-boundary parts that traverse this cell.
+        _cageBoundaries[cell] = cellCageBoundaries;
+      }
+    }
+    print('Cage boundary lines $_cageBoundaries');
+    // Every cage should now have a closed boundary and every cell should have
+    // a 12-bit value representing the cage-boundary parts that appear in it.
+  }
+
 } // End class PaintingSpecs

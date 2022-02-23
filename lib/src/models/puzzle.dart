@@ -1,4 +1,3 @@
-import 'dart:math';
 import '../settings/settings_controller.dart';
 import '../globals.dart';
 import 'puzzle_map.dart';
@@ -6,6 +5,7 @@ import 'puzzle_types.dart';
 import '../views/painting_specs_2d.dart';
 import '../engines/sudoku_generator.dart';
 import '../engines/sudoku_solver.dart';
+import '../engines/mathdoku_generator.dart';
 
 class CellChange
 {
@@ -21,9 +21,6 @@ class Puzzle
   late PuzzleMap _puzzleMap;
 
   PuzzleMap get puzzleMap => _puzzleMap;
-
-  // Random _random = Random(DateTime.now().millisecondsSinceEpoch);
-  Random _random = Random(266133);	// Fixed seed: no sophistication needed.
 
   // A stash where View widgets can find a copy of the puzzle's Painting Specs.
   PaintingSpecs _paintingSpecs = PaintingSpecs.empty();	// Dummy for compiling.
@@ -94,15 +91,15 @@ class Puzzle
 
   void _init()
   {
-    // Initialize the lists of cells, using deep copies.
+    // Initialize the lists of cells, using deep copies. The solution is empty
+    // in case the user taps in a puzzle: it gets filled if they generate one.
     _puzzleGiven = [..._puzzleMap.emptyBoard];
-    _solution    = [..._puzzleMap.emptyBoard];
+    // _solution    = [..._puzzleMap.emptyBoard];
+    _solution    = [];		// Needs to be empty if tapping in a puzzle.
     _stateOfPlay = [..._puzzleMap.emptyBoard];
     _cellStatus  = [..._puzzleMap.emptyBoard];
 
     _cellChanges.clear();
-
-    Random _random = Random(DateTime.now().millisecondsSinceEpoch);
 
     // TODO - Get/set these in Settings. Prompt the user.
     Difficulty _difficulty = Difficulty.Diabolical;
@@ -117,10 +114,11 @@ class Puzzle
     _puzzlePlay = Play.NotStarted;
   }
 
-  // Generate a new puzzle of the type and size selected by the user.
   Message generatePuzzle()
+  // Generate a new puzzle of the type and size selected by the user.
+  // This can be re-used, without going back to the puzzle selection screen.
   {
-    _init();
+    _init();			// Clear the state of the Puzzle.
 
     Message response = Message('', '');
     SudokuType puzzleType = _puzzleMap.specificType;
@@ -133,33 +131,46 @@ class Puzzle
         response.messageType = 'W';		// Warning.
         response.messageText = 'Roxdoku (3-D) puzzles not yet supported.';
         return response;			// Convey the message.
+        break;
 
       case SudokuType.Mathdoku:
       case SudokuType.KillerSudoku:
 	// Generate variants of Killer Sudoku or Mathdoku (aka KenKen TM) types.
-        // MathdokuGenerator mg = MathdokuGenerator(_puzzleMap);
-	// int maxTries = 10;
-	// int numTries;
-        // for (numTries = 1; numTries <= maxTries; numTries++) {
-          // _solution = _fillBoard();
-          // if (mg.generateMathdokuKiller(_puzzleGiven, _solution, _SudokuMoves,
-                                        // _difficulty)) {
-            // return;
-          // } 
-        // }
-        // TODO - Issue a message.
-		// QWidget owner;
-		// if (KMessageBox::questionYesNo (&owner,
-			    // i18n("Attempts to generate a puzzle failed after "
-				 // "about 200 tries. Try again?"),
-			    // i18n("Mathdoku or Killer Sudoku Puzzle"))
-			    // == KMessageBox::No) {
-		    // return false;	// Go back to the Welcome screen.
-		// }
-		// numTries = 0;		// Try again.
-        response.messageType = 'W';		// Warning.
-        response.messageText = 'Mathdoku and Killer Sudoku coming soon.';
+        MathdokuGenerator mg = MathdokuGenerator(_puzzleMap);
+	// int maxTries = 10;	// TODO - RESTORE THIS !!!!!!!!!
+	int maxTries = 1;
+	int numTries;
+        for (numTries = 1; numTries <= maxTries; numTries++) {
+          _solution = _fillBoard();
+          if (mg.generateMathdokuKillerTypes(_puzzleGiven, _solution,
+                                             _SudokuMoves, _difficulty)) {
+            response.messageType = 'I';
+            response.messageText = 'TESTING: MathdokuKiller generator = TRUE';
+            _paintingSpecs.markCageBoundaries(_puzzleMap);
+            break;
+          } 
+        }
+        if (response.messageType == '') {
+          // Used up max tries and found no valid puzzle.
+          response.messageType = 'Q';		// Warning.
+          response.messageText = 'Attempts to generate a puzzle failed after'
+                                 ' about 200 tries. Try again?';
+        }
+        else {
+          // Valid puzzle found: move single-cell cage-values to _puzzleGiven.
+          for (int cageNum = 0; cageNum < _puzzleMap.cageCount(); cageNum++) {
+            List<int> cage = _puzzleMap.cage(cageNum);
+            if (cage.length == 1) {
+              int cell = cage[0];
+              _puzzleGiven[cell] = _solution[cell];
+              print('Cage $cageNum $cage cell $cell value ${_solution[cell]}');
+            }
+          }
+          // Cages have been added to PuzzleMap. Move to ReadyToPlay status.
+          makeReadyToPlay();
+        }
         return response;
+        break;
 
       default:
 	// Generate variants of Sudoku (2D) and Roxdoku (3D) types.
@@ -168,46 +179,79 @@ class Puzzle
                                              _SudokuMoves,
                                              _difficulty, _symmetry);
         if (response.messageType != 'F') {	// Succeeded - up to a point...
-          // print('_puzzleGiven $_puzzleGiven');
-          _stateOfPlay = [..._puzzleGiven];
-          for (int n = 0; n < _puzzleGiven.length; n++) {
-            if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
-              _cellStatus[n] = GIVEN;
-            }
-          }
-          _cellChanges.clear();			// No moves made yet.
-          print('PUZZLE\n');
-          _puzzleMap.printBoard(_stateOfPlay);
-          // print('Cell statuses $_cellStatus');
-          print('Cell changes  $_cellChanges');
-
-          // Change the Puzzle Play status to receive solving moves.
-          _puzzlePlay = Play.ReadyToStart;
-          // TODO - Start clock, but only AFTER user has replied to message.
+          makeReadyToPlay();
         }
         else {					// FAILED. Please try again.
           // Generator/solver may have failed internally.
         }
         return response;
+        break;
     }
+  }
+
+  void makeReadyToPlay()
+  {
+    // print('_puzzleGiven $_puzzleGiven');
+    _stateOfPlay = [..._puzzleGiven];
+    for (int n = 0; n < _puzzleGiven.length; n++) {
+      if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
+        _cellStatus[n] = GIVEN;
+      }
+    }
+    _cellChanges.clear();			// No moves made yet.
+    print('PUZZLE\n');
+    _puzzleMap.printBoard(_stateOfPlay);
+    // print('Cell statuses $_cellStatus');
+    print('Cell changes  $_cellChanges');
+
+    // Change the Puzzle Play status to receive solving moves.
+    _puzzlePlay = Play.ReadyToStart;
+    // TODO - Start clock, but only AFTER user has replied to message.
   }
 
   BoardContents _fillBoard()
   {
     // This is in a function so that "solver" will release resources as soon
     // as possible, in cases when the Mathdoku/Killer-Sudoku generator runs.
+    print('In Puzzle._fillBoard(): SudokuSolver about to be created.');
     SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
     return solver.createFilledBoard();
   }
 
-  // Check the validity of a puzzle tapped in by the user.
-  void checkPuzzle()
+  int checkPuzzle()
   {
+    // Check that a puzzle tapped in or loaded by user has a proper solution.
+    // Returns 0 if solution is OK, -1 if no solution, -3 if solution not unique
+    // or -2 if puzzle and solution loaded from a file are not self-consistent.
     print('ENTERED checkPuzzle().');
+    SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
+    int error = 0;
+    error = solver.checkSolutionIsValid (_stateOfPlay, _solution);
+    if (error != 0) {
+      return error;
+    }
+    error = solver.checkSolutionIsUnique(_stateOfPlay, _solution);
+    return error;
   }
 
-  PuzzleState hitPuzzleArea(int n)		// User has hit a puzzle-cell.
+  void convertDataToPuzzle()
   {
+    print('ENTERED convertDataToPuzzle().');
+    _puzzleGiven = [..._stateOfPlay];
+    for (int n = 0; n < _puzzleGiven.length; n++) {
+      if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
+        _cellStatus[n] = GIVEN;
+      }
+    }
+    SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
+    _solution = solver.solveBoard (_puzzleGiven, GuessingMode.Random);
+    _cellChanges.clear();			// No moves made yet.
+    _puzzlePlay = Play.ReadyToStart;
+  }
+
+  PuzzleState hitPuzzleArea(int n)
+  {
+    // User has tapped on  a puzzle-cell: implement the rules of play.
     if (_puzzlePlay == Play.Solved) {
       // The Puzzle has been solved: only undo/redo  moves are allowed.
       // The user can also generate a new Puzzle or Quit/Save, etc.
@@ -215,21 +259,21 @@ class Puzzle
                          _puzzlePlay, _puzzlePlay);
     }
     else if (_puzzlePlay == Play.HasError) {
-      // Allow moves to correct the error(s).
+      // Allow moves to correct the error(s) in a potential solution.
       _puzzlePlay = Play.InProgress;
     }
 
     CellValue  symbol = selectedControl;
     CellStatus status = _cellStatus[n];
 
-    // Check that the user has selected a symbol and that the cell is usable.
     if (symbol == UNUSABLE || status == UNUSABLE || status == GIVEN) {
+      // Check that the user has selected a symbol and that the cell is usable.
       return PuzzleState(n, CellState(INVALID, UNUSABLE),
                          _puzzlePlay, _puzzlePlay);
     }
 
-    // Don't clear a cell that is already empty.
     if ((symbol == VACANT) && (_stateOfPlay[n] == VACANT)) {
+      // Don't clear a cell that is already empty.
       return PuzzleState(n, CellState(INVALID, VACANT),
                          _puzzlePlay, _puzzlePlay);
     }
@@ -242,19 +286,19 @@ class Puzzle
     }
 
     if ((_puzzlePlay == Play.NotStarted) && (symbol != VACANT)) {
+      // Maybe this is the First move when tapping in a Puzzle.
       // Change the Puzzle Play status to BeingEntered. The user will be asked
-      // about this, but not until we are back in the main BuildContext. Trying
-      // to issue a message here or in the Canvas makes Flutter widgets crash.
-      _puzzlePlay = Play.BeingEntered;	// First move when tapping in a Puzzle.
+      // about this, but not until we are back in the Puzzle View and the widget
+      // building flow. Issuing a message any earlier makes Flutter crash.
+      _puzzlePlay = Play.BeingEntered;
     }
 
-    // Make a move. Return the status and value.
+    // Attempt to make the move. Return the status and value of the cell.
     CellState c =  move(n, symbol);
 
     if ((_puzzlePlay == Play.InProgress) && (c.status == CORRECT)) {
-      // Change the Puzzle Play status to Solved or HasError or leave it at
-      // InProgress. If Solved, no more moves are allowed: only undo/redo
-      // (to review the moves).
+      // If all cells are now filled, change the Puzzle Play status to Solved or      // HasError: otherwise leave it at InProgress. If Solved, no more moves
+      // are allowed: only undo/redo (to review the moves).
       _puzzlePlay = _isPuzzleSolved();
 
       // TODO - Stop the clock when changing to Solved status.
@@ -262,15 +306,9 @@ class Puzzle
     return PuzzleState(n, c, _previousPuzzlePlay, _puzzlePlay);
   }
 
-    // TODO - Check for Play statuses Solved. HasError and BeingEntered.
-    //        Board full and no error -> Solved, board full and error(s) ->
-    //        HasError. First move and NotStarted -> BeingEntered(?). In
-    //        Solved status no moves are allowed - only Undo/Redo. In
-    //        BeingEntered status, no Notes are allowed and Check can
-    //        lead to ReadyToStart.
-
-  CellState move(int n, CellValue symbol)	// Update the Puzzle state.
+  CellState move(int n, CellValue symbol)
   { 
+    // Make a move, if valid, and update the state of the Puzzle cell.
     CellStatus currentStatus = _cellStatus[n];
     CellValue  currentValue  = _stateOfPlay[n];
     CellStatus newStatus;
@@ -303,12 +341,12 @@ class Puzzle
       // Normal entry of a possible solution-value or a delete.
       newValue = symbol;
       if (newValue == currentValue) {
-        // TODO - TEST various combinations of move, erase, prune & undo/redo.
+        // Entering a value a second time clears the cell.
         newValue  = VACANT;
         newStatus = VACANT;
       }
       else if (_puzzlePlay == Play.BeingEntered) {
-        // Let the user tap in a puzzle, until checkPuzzle() is used.
+        // Let the user go on tapping in a puzzle, until checkPuzzle() is used.
         newStatus = CORRECT;
       }
       else {
@@ -318,14 +356,20 @@ class Puzzle
       }
     }
 
+    // TODO - TEST various combinations of move, erase, prune & undo/redo.
+    // TODO - New move: prune _cellChanges list, unless new move == undone???
+
     CellState newState = CellState(newStatus, newValue);
     CellState oldState = CellState(currentStatus, currentValue);
-    // TODO - New move: prune _cellChanges list, unless new move == undone???
+
     int nCellChanges = _cellChanges.length;
     if (_indexUndoRedo < nCellChanges) {
+      // Prune the list of cell changes (i.e. list of undo/redo possibilities).
       print('PRUNE _indexUndoRedo $_indexUndoRedo nCellChanges $nCellChanges');
       _cellChanges.removeRange(_indexUndoRedo, nCellChanges - 1);
     }
+
+    // Update the undo/redo list and record the move.
     _cellChanges.add(CellChange(n, oldState, newState));
     _indexUndoRedo     = _cellChanges.length;
     _cellStatus[n]     = newStatus;
@@ -340,12 +384,14 @@ class Puzzle
 
   Play _isPuzzleSolved()
   {
+    // Check whether all playable cells are filled, with or without error(s).
     bool hasError = false;
     for (int n = 0; n < _solution.length; n++) {
       if (_cellStatus[n] == ERROR) {
         hasError = true;
       }
       if ((_cellStatus[n] == VACANT) || (_cellStatus == NOTES)) {
+        // Not finished yet: found Notes or an empty cell.
         return _puzzlePlay;
       }
       if (_stateOfPlay[n] != _solution[n]) {
@@ -354,15 +400,23 @@ class Puzzle
       }
     }
 
+    // All cells have been filled now.
     return hasError ? Play.HasError : Play.Solved;
   }
 
   bool isPlayUnchanged()
   {
-    return (_puzzlePlay == _previousPuzzlePlay);
+    // Helper for Puzzle View, to decide what messages to issue and when.
+    bool isChanged = (_puzzlePlay != _previousPuzzlePlay);
+    if (isChanged) {
+      _previousPuzzlePlay = _puzzlePlay;	// Don't repeat this result.
+      return false;				// Play status changed.
+    }
+    return true;				// Play status is unchanged.
   }
 
-  bool undo() {					// Undo a move.
+  bool undo() {
+    // Undo a move.
     int l = _cellChanges.length;
     print('UNDO: _indexUndoRedo = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo <= 0) {
@@ -379,7 +433,8 @@ class Puzzle
     return true;
   }
 
-  bool redo() {					// Redo a move.
+  bool redo() {
+    // Redo a move.
     int l = _cellChanges.length;
     print('REDO: _indexUndoRedo = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo >= _cellChanges.length) {

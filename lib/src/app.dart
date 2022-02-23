@@ -80,7 +80,8 @@ class MyApp extends StatelessWidget {
                   case PuzzleView.routeName:
                     String puzzleSpecID = settingsController.puzzleSpecID;
                     int index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
-                    return PuzzleView(index);
+                    return PuzzleAncestor(puzzle: new Puzzle(index),
+                                          child:  new PuzzleView());
                   case PuzzleListView.routeName:
                   default:
                     return PuzzleListView(settings: settingsController);
