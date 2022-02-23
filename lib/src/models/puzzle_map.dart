@@ -1,3 +1,6 @@
+import 'dart:math';		// For random-number generator Random class.
+import '../globals.dart';
+
 /***************************************************************************
  *   Copyright 2005-2007 Francesco Rossi <redsh@email.it>                  *
  *   Copyright 2006      Mick Kappenburg <ksudoku@kappendburg.net>         *
@@ -97,9 +100,6 @@
  * Killer Sudoku can have sizes 4x4 or 9x9 only.
  */
 
-// Definitions of widely-used constants, typedefs and enums.
-import '../globals.dart';
-
 // High-level structure types are a square grid, a large cube or a
 // special or irregularly-shaped group, as in XSudoku or jigsaw types.
 enum StructureType { SudokuGroups, RoxdokuGroups, Groups }
@@ -174,11 +174,13 @@ class PuzzleMap
           }
           break;
         case 'SizeX':
-          _sizeX = _getDimension(fields, nFields, _sizeX);
+          _sizeX = fields[1] == 'Mathdoku' ? 6 :
+                                  _getDimension(fields, nFields, _sizeX);
           print('_sizeX = $_sizeX');
           break;
         case 'SizeY':
-          _sizeY = _getDimension(fields, nFields, _sizeY);
+          _sizeY = fields[1] == 'Mathdoku' ? 6 :
+                                  _getDimension(fields, nFields, _sizeY);
           print('_sizeY = $_sizeY');
           break;
         case 'SizeZ':
@@ -186,11 +188,13 @@ class PuzzleMap
           print('_sizeZ = $_sizeZ');
           break;
         case 'NGroups':
-          _nGroups = _getDimension(fields, nFields, _nGroups);
+          _nGroups = fields[1] == 'Mathdoku*2' ? 12 :
+                                    _getDimension(fields, nFields, _nGroups);
           print('_nGroups = $_nGroups');
           break;
         case 'NSymbols':
-          _nSymbols = _getDimension(fields, nFields, _nSymbols);
+          _nSymbols = fields[1] == 'Mathdoku' ? 6 :
+                                     _getDimension(fields, nFields, _nSymbols);
           print('_nSymbols = $_nSymbols');
           break;
         case 'PuzzleMap':
@@ -271,6 +275,8 @@ class PuzzleMap
   } // End of PuzzleMap constructor.
 
   // Getters for PuzzleMap properties.
+  Random get random  => _random;
+
   int get nSymbols   => _nSymbols;
   int get blockSize  => _blockSize;
 
@@ -403,8 +409,12 @@ class PuzzleMap
         }
   }
 
+  // Random-number generator for puzzle generators and solvers.
+  Random _random = Random(266133);
+  // Random _random = Random(DateTime.now().millisecondsSinceEpoch);
 
   // Private values and methods.
+
   int _sizeX;
   int _sizeY;
   int _sizeZ;
