@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../globals.dart';
 import '../models/puzzle_map.dart';
+import 'dlx_solver.dart';
 
 // TODO - SORT OUT REFFERENCES TO qrand() and _DLXSolver (parameters, at least).
 
@@ -139,7 +140,7 @@ class CageGenerator
                              BoardContents this._solution)
     :
     _random    = _puzzleMap.random,
-    _DLXSolver = new DLXSolver();
+    _DLXSolver = new DLXSolver(_puzzleMap);
  
   // ~CageGenerator()
   // {
@@ -336,9 +337,10 @@ class CageGenerator
                          " $cage val $cageValue op $cageOperator");
       if (myDebug) {
         // Print the layout so far, with tags a, b, c... for the caged-cells.
-        String tags = 'abcdefghijklmnopqrstuvwxyz123456789';
+        String tags = 'abcdefghijklmnopqrstuvwxyz0123456789=+*&^%#@!~:;.<>?/';
         int ch = _puzzleMap.cageCount() - 1;
-        String tag = tags.substring(ch, ch + 1);
+        // Avoid a crash. Just leave spaces if we run out of tag characters.
+        String tag = ch < tags.length ? tags.substring(ch, ch + 1) : ' ';
         for (int cell in cage) {
           usedCells = usedCells.replaceRange(cell, cell + 1, tag);
         }
@@ -354,7 +356,6 @@ class CageGenerator
         print('\n');
       }
       List<int> flagsList = [];
-      // TODO Was Q_FOREACH: could be Dart for...in?
       for (int cell in _unusedCells) {
         flagsList.add(_neighbourFlags[cell]);
       }
@@ -525,9 +526,6 @@ class CageGenerator
 
         // Pick a neighbour to be added to the cage.
         index = -1;
-        // TODO Was Q_FOREACH: could be Dart for...in?
-        // for (int n = 0; n < unusedNeighbours.length; n++) {
-            // int unb = unusedNeighbours[n];
         for (unb in unusedNeighbours) {
             flags = _neighbourFlags[unb];
             if (flags == 15) {
@@ -871,10 +869,6 @@ class CageGenerator
         cell = cage[n];
         mask = 1 << digits[n];
         List<int> groupList = _puzzleMap.groupList (cell);
-        // TODO Was Q_FOREACH: could be Dart for...in?
-        // foreach (group, groupList) {
-        // for (int g = 0; g < groupList.length; g++) {
-            // int group = groupList[g];
         // TODO - Check this logic with _puzzlemap code for group-indexes.
         for (int group in groupList) {
             if ((mask & usedGroups[group]) > 0) {
@@ -934,6 +928,7 @@ class CageGenerator
   }
 }
 
+/*
 class DLXSolver
 // Dummy - for initial compiling only.
 {
@@ -948,3 +943,4 @@ class DLXSolver
     return solution;
   }
 }
+*/

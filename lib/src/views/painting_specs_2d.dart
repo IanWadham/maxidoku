@@ -371,7 +371,7 @@ class PaintingSpecs
 
     // Cage-boundary values will be filled in randomly, so pre-fill the list.
     _cageBoundaries.clear();
-    _cageBoundaries = List.filled(_sizeX * _sizeY, 0);
+    _cageBoundaries = List.filled(_sizeX * _sizeY, 0, growable: true);
 
     for (int cageNum = 0; cageNum < nCages; cageNum++)	// For each cage...
     {
