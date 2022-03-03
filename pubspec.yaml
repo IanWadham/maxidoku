@@ -13,8 +13,10 @@ dependencies:
   community_material_icon:
   flutter:
     sdk: flutter
+
   flutter_localizations:
     sdk: flutter
+  provider: ^6.0.2
 
 dev_dependencies:
   flutter_test:

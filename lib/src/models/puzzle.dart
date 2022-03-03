@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../settings/settings_controller.dart';
 import '../globals.dart';
 import 'puzzle_map.dart';
@@ -16,7 +18,7 @@ class CellChange
   CellChange(this.cellIndex, this.before, this.after);
 }
 
-class Puzzle
+class Puzzle with ChangeNotifier
 {
   late PuzzleMap _puzzleMap;
 
@@ -249,14 +251,37 @@ class Puzzle
     _puzzlePlay = Play.ReadyToStart;
   }
 
-  PuzzleState hitPuzzleArea(int n)
+  bool hitControlArea(int selection)
+  {
+    // User has tapped on the control area, to choose a symbol (1-9, A-Y)
+    // to enter, to switch Notes mode or to set Delete (or Erase) mode.
+    bool hideNotes = (puzzlePlay == Play.NotStarted) ||
+                     (puzzlePlay == Play.BeingEntered);
+    print('hitControlArea: selection $selection, hideNotes $hideNotes');
+    if (! hideNotes && (selection == 0)) {
+      notesMode = !notesMode;	// Switch Notes mode, but only when solving.
+      print('Switched Notes to $notesMode');
+    }
+    else {
+      // The value selected is treated as a cell-value, a note or an erase.
+      selectedControl = selection - (hideNotes ? 0 : 1);
+      print('Selected control $selectedControl');
+      // TODO - Allow multiple entry of Notes in current Puzzle cell.
+    }
+    return true;
+  }
+
+  // PuzzleState hitPuzzleArea(int n)
+  bool hitPuzzleArea(int x, int y)
   {
     // User has tapped on  a puzzle-cell: implement the rules of play.
+    int n = _puzzleMap.cellIndex(x, y);
     if (_puzzlePlay == Play.Solved) {
       // The Puzzle has been solved: only undo/redo  moves are allowed.
       // The user can also generate a new Puzzle or Quit/Save, etc.
-      return PuzzleState(n, CellState(INVALID, UNUSABLE),
-                         _puzzlePlay, _puzzlePlay);
+      // return PuzzleState(n, CellState(INVALID, UNUSABLE),
+                         // _puzzlePlay, _puzzlePlay);
+      return false;
     }
     else if (_puzzlePlay == Play.HasError) {
       // Allow moves to correct the error(s) in a potential solution.
@@ -268,14 +293,16 @@ class Puzzle
 
     if (symbol == UNUSABLE || status == UNUSABLE || status == GIVEN) {
       // Check that the user has selected a symbol and that the cell is usable.
-      return PuzzleState(n, CellState(INVALID, UNUSABLE),
-                         _puzzlePlay, _puzzlePlay);
+      // return PuzzleState(n, CellState(INVALID, UNUSABLE),
+                         // _puzzlePlay, _puzzlePlay);
+      return false;
     }
 
     if ((symbol == VACANT) && (_stateOfPlay[n] == VACANT)) {
       // Don't clear a cell that is already empty.
-      return PuzzleState(n, CellState(INVALID, VACANT),
-                         _puzzlePlay, _puzzlePlay);
+      // return PuzzleState(n, CellState(INVALID, VACANT),
+                         // _puzzlePlay, _puzzlePlay);
+      return false;
     }
 
     _previousPuzzlePlay = _puzzlePlay;	// In case the move changes the Play.
@@ -303,12 +330,14 @@ class Puzzle
 
       // TODO - Stop the clock when changing to Solved status.
     }
-    return PuzzleState(n, c, _previousPuzzlePlay, _puzzlePlay);
+    // return PuzzleState(n, c, _previousPuzzlePlay, _puzzlePlay);
+    // The move has been accepted and made.
+    return true;
   }
 
   CellState move(int n, CellValue symbol)
   { 
-    // Make a move, if valid, and update the state of the Puzzle cell.
+    // Make a move and update the state of the Puzzle cell.
     CellStatus currentStatus = _cellStatus[n];
     CellValue  currentValue  = _stateOfPlay[n];
     CellStatus newStatus;

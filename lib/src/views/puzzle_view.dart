@@ -330,10 +330,49 @@ class _PuzzleViewState extends State<_PuzzleView>
   void _possibleHit(PointerEvent details)
   {
     hitPos = details.localPosition;
-    dummyValue = dummyValue == ' ' ? '  ' : ' ';	// TODO - KLUDGE.
     print ('_possibleHit at $hitPos');
-    puzzlePainter.hitPosition = hitPos;
-    setState(() {} );
+    Puzzle puzzle = widget.puzzle;
+    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
+    Rect r = paintingSpecs.puzzleRect;
+    bool modelChanged = false;
+    bool puzzleHit = r.contains(hitPos);
+    if (puzzleHit) {
+      // Hit is on puzzle-area: get integer co-ordinates of cell.
+      Offset point = hitPos - Offset(topLeftX, topLeftY);
+      double cellSize = r.width / paintingSpecs.sizeX;
+      int x = (point.dx / cellSize).floor();
+      int y = (point.dy / cellSize).floor();
+      print('Hit is at puzzle-cell ($x, $y)');
+      // If hitting this cell is a valid move, the Puzzle model will be updated.
+      modelChanged = puzzle.hitPuzzleArea(x, y);
+    }
+    else {
+      Rect r = paintingSpecs.controlRect;
+      if (r.contains(hitPos)) {
+        // Hit is on control-area: get current number of controls.
+        int nSymbols = paintingSpecs.nSymbols;
+        int nCells = (puzzle.puzzlePlay == Play.NotStarted) ||
+                     (puzzle.puzzlePlay == Play.BeingEntered) ?
+                     nSymbols + 1 : nSymbols + 2;
+        bool portrait = paintingSpecs.portrait;
+        double cellSize = portrait ? r.width / nCells : r.height / nCells;
+        Offset point = hitPos - Offset(topLeftXc, topLeftYc);
+        int x = (point.dx / cellSize).floor();
+        int y = (point.dy / cellSize).floor();
+        print('Hit is at control-cell ($x, $y)');
+        int selection = portrait ? x : y;	// Get the selected control num.
+        modelChanged = puzzle.hitControlArea(selection);
+      }
+      else {
+        print('_possibleHit: NOT A HIT');
+        return;			// Not a hit. Don't repaint.
+      }
+    }
+    print('MODEL CHANGED $modelChanged');
+    if (modelChanged) {
+      dummyValue = dummyValue == ' ' ? '  ' : ' ';	// TODO - KLUDGE.
+      setState(() {} );				// Trigger a repaint.
+    }
   }
 
   @override
@@ -350,7 +389,9 @@ class _PuzzleViewState extends State<_PuzzleView>
   @override
   // This widget contains the puzzle-area and puzzle-controls (symbols).
   Widget build(context) {
+
     WidgetsBinding.instance?.addPostFrameCallback((_) {executeAfterBuild();});
+
     return Container(
       // We wish to fill the parent, in either Portrait or Landscape layout.
       height: (MediaQuery.of(context).size.height),
@@ -359,8 +400,8 @@ class _PuzzleViewState extends State<_PuzzleView>
         onPointerDown: _possibleHit,
         child: CustomPaint(
           painter: puzzlePainter,
-            child: Text('$dummyValue'
-          ),
+                   // PuzzlePainter(widget.puzzle, widget.puzzle.paintingSpecs),
+          child: Text('$dummyValue'),			// TODO - KLUDGE.
         ),
       ),
     );
@@ -420,7 +461,7 @@ class PuzzlePainter extends CustomPainter
   double cellSide = 1.0;
 
   Offset hitPosition = Offset(-1.0, -1.0);
-  Size prevSize = Size(10.0, 10.0);
+  Size   prevSize = Size(10.0, 10.0);
 
   /* Paint or re-paint the puzzle-area, the puzzle-controls (symbols), *
    * the given-values (clues) for the puzzle and the symbols and notes *
@@ -453,17 +494,17 @@ class PuzzlePainter extends CustomPainter
                                                 paintingSpecs, hideNotes);
 
     // Co-ordinates of top-left corner of puzzle-area.
-    double topLeftX    = xy[0];
-    double topLeftY    = xy[1];
+    topLeftX           = xy[0];
+    topLeftY           = xy[1];
     topLeft            = Offset(xy[0], xy[1]);
-    cellSide           = xy[4];
+    cellSide           = cellSize;     // xy[4];
 
     // Co-ordinates of top-left corner of puzzle-controls (symbols).
-    double topLeftXc   = xy[2];
-    double topLeftYc   = xy[3];
+    topLeftXc          = xy[2];
+    topLeftYc          = xy[3];
 
     // Cell sizes for puzzle-area and controls (symbols).
-    double cellSize    = xy[4];
+    // NOTE: Can we make this a file-global?  double cellSize    = xy[4];
     double controlSize = xy[5];
 
     var lightScheme = ColorScheme.fromSeed(seedColor: Colors.amber.shade200);
@@ -589,6 +630,7 @@ class PuzzlePainter extends CustomPainter
       // print('i = $i x = ${i~/(nSymbols + 1)} y = ${i%(nSymbols + 1)} EW = ${paintingSpecs.edgesEW[i]} NS = ${paintingSpecs.edgesNS[i]}');
     }
 
+    // In Mathdoku or Killer Sudoku, paint the outlines and labels of the cages.
     if (puzzle.puzzleMap.cageCount() > 0) {
       paintCages(canvas, puzzle.puzzleMap.cageCount(),
                 paint3, paint2, cageLinePaint);
@@ -633,78 +675,6 @@ class PuzzlePainter extends CustomPainter
       }
       paintingSpecs.paintSymbol(canvas, n, cellPos, controlSize,
                                 isNote: false, isCell: false);
-    }
-
-    // ******** DEBUG ********
-    Offset old = paintingSpecs.lastHit;
-    Offset fake = Offset(1.0, 1.0);
-    if (hitPosition.dx > 0.0 && hitPosition.dy > 0.0) {
-      if (hitPosition != fake) print('HIT SEEN at $hitPosition, last hit $old');
-      Offset diff = hitPosition - old;
-      double tol = 5.0;
-      if (diff.dx > -tol && diff.dy > -tol && diff.dx < tol && diff.dy < tol) {
-        // print('DUPLICATE HIT... tolerance $tol');
-        hitPosition = fake;	// In Canvas, but not in an active area.
-      }
-      else {
-        paintingSpecs.lastHit = hitPosition;
-        // print('NEW HIT....');
-      }
-    }
-    else {
-      // print('NO HIT this time');
-    }
-    // ***********************
-
-    // Check for a hit in the puzzle-area (i.e. a user-move).
-    Rect r = paintingSpecs.puzzleRect;
-    // print('In Canvas.paint()');
-    // Puzzle puzzle = Puzzle(); // paintingSpecs.puzzle;
-    if (r.contains(hitPosition)) {
-      print('Hit the Puzzle Area');
-      Offset point = hitPosition - Offset(topLeftX, topLeftY);
-      double cellSize = r.width / paintingSpecs.sizeX;
-      int x = (point.dx / cellSize).floor();
-      int y = (point.dy / cellSize).floor();
-      print('Hit is at cell ($x, $y)');
-      int n = puzzle.puzzleMap.cellIndex(x, y);
-      print('Cell index = $n');
-      if ((paintingSpecs.cellBackG[n] == UNUSABLE) ||
-          (paintingSpecs.cellBackG[n] == GIVEN)) {
-        print('Cell $n cannot be played.');
-      }
-      else {
-        // Record the user's move, if it is valid.
-        PuzzleState p = puzzle.hitPuzzleArea(n);
-        if (p.cellState.status == INVALID) {
-          print('Invalid move. Cell $n cannot be played.');
-        }
-        else {
-          print('Change cell $n to status ${p.cellState.status},'
-                ' value ${p.cellState.cellValue}');
-        }
-      }
-    }
-
-    // Check for a hit in the control-area.
-    else if (paintingSpecs.controlRect.contains(hitPosition)) {
-      print('Hit the Control Area');
-      Rect r = paintingSpecs.controlRect;
-      int nCells = nControls;
-      bool portrait = paintingSpecs.portrait;
-      double cellSize = portrait ? r.width / nCells : r.height / nCells;
-      Offset point = hitPosition - Offset(topLeftXc, topLeftYc);
-      int x = (point.dx / cellSize).floor();
-      int y = (point.dy / cellSize).floor();
-      print('Hit is at cell ($x, $y)');
-      int selection = portrait ? x : y;		// Get the selected symbol.
-      if (! hideNotes && (selection == 0)) {
-        puzzle.notesMode = !puzzle.notesMode;	// Switch Notes when solving.
-      }
-      else {
-        // The value selected is treated as a cell-value, a note or an erase.
-        puzzle.selectedControl = selection - (hideNotes ? 0 : 1);
-      }
     }
 
     // Paint/repaint the graphics for all the symbols in the puzzle area.
@@ -752,8 +722,6 @@ class PuzzlePainter extends CustomPainter
         canvas.drawRect(cellPos & Size(controlSize, controlSize), highlight);
       }
     }
-
-    // print('REACHED END of PuzzlePainter.paint()...');
   } // End void paint(Canvas canvas, Size size)
 
   @override
@@ -898,10 +866,21 @@ class PuzzlePainter extends CustomPainter
 // ************************************************************************** //
 //   This function is outside any class... It is used by class PuzzlePainter.
 // ************************************************************************** //
+double cellSize    = 10.0;
+double controlSize = 10.0;
+double topLeftX    = 10.0;
+double topLeftY    = 10.0;
+double topLeftXc   = 10.0;
+double topLeftYc   = 10.0;
+
 List<double> calculatePuzzleLayout (bool portrait, Size size,
                                     PaintingSpecs paintingSpecs,
                                     bool hideNotes)
 {
+  // TODO - BUG: In portrait mode with NOTES hidden, the control area comes
+  //                out one cell too long at the right-hand end. It is drawn
+  //                correctly when NOTES are displayed.
+
   // Set up the layout calculation for landscape orientation.
   double shortSide   = size.height;
   double longSide    = size.width;
@@ -922,10 +901,10 @@ List<double> calculatePuzzleLayout (bool portrait, Size size,
 
   // Calculate the space allocations. Initially assume that the puzzle-area
   // will fill the short side, except for the two margins.
-  double cellSize        = shortSide / puzzleCells;	// Calculate cell size.
+         cellSize        = shortSide / puzzleCells;	// Calculate cell size.
   int    x               = hideNotes ? 1 : 2;
   int    nControls       = paintingSpecs.nSymbols + x;	// Add Erase and Notes.
-  double controlSize     = shortSide / nControls;
+         controlSize     = shortSide / nControls;
   double padding         = longSide - shortSide - controlSize;
   bool   longSidePadding = (padding >= 1.0);	// Enough space for padding?
   // If everything fits, fine...
