@@ -96,8 +96,7 @@ class Puzzle with ChangeNotifier
     // Initialize the lists of cells, using deep copies. The solution is empty
     // in case the user taps in a puzzle: it gets filled if they generate one.
     _puzzleGiven = [..._puzzleMap.emptyBoard];
-    // _solution    = [..._puzzleMap.emptyBoard];
-    _solution    = [];		// Needs to be empty if tapping in a puzzle.
+    _solution    = [];
     _stateOfPlay = [..._puzzleMap.emptyBoard];
     _cellStatus  = [..._puzzleMap.emptyBoard];
 
@@ -133,6 +132,7 @@ class Puzzle with ChangeNotifier
         response.messageType = 'W';		// Warning.
         response.messageText = 'Roxdoku (3-D) puzzles not yet supported.';
         return response;			// Convey the message.
+        // notifyListeners();	// If puzzle OK.
         break;
 
       case SudokuType.Mathdoku:
@@ -170,6 +170,7 @@ class Puzzle with ChangeNotifier
           }
           // Cages have been added to PuzzleMap. Move to ReadyToPlay status.
           makeReadyToPlay();
+          notifyListeners();
         }
         return response;
         break;
@@ -182,6 +183,7 @@ class Puzzle with ChangeNotifier
                                              _difficulty, _symmetry);
         if (response.messageType != 'F') {	// Succeeded - up to a point...
           makeReadyToPlay();
+          notifyListeners();
         }
         else {					// FAILED. Please try again.
           // Generator/solver may have failed internally.
@@ -249,6 +251,7 @@ class Puzzle with ChangeNotifier
     _solution = solver.solveBoard (_puzzleGiven, GuessingMode.Random);
     _cellChanges.clear();			// No moves made yet.
     _puzzlePlay = Play.ReadyToStart;
+    notifyListeners();
   }
 
   bool hitControlArea(int selection)
@@ -268,6 +271,7 @@ class Puzzle with ChangeNotifier
       print('Selected control $selectedControl');
       // TODO - Allow multiple entry of Notes in current Puzzle cell.
     }
+    notifyListeners();
     return true;
   }
 
@@ -332,6 +336,7 @@ class Puzzle with ChangeNotifier
     }
     // return PuzzleState(n, c, _previousPuzzlePlay, _puzzlePlay);
     // The move has been accepted and made.
+    notifyListeners();
     return true;
   }
 
@@ -459,6 +464,7 @@ class Puzzle with ChangeNotifier
     int n = change.cellIndex;
     _cellStatus[n]  = change.before.status;
     _stateOfPlay[n] = change.before.cellValue;
+    notifyListeners();
     return true;
   }
 
@@ -477,6 +483,7 @@ class Puzzle with ChangeNotifier
     _cellStatus[n]  = change.after.status;
     _stateOfPlay[n] = change.after.cellValue;
     _indexUndoRedo++;
+    notifyListeners();
     return true;
   }
 
