@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:community_material_icon/community_material_icon.dart';
 import 'package:flutter/src/foundation/binding.dart';
 import 'package:flutter/scheduler.dart';
@@ -24,7 +26,7 @@ import 'messages.dart';
   // See also the "Dependencies" list in the column at RHS of that page re
   // info on MacOS, Linux, Windows, etc.
 ** ************************************************************************** */
-
+/* DISCONTINUED in favour of Provider.
 class PuzzleAncestor extends InheritedWidget
 {
   // The object that contains all of the current internal state of the puzzle.
@@ -46,21 +48,29 @@ class PuzzleAncestor extends InheritedWidget
   @override
   bool updateShouldNotify(PuzzleAncestor old) => false;
 }
+*/
 
 /// Displays a Sudoku puzzle of a selected type and size.
 class PuzzleView extends StatelessWidget
 {
-  // TODO - DROP final int       index;	// Position in puzzle-specifications list.
+  // TODO - DROP final int index; // Position in puzzle-specifications list.
+  final int       index;	// Position in puzzle-specifications list.
 
-  const PuzzleView({Key? key,}) : super(key: key);
+  const PuzzleView(this.index, {Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
 
-    // Find the selected Puzzle object.
     // final Puzzle puzzle = new Puzzle(index);
-    final Puzzle puzzle = PuzzleAncestor.of(context).puzzle;
+    // final Puzzle puzzle = PuzzleAncestor.of(context).puzzle;
 
+    // Find the Puzzle object.
+    Puzzle puzzle = context.read<Puzzle>();
+
+    // Create a Puzzle state for the type of puzzle selected by the user.
+    puzzle.createState(index);
+
+    // TODO - BURY ALL THIS in puzzle._init() ??? Make PSpecs part of Puzzle.
 
     // Precalculate and save the operations for paint(Canvas canvas, Size size).
     // These are held in unit form and scaled up when the canvas-size is known.
@@ -157,7 +167,8 @@ class PuzzleView extends StatelessWidget
       ),
     ]; // End list of action icons
 
-    final _PuzzleView puzzleView = _PuzzleView(puzzle);
+    // final _PuzzleView puzzleView = _PuzzleView(puzzle);
+    // final _PuzzleView puzzleView = _PuzzleView();
     // final _PuzzleView puzzleView = _PuzzleView();
     if (! paintingSpecs.portrait) {	// Landscape orientation.
       // Paint the puzzle with the action icons in a column on the RHS.
@@ -165,7 +176,7 @@ class PuzzleView extends StatelessWidget
         body: Row(
           children: <Widget>[
             Expanded(
-              child: puzzleView, //// _PuzzleView(puzzle), ///// , context),
+              child: _PuzzleView(),
             ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
@@ -190,7 +201,7 @@ class PuzzleView extends StatelessWidget
               ),
             ),
             Expanded(
-              child: puzzleView, //// _PuzzleView(puzzle), ///// , context),
+              child: _PuzzleView(),
             ),
           ],
         ), // End body: Column(
@@ -301,17 +312,18 @@ class PuzzleView extends StatelessWidget
 } // End class PuzzleView
 
 
-class _PuzzleView extends StatefulWidget
+// class _PuzzleView extends StatefulWidget
+class _PuzzleView extends StatelessWidget
 {
-  final Puzzle puzzle;
+  // final Puzzle puzzle;
   // final Puzzle puzzle = PuzzleAncestor.of(context).puzzle;
   /////// final BuildContext context;
-  const _PuzzleView(this.puzzle, /* this.context, */ {Key? key}) : super(key: key);
+  // const _PuzzleView(this.puzzle, /* this.context, */ {Key? key}) : super(key: key);
 
-  @override
-  _PuzzleViewState createState() => _PuzzleViewState();
+  // @override
+  // _PuzzleViewState createState() => _PuzzleViewState();
 
-} // End class _PuzzleView extends StatefulWidget
+// } // End class _PuzzleView extends StatefulWidget
 
 // TODO - Resolve what is to be passed here, if anything, and whether to create Puzzle() at the App level first. Surely the 2D View and the puzzle contents (current solution state) should not just disappear if we go back to PuzzleListView, for example...
 
@@ -320,18 +332,83 @@ class _PuzzleView extends StatefulWidget
 // TODO - 1. Calculate the allocation of space. 2. Calculate and draw an empty area and set of symbols from the PuzzleMap. 3. Generate a puzzle, if required. 4. Display the puzzle contents. 5. Accept clicks and update the user's solution.
 
 
-class _PuzzleViewState extends State<_PuzzleView>
-{
+// class _PuzzleViewState extends State<_PuzzleView>
+// {
   Offset hitPos    = Offset(-1.0, -1.0);
-  String dummyValue = ' ';
+  // String dummyValue = ' ';
   late PuzzlePainter puzzlePainter;
+  late Puzzle puzzle;
+
+  @override
+  // This widget tree contains the puzzle-area and puzzle-controls (symbols).
+  Widget build(BuildContext context) {
+
+    // Locate the Puzzle models and repaint this widget tree whenthe model
+    // changes and emits notifyListeners(). Changes can be due to user-moves
+    // (taps) or actions on icon-buttons such as Undo/Redo, Generate and Hint.
+
+    puzzle = context.watch<Puzzle>();
+
+    WidgetsBinding.instance?.addPostFrameCallback((_)
+                             {executeAfterBuild(context);});
+
+    return Container(
+      // We wish to fill the parent, in either Portrait or Landscape layout.
+      height: (MediaQuery.of(context).size.height),
+      width:  (MediaQuery.of(context).size.width),
+      child:  Listener(
+        onPointerDown: _possibleHit,
+        child: CustomPaint(
+          painter: PuzzlePainter(puzzle),
+                   // PuzzlePainter(widget.puzzle, widget.puzzle.paintingSpecs),
+          // child: Text('$dummyValue'),		// TODO - KLUDGE.
+        ),
+      ),
+    );
+  } // End Widget build()
+
+  Future<void> executeAfterBuild(BuildContext context) async
+  {
+    // TODO - Not seeing the HasError message. Seems to happen when last move
+    //        is an error, but seems OK if an earlier move is incorrect.
+    // Check to see if there was any major change during the last repaint of
+    // the Puzzle. If so, issue appropriate messages. Flutter does not allow
+    // them to be issued or automatically queued during a repaint.
+    Play playNow = puzzle.puzzlePlay;
+    if (puzzle.isPlayUnchanged()) {
+      return;
+    }
+    // Play-status of Puzzle has changed. Need to issue a message to the user?
+    if (playNow == Play.BeingEntered) {
+      await questionMessage(
+                        context,
+                        'Tap In Own Puzzle?',
+                        'Do you wish to tap in your own puzzle?');
+    // TODO - Expand this message a bit. Make it more explanatory.
+    }
+    else if (playNow == Play.Solved) {
+      await infoMessage(context,
+                        'CONGRATULATIONS!!!',
+                        'You have solved the puzzle!!!\n\n'
+                        'If you wish, you can use Undo and Redo to review'
+                        ' your moves -'
+                        ' or you could just try another puzzle...');
+    }
+    else if (playNow == Play.HasError) {
+      await infoMessage(context,
+                        'Incorrect Solution',
+                        'Your solution contains one or more errors.'
+                        ' Please correct them and try again.');
+    }
+  }
 
   // Handle the user's PointerDown actions on the puzzle-area and controls.
   void _possibleHit(PointerEvent details)
   {
     hitPos = details.localPosition;
     print ('_possibleHit at $hitPos');
-    Puzzle puzzle = widget.puzzle;
+    // Puzzle puzzle = widget.puzzle;
+    // Puzzle puzzle = context.read<Puzzle>();
     PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
     Rect r = paintingSpecs.puzzleRect;
     bool modelChanged = false;
@@ -370,77 +447,21 @@ class _PuzzleViewState extends State<_PuzzleView>
     }
     print('MODEL CHANGED $modelChanged');
     if (modelChanged) {
-      dummyValue = dummyValue == ' ' ? '  ' : ' ';	// TODO - KLUDGE.
-      setState(() {} );				// Trigger a repaint.
+      // dummyValue = dummyValue == ' ' ? '  ' : ' ';	// TODO - KLUDGE.
+      // setState(() {} );				// Trigger a repaint.
     }
   }
 
-  @override
+  // @override
   // Make the Puzzle and PaintingSpecs objects accessible in the canvas() proc.
   // Together, they specify the background to paint and symbols (moves) to show.
-  void initState() {
-    super.initState();
-    print('In _PuzzleViewState.initState()');
-    Puzzle puzzle = widget.puzzle;
-    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
-    puzzlePainter = new PuzzlePainter(puzzle, paintingSpecs);
-  }
-
-  @override
-  // This widget contains the puzzle-area and puzzle-controls (symbols).
-  Widget build(context) {
-
-    WidgetsBinding.instance?.addPostFrameCallback((_) {executeAfterBuild();});
-
-    return Container(
-      // We wish to fill the parent, in either Portrait or Landscape layout.
-      height: (MediaQuery.of(context).size.height),
-      width:  (MediaQuery.of(context).size.width),
-      child:  Listener(
-        onPointerDown: _possibleHit,
-        child: CustomPaint(
-          painter: puzzlePainter,
-                   // PuzzlePainter(widget.puzzle, widget.puzzle.paintingSpecs),
-          child: Text('$dummyValue'),			// TODO - KLUDGE.
-        ),
-      ),
-    );
-  } // End Widget build()
-
-  Future<void> executeAfterBuild() async
-  {
-    // TODO - Not seeing the HasError message. Seems to happen when last move
-    //        is an error, but seems OK if an earlier move is incorrect.
-    // Check to see if there was any major change during the last repaint of
-    // the Puzzle. If so, issue appropriate messages. Flutter does not allow
-    // them to be issued or automatically queued during a repaint.
-    Play playNow = widget.puzzle.puzzlePlay;
-    if (widget.puzzle.isPlayUnchanged()) {
-      return;
-    }
-    // Play-status of Puzzle has changed. Need to issue a message to the user?
-    if (playNow == Play.BeingEntered) {
-      await questionMessage(
-                        context,
-                        'Tap In Own Puzzle?',
-                        'Do you wish to tap in your own puzzle?');
-    // TODO - Expand this message a bit. Make it more explanatory.
-    }
-    else if (playNow == Play.Solved) {
-      await infoMessage(context,
-                        'CONGRATULATIONS!!!',
-                        'You have solved the puzzle!!!\n\n'
-                        'If you wish, you can use Undo and Redo to review'
-                        ' your moves -'
-                        ' or you could just try another puzzle...');
-    }
-    else if (playNow == Play.HasError) {
-      await infoMessage(context,
-                        'Incorrect Solution',
-                        'Your solution contains one or more errors.'
-                        ' Please correct them and try again.');
-    }
-  }
+  // void initState() {
+    // super.initState();
+    // print('In _PuzzleViewState.initState()');
+    // Puzzle puzzle = widget.puzzle;
+    // PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
+    // puzzlePainter = new PuzzlePainter(puzzle, paintingSpecs);
+  // }
 } // End class _PuzzleViewState extends State<PuzzleView>
 
 
@@ -453,9 +474,9 @@ class _PuzzleViewState extends State<_PuzzleView>
 class PuzzlePainter extends CustomPainter
 {
   final Puzzle puzzle;
-  final PaintingSpecs paintingSpecs;
+  // final PaintingSpecs paintingSpecs;
 
-  PuzzlePainter(this.puzzle, this.paintingSpecs);
+  PuzzlePainter(this.puzzle); // , this.paintingSpecs);
 
   Offset topLeft  = Offset (0.0, 0.0);
   double cellSide = 1.0;
@@ -481,6 +502,8 @@ class PuzzlePainter extends CustomPainter
     int h = size.height.floor();
     // print('ENTERED PuzzlePainter W $w, H $h');
     // ***********************
+
+    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
 
     int  nSymbols      = paintingSpecs.nSymbols;
     int  sizeX         = paintingSpecs.sizeX;
@@ -749,6 +772,8 @@ class PuzzlePainter extends CustomPainter
   void paintCages(Canvas canvas, int cageCount, 
                  Paint labelPaint_fg, Paint labelPaint_bg, Paint cageLinePaint)
   {
+    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
+
     List<int> cageBoundaryBits = paintingSpecs.cageBoundaries;
     double inset = cellSide/12.0;
 

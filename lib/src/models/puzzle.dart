@@ -20,6 +20,9 @@ class CellChange
 
 class Puzzle with ChangeNotifier
 {
+  // Constructor.
+  Puzzle();
+
   late PuzzleMap _puzzleMap;
 
   PuzzleMap get puzzleMap => _puzzleMap;
@@ -74,9 +77,9 @@ class Puzzle with ChangeNotifier
   bool notesMode       = false;
   int  lastCellHit     = 0;
 
-  Puzzle(int index)
+  bool createState(int index)
   {
-    // Create selected puzzle type.
+    // Create the state for the puzzle type the user selected.
     print('Create Puzzle: index $index hash ${hashCode}');
 
     // Create a list of puzzle specifications in textual form.
@@ -88,7 +91,12 @@ class Puzzle with ChangeNotifier
     // Parse it and create the corresponding Puzzle Map, with an empty board.
     _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
 
+    // Set up data structures and PuzzleMap for an empty Puzzle Board.
     _init();
+
+    // TODO - DELETE this: maybe write a note in the comments.
+    // notifyListeners(); // Already building widgets: causes a CRASH...
+    return true;
   }
 
   void _init()
@@ -170,6 +178,7 @@ class Puzzle with ChangeNotifier
           }
           // Cages have been added to PuzzleMap. Move to ReadyToPlay status.
           makeReadyToPlay();
+          notifyListeners();
         }
         return response;
         break;
@@ -182,6 +191,7 @@ class Puzzle with ChangeNotifier
                                              _difficulty, _symmetry);
         if (response.messageType != 'F') {	// Succeeded - up to a point...
           makeReadyToPlay();
+          notifyListeners();
         }
         else {					// FAILED. Please try again.
           // Generator/solver may have failed internally.
@@ -268,6 +278,7 @@ class Puzzle with ChangeNotifier
       print('Selected control $selectedControl');
       // TODO - Allow multiple entry of Notes in current Puzzle cell.
     }
+    notifyListeners();
     return true;
   }
 
@@ -332,6 +343,7 @@ class Puzzle with ChangeNotifier
     }
     // return PuzzleState(n, c, _previousPuzzlePlay, _puzzlePlay);
     // The move has been accepted and made.
+    notifyListeners();
     return true;
   }
 
@@ -459,6 +471,7 @@ class Puzzle with ChangeNotifier
     int n = change.cellIndex;
     _cellStatus[n]  = change.before.status;
     _stateOfPlay[n] = change.before.cellValue;
+    notifyListeners();
     return true;
   }
 
@@ -477,6 +490,7 @@ class Puzzle with ChangeNotifier
     _cellStatus[n]  = change.after.status;
     _stateOfPlay[n] = change.after.cellValue;
     _indexUndoRedo++;
+    notifyListeners();
     return true;
   }
 
