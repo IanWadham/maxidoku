@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 
 import 'models/puzzle.dart';
 import 'views/puzzle_view.dart';
@@ -76,14 +77,32 @@ class MyApp extends StatelessWidget {
               builder: (BuildContext context) {
                 switch (routeSettings.name) {
                   case SettingsView.routeName:
+                    // Show Settings screen.
                     return SettingsView(controller: settingsController);
+
                   case PuzzleView.routeName:
+                    // Show empty layout of selected puzzle board.
                     String puzzleSpecID = settingsController.puzzleSpecID;
                     int index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
-                    return PuzzleAncestor(puzzle: new Puzzle(index),
-                                          child:  new PuzzleView());
+
+                    // Use Provider to monitor the state of the Puzzle model
+                    // and repaint the Puzzle View after any change of any type:
+                    // such as taps on the CustomPaint Canvas by the user when
+                    // making Puzzle moves or taps on buttons to Undo/Redo
+                    // moves, get a Hint or generate a new Puzzle. There are
+                    // several places in the Puzzle Class code where it calls
+                    // notifyListeners() and these are watched for by Provider.
+
+                    return ChangeNotifierProvider(
+                      create: (context) => Puzzle(),	// Model to watch.
+                      child:  PuzzleView(index),	// Top widget in screen.
+                      lazy:   false,			// Create Puzzle NOW, to
+                                                        // avoid startup crash.
+                    );
+
                   case PuzzleListView.routeName:
                   default:
+                    // Show a list of available puzzle types and sizes.
                     return PuzzleListView(settings: settingsController);
                 }
               },

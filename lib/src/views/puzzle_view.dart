@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:community_material_icon/community_material_icon.dart';
 import 'package:flutter/src/foundation/binding.dart';
 import 'package:flutter/scheduler.dart';
@@ -25,45 +27,30 @@ import 'messages.dart';
   // info on MacOS, Linux, Windows, etc.
 ** ************************************************************************** */
 
-class PuzzleAncestor extends InheritedWidget
-{
-  // The object that contains all of the current internal state of the puzzle.
-  final Puzzle puzzle;
-
-  PuzzleAncestor({
-    Key?     key,
-    required PuzzleView child,
-    required this.puzzle,	// From app.dart, selected in PuzzleListView.
-  }) : super(key: key, child: child);
-
-  static PuzzleAncestor of(BuildContext context) {
-    final PuzzleAncestor? result =
-            context.dependOnInheritedWidgetOfExactType<PuzzleAncestor>();
-    assert(result != null, 'No PuzzleAncestor Widget found in context');
-    return result!;
-  }
-
-  @override
-  bool updateShouldNotify(PuzzleAncestor old) => false;
-}
-
 /// Displays a Sudoku puzzle of a selected type and size.
 class PuzzleView extends StatelessWidget
 {
-  // TODO - DROP final int       index;	// Position in puzzle-specifications list.
+  final int       index;	// Position in puzzle-specifications list.
 
-  const PuzzleView({Key? key,}) : super(key: key);
+  const PuzzleView(this.index, {Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
 
-    // Find the selected Puzzle object.
-    // final Puzzle puzzle = new Puzzle(index);
-    final Puzzle puzzle = PuzzleAncestor.of(context).puzzle;
+    // Find the Puzzle object, which has been created empty by Provider.
+    Puzzle puzzle = context.read<Puzzle>();
 
+    // Create a Puzzle state for the type of puzzle selected by the user.
+    // This sets up a puzzle-area of the required size and shape, which is left
+    // empty (0n the screen) until the user taps in a puzzle or generates one.
+
+    puzzle.createState(index);
+
+    // TODO - Could make PaintingSpecs a COMPONENT of Puzzle, not a reference.
 
     // Precalculate and save the operations for paint(Canvas canvas, Size size).
     // These are held in unit form and scaled up when the canvas-size is known.
+
     PaintingSpecs paintingSpecs = PaintingSpecs(puzzle.puzzleMap);
 
     puzzle.paintingSpecs = paintingSpecs;	// Save the reference.
@@ -157,15 +144,14 @@ class PuzzleView extends StatelessWidget
       ),
     ]; // End list of action icons
 
-    final _PuzzleView puzzleView = _PuzzleView(puzzle);
-    // final _PuzzleView puzzleView = _PuzzleView();
-    if (! paintingSpecs.portrait) {	// Landscape orientation.
+    if (! paintingSpecs.portrait) {
+      // Landscape orientation.
       // Paint the puzzle with the action icons in a column on the RHS.
-      return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
+      return Scaffold(			// Omit AppBar, to maximize real-estate.
         body: Row(
           children: <Widget>[
             Expanded(
-              child: puzzleView, //// _PuzzleView(puzzle), ///// , context),
+              child: _PuzzleView(),
             ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
@@ -178,9 +164,10 @@ class PuzzleView extends StatelessWidget
         ), // End body: Row(
       ); // End return Scaffold(
     }
-    else {				// Portrait orientation.
+    else {
+      // Portrait orientation.
       // Paint the puzzle with the action icons in a row at the top.
-      return Scaffold( /* appBar: AppBar( title: const Text('Puzzle'),), */
+      return Scaffold(			// Omit AppBar, to maximize real-estate.
         body: Column(
           children: <Widget> [
             Ink( // Give puzzle-background colour to row of IconButtons.
@@ -190,7 +177,7 @@ class PuzzleView extends StatelessWidget
               ),
             ),
             Expanded(
-              child: puzzleView, //// _PuzzleView(puzzle), ///// , context),
+              child: _PuzzleView(),
             ),
           ],
         ), // End body: Column(
@@ -203,6 +190,7 @@ class PuzzleView extends StatelessWidget
   void generatePuzzle(Puzzle puzzle, BuildContext context)
   async
   {
+    // Generate a puzzle of the requested level of difficulty.
     print('GENERATE Puzzle: Play status ${puzzle.puzzlePlay}');
     bool newPuzzleOK = (puzzle.puzzlePlay == Play.NotStarted) ||
                        (puzzle.puzzlePlay == Play.ReadyToStart);
@@ -227,13 +215,13 @@ class PuzzleView extends StatelessWidget
         await infoMessage(context, 'Generate Puzzle', m.messageText);
         break;
       }
-      // TODO - Ensure that a repaint is done, to show the new puzzle.
     }
   }
 
   void checkPuzzle(Puzzle puzzle, BuildContext context)
   async
   {
+    // Validate a puzzle that has been tapped in or loaded by the user.
     print('CHECK Puzzle: Play status ${puzzle.puzzlePlay}');
     int error = puzzle.checkPuzzle();
     switch(error) {
@@ -286,6 +274,7 @@ class PuzzleView extends StatelessWidget
   void exitScreen(BuildContext context)
   async
   {
+    // Quit the Puzzle screen, maybe leaving a puzzle unfinished.
     bool okToQuit = await questionMessage(
       context,
       'Quit?',
@@ -301,37 +290,79 @@ class PuzzleView extends StatelessWidget
 } // End class PuzzleView
 
 
-class _PuzzleView extends StatefulWidget
-{
-  final Puzzle puzzle;
-  // final Puzzle puzzle = PuzzleAncestor.of(context).puzzle;
-  /////// final BuildContext context;
-  const _PuzzleView(this.puzzle, /* this.context, */ {Key? key}) : super(key: key);
-
-  @override
-  _PuzzleViewState createState() => _PuzzleViewState();
-
-} // End class _PuzzleView extends StatefulWidget
-
-// TODO - Resolve what is to be passed here, if anything, and whether to create Puzzle() at the App level first. Surely the 2D View and the puzzle contents (current solution state) should not just disappear if we go back to PuzzleListView, for example...
-
-// TODO - I think we should have a stateless part of View, which is the puzzle layout and controls, plus any solution and clues. Then there should be a variable part of the view that supports symbol-entry by the user and undo/redo - perhaps a transparent overlay containing (opaque) symbols - notes and parts of the user's solution so far. The underlying data for the latter must persist for as long as the app does and maybe longer (e.g. if the device switches to another app or is put to sleep).
-
-// TODO - 1. Calculate the allocation of space. 2. Calculate and draw an empty area and set of symbols from the PuzzleMap. 3. Generate a puzzle, if required. 4. Display the puzzle contents. 5. Accept clicks and update the user's solution.
-
-
-class _PuzzleViewState extends State<_PuzzleView>
+class _PuzzleView extends StatelessWidget
 {
   Offset hitPos    = Offset(-1.0, -1.0);
-  String dummyValue = ' ';
-  late PuzzlePainter puzzlePainter;
+  late Puzzle        puzzle;	// Located by Provider's watch<Puzzle> function.
+
+  @override
+  // This widget tree contains the puzzle-area and puzzle-controls (symbols).
+  Widget build(BuildContext context) {
+
+    // Locate the puzzle's model and repaint this widget tree when the model
+    // changes and emits notifyListeners(). Changes can be due to user-moves
+    // (taps) or actions on icon-buttons such as Undo/Redo, Generate and Hint.
+
+    puzzle = context.watch<Puzzle>();
+
+    // Enable the issuing of messages to the userafter major changes.
+    WidgetsBinding.instance?.addPostFrameCallback((_)
+                             {executeAfterBuild(context);});
+
+    return Container(
+      // We wish to fill the parent, in either Portrait or Landscape layout.
+      height: (MediaQuery.of(context).size.height),
+      width:  (MediaQuery.of(context).size.width),
+      child:  Listener(
+        onPointerDown: _possibleHit,
+        child: CustomPaint(
+          painter: PuzzlePainter(puzzle),
+        ),
+      ),
+    );
+  } // End Widget build()
+
+  Future<void> executeAfterBuild(BuildContext context) async
+  {
+    // TODO - Not seeing the HasError message. Seems to happen when last move
+    //        is an error, but seems OK if an earlier move is incorrect.
+
+    // Check to see if there was any major change during the last repaint of
+    // the Puzzle. If so, issue appropriate messages. Flutter does not allow
+    // them to be issued or automatically queued during a repaint.
+    Play playNow = puzzle.puzzlePlay;
+    if (puzzle.isPlayUnchanged()) {
+      return;
+    }
+    // Play-status of Puzzle has changed. Need to issue a message to the user?
+    if (playNow == Play.BeingEntered) {
+      await questionMessage(
+                        context,
+                        'Tap In Own Puzzle?',
+                        'Do you wish to tap in your own puzzle?');
+    // TODO - Expand this message a bit. Make it more explanatory.
+    }
+    else if (playNow == Play.Solved) {
+      await infoMessage(context,
+                        'CONGRATULATIONS!!!',
+                        'You have solved the puzzle!!!\n\n'
+                        'If you wish, you can use Undo and Redo to review'
+                        ' your moves -'
+                        ' or you could just try another puzzle...');
+    }
+    else if (playNow == Play.HasError) {
+      await infoMessage(context,
+                        'Incorrect Solution',
+                        'Your solution contains one or more errors.'
+                        ' Please correct them and try again.');
+    }
+  }
 
   // Handle the user's PointerDown actions on the puzzle-area and controls.
   void _possibleHit(PointerEvent details)
   {
     hitPos = details.localPosition;
     print ('_possibleHit at $hitPos');
-    Puzzle puzzle = widget.puzzle;
     PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
     Rect r = paintingSpecs.puzzleRect;
     bool modelChanged = false;
@@ -369,79 +400,12 @@ class _PuzzleViewState extends State<_PuzzleView>
       }
     }
     print('MODEL CHANGED $modelChanged');
-    if (modelChanged) {
-      dummyValue = dummyValue == ' ' ? '  ' : ' ';	// TODO - KLUDGE.
-      setState(() {} );				// Trigger a repaint.
-    }
+    // NOTE: If the hit led to a valid change in the puzzle model,
+    //       notifyListeners() has been called and a repaint will
+    //       be scheduled by Provider. If the attempted move was
+    //       invalid, there is no model-change and no repaint.
   }
-
-  @override
-  // Make the Puzzle and PaintingSpecs objects accessible in the canvas() proc.
-  // Together, they specify the background to paint and symbols (moves) to show.
-  void initState() {
-    super.initState();
-    print('In _PuzzleViewState.initState()');
-    Puzzle puzzle = widget.puzzle;
-    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
-    puzzlePainter = new PuzzlePainter(puzzle, paintingSpecs);
-  }
-
-  @override
-  // This widget contains the puzzle-area and puzzle-controls (symbols).
-  Widget build(context) {
-
-    WidgetsBinding.instance?.addPostFrameCallback((_) {executeAfterBuild();});
-
-    return Container(
-      // We wish to fill the parent, in either Portrait or Landscape layout.
-      height: (MediaQuery.of(context).size.height),
-      width:  (MediaQuery.of(context).size.width),
-      child:  Listener(
-        onPointerDown: _possibleHit,
-        child: CustomPaint(
-          painter: puzzlePainter,
-                   // PuzzlePainter(widget.puzzle, widget.puzzle.paintingSpecs),
-          child: Text('$dummyValue'),			// TODO - KLUDGE.
-        ),
-      ),
-    );
-  } // End Widget build()
-
-  Future<void> executeAfterBuild() async
-  {
-    // TODO - Not seeing the HasError message. Seems to happen when last move
-    //        is an error, but seems OK if an earlier move is incorrect.
-    // Check to see if there was any major change during the last repaint of
-    // the Puzzle. If so, issue appropriate messages. Flutter does not allow
-    // them to be issued or automatically queued during a repaint.
-    Play playNow = widget.puzzle.puzzlePlay;
-    if (widget.puzzle.isPlayUnchanged()) {
-      return;
-    }
-    // Play-status of Puzzle has changed. Need to issue a message to the user?
-    if (playNow == Play.BeingEntered) {
-      await questionMessage(
-                        context,
-                        'Tap In Own Puzzle?',
-                        'Do you wish to tap in your own puzzle?');
-    // TODO - Expand this message a bit. Make it more explanatory.
-    }
-    else if (playNow == Play.Solved) {
-      await infoMessage(context,
-                        'CONGRATULATIONS!!!',
-                        'You have solved the puzzle!!!\n\n'
-                        'If you wish, you can use Undo and Redo to review'
-                        ' your moves -'
-                        ' or you could just try another puzzle...');
-    }
-    else if (playNow == Play.HasError) {
-      await infoMessage(context,
-                        'Incorrect Solution',
-                        'Your solution contains one or more errors.'
-                        ' Please correct them and try again.');
-    }
-  }
-} // End class _PuzzleViewState extends State<PuzzleView>
+} // End class _PuzzleView extends StatelessWidget
 
 
   // TODO - Find out for sure how to use Listenable and repaint param properly.
@@ -453,9 +417,14 @@ class _PuzzleViewState extends State<_PuzzleView>
 class PuzzlePainter extends CustomPainter
 {
   final Puzzle puzzle;
-  final PaintingSpecs paintingSpecs;
 
-  PuzzlePainter(this.puzzle, this.paintingSpecs);
+  PuzzlePainter(this.puzzle);
+
+  // NOTE: PuzzlePainter does not use the Listenable? repaint parameter of
+  //       CustomerPainter, nor the technique of re-implementing it with
+  //       ChangeNotifier (which has been tried). Instead PuzzlePainter and
+  //       the Puzzle class rely on Provider to trigger repaints on any change
+  //       in the Puzzle model, whether the user taps on icon-buttons or Canvas.
 
   Offset topLeft  = Offset (0.0, 0.0);
   double cellSide = 1.0;
@@ -463,11 +432,12 @@ class PuzzlePainter extends CustomPainter
   Offset hitPosition = Offset(-1.0, -1.0);
   Size   prevSize = Size(10.0, 10.0);
 
-  /* Paint or re-paint the puzzle-area, the puzzle-controls (symbols), *
-   * the given-values (clues) for the puzzle and the symbols and notes *
-   * that the user has entered as their solution.                      */
   @override
   void paint(Canvas canvas, Size size) {
+    // Paint or re-paint the puzzle-area, the puzzle-controls (symbols),
+    // the given-values (clues) for the puzzle and the symbols and notes
+    // that the user has entered as their solution.
+
     canvas.clipRect((Offset(0.0, 0.0) & size));
     // print('\n\nENTERED PuzzlePainter.paint(Canvas canvas, Size size)');
     // print('Size $size, previous size $prevSize');
@@ -481,6 +451,8 @@ class PuzzlePainter extends CustomPainter
     int h = size.height.floor();
     // print('ENTERED PuzzlePainter W $w, H $h');
     // ***********************
+
+    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
 
     int  nSymbols      = paintingSpecs.nSymbols;
     int  sizeX         = paintingSpecs.sizeX;
@@ -646,7 +618,7 @@ class PuzzlePainter extends CustomPainter
         canvas.drawLine(Offset(o1, topLeftYc), Offset(o1, o2), thinLinePaint);
       }
       canvas.drawRect(Offset(topLeftXc, topLeftYc) &
-                      Size((nSymbols + 2) * controlSize, controlSize),
+                      Size(nControls * controlSize, controlSize),
                       thickLinePaint);
     }
     else {
@@ -732,28 +704,20 @@ class PuzzlePainter extends CustomPainter
 
   @override
   // Don't need hitTest function? Can do everything required in _possibleHit().
-  // bool? hitTest(Offset position) => false; // null;
   bool? hitTest(Offset position)
   {
-    // print('ENTERED PuzzlePainter hitTest: hitPosition = $position');
-    // hitPosition = position;
     return null;
   }
-/* TODO - Not needed now?
-  // Dummy methods: needed because we are re-implementing CustomPainter (above).
-  get semanticsBuilder => null;
-
-  bool shouldRebuildSemantics(covariant CustomPainter oldDelegate) => false;
-*/
 
   void paintCages(Canvas canvas, int cageCount, 
                  Paint labelPaint_fg, Paint labelPaint_bg, Paint cageLinePaint)
   {
+    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
+
     List<int> cageBoundaryBits = paintingSpecs.cageBoundaries;
     double inset = cellSide/12.0;
 
     for (int n = 0; n < puzzle.puzzleMap.size; n++) {
-      // paintingSpecs.drawOneCage(n, cageLinePaint);
       int lineBits = cageBoundaryBits[n];
       // TODO - Single-cell cages are NOT displaying NOR behaving as GIVENS.
       if (lineBits == 1170) {
@@ -877,9 +841,7 @@ List<double> calculatePuzzleLayout (bool portrait, Size size,
                                     PaintingSpecs paintingSpecs,
                                     bool hideNotes)
 {
-  // TODO - BUG: In portrait mode with NOTES hidden, the control area comes
-  //                out one cell too long at the right-hand end. It is drawn
-  //                correctly when NOTES are displayed.
+  // print('LAYOUT: Portrait $portrait, Size $size, hideNotes $hideNotes');
 
   // Set up the layout calculation for landscape orientation.
   double shortSide   = size.height;
@@ -897,7 +859,7 @@ List<double> calculatePuzzleLayout (bool portrait, Size size,
   // Fix the spaces now remaining for the puzzle and the symbol buttons.
   shortSide = shortSide - margin * 2.0;
   longSide  = longSide  - margin * 3.0;
-  // print('MARGIN: $margin');
+  // print('MARGIN: $margin, shortSide $shortSide, longSide $longSide');
 
   // Calculate the space allocations. Initially assume that the puzzle-area
   // will fill the short side, except for the two margins.
@@ -907,6 +869,10 @@ List<double> calculatePuzzleLayout (bool portrait, Size size,
          controlSize     = shortSide / nControls;
   double padding         = longSide - shortSide - controlSize;
   bool   longSidePadding = (padding >= 1.0);	// Enough space for padding?
+
+  // print('X $x, nControls $nControls, shortSide $shortSide');
+  // print('longSide $longSide, padding $padding, controlSize $controlSize');
+
   // If everything fits, fine...
   if (longSidePadding) {
     // Calculate space left at top-left corner.
@@ -922,7 +888,6 @@ List<double> calculatePuzzleLayout (bool portrait, Size size,
     padding     = shortSide - puzzleCells * cellSize;   // Should be +'ve now.
     // print('SHORT SIDE PADDING $padding');
     // Calculate space left at top-left corner.
-    // shortSide   = /* margin + i??? */ padding / 2.0;
     shortSide   = margin + padding / 2.0;
     longSide    = margin;
     // print('Long side $longSide, short side $shortSide');
