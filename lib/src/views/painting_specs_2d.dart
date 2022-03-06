@@ -32,7 +32,7 @@ class PaintingSpecs
   PuzzleMap _puzzleMap = PuzzleMap(specStrings: emptySpec);
   void set puzzleMap(PuzzleMap p) => _puzzleMap = p;
 
-  PaintingSpecs(PuzzleMap this._puzzleMap);
+  PaintingSpecs(PuzzleMap this._puzzleMap, this._portrait);
 
   PaintingSpecs.empty();
 
@@ -77,14 +77,6 @@ class PaintingSpecs
 
   List<int> get cageBoundaries => _cageBoundaries;
 
-  void set portrait(bool orientation) => _portrait   = orientation;
-  void set nSymbols(int n)            => _nSymbols   = n;
-  void set sizeX(int n)               => _sizeX      = n;
-  void set sizeY(int n)               => _sizeY      = n;
-  void set cellBackG(List<int> cellT) => _cellBackG  = [...cellT];
-  void set edgesEW(List<int> edges)   => _edgesEW    = [...edges];
-  void set edgesNS(List<int> edges)   => _edgesNS    = [...edges];
-
   // These properties may change size during puzzle play in a desktop window.
   Size      _canvasSize  = Size(10.0, 10.0);
   Rect      _puzzleRect  = Rect.fromLTWH(10.0, 10.0, 10.0, 10.0);
@@ -98,17 +90,10 @@ class PaintingSpecs
   void set puzzleRect(Rect r)         => _puzzleRect = r;
   void set controlRect(Rect r)        => _controlRect = r;
 
-  Offset    _hitPos = Offset(-10.0, -10.0);
 
-
-  void calculatePainting() // PaintingSpecs paintingSpecs, Puzzle puzzle)
+  void calculatePainting()
   // Pre-calculate details of puzzle background (fixed at start of puzzle-play).
   {
-    // _puzzle   = puzzle;
-
-    // The fixed layout and attributes of the type of puzzle the user selected.
-    // PuzzleMap puzzleMap    = _puzzle.puzzleMap;
-
     _nSymbols = _puzzleMap.nSymbols;
     _sizeX    = _puzzleMap.sizeX;
     _sizeY    = _puzzleMap.sizeY;
@@ -129,8 +114,6 @@ class PaintingSpecs
     // so the PaintingSpecs class makes a DEEP copy of the empty board's cells.
     _cellBackG = [..._puzzleMap.emptyBoard];
     // print('cellBackG ${_cellBackG}');
-
-    // TODO - Do something about XSudoku diagonals and one-cell cages.
   }
 
   void _calculateEdgeLines()
@@ -353,8 +336,8 @@ class PaintingSpecs
       }
       cellEdges.add(edges);
     }
-    print('Cell list $cells');
-    print('Cell edges $cellEdges');
+    // print('Cell list $cells');
+    // print('Cell edges $cellEdges');
     return cellEdges;
   }
 

@@ -24,14 +24,10 @@ class Puzzle with ChangeNotifier
   Puzzle();
 
   late PuzzleMap _puzzleMap;
-
   PuzzleMap get puzzleMap => _puzzleMap;
 
-  // A stash where View widgets can find a copy of the puzzle's Painting Specs.
-  PaintingSpecs _paintingSpecs = PaintingSpecs.empty();	// Dummy for compiling.
-
+  late PaintingSpecs _paintingSpecs;
   PaintingSpecs get paintingSpecs => _paintingSpecs;
-  void set paintingSpecs(PaintingSpecs p) => _paintingSpecs = p;
 
   // The status of puzzle-play. Determines what moves are allowed and their
   // meaning. In NotStarted status, the puzzle is set to be empty and can be
@@ -77,7 +73,7 @@ class Puzzle with ChangeNotifier
   bool notesMode       = false;
   int  lastCellHit     = 0;
 
-  bool createState(int index)
+  bool createState(int index, bool portrait)
   {
     // Create the state for the puzzle type the user selected.
     print('Create Puzzle: index $index hash ${hashCode}');
@@ -90,6 +86,11 @@ class Puzzle with ChangeNotifier
 
     // Parse it and create the corresponding Puzzle Map, with an empty board.
     _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
+
+    // Precalculate and save the operations for paint(Canvas canvas, Size size).
+    // These are held in unit form and scaled up when the canvas-size is known.
+    _paintingSpecs = PaintingSpecs(_puzzleMap, portrait);
+    _paintingSpecs.calculatePainting();
 
     // Set up data structures and PuzzleMap for an empty Puzzle Board.
     _init();

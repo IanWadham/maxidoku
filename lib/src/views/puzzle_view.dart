@@ -37,28 +37,17 @@ class PuzzleView extends StatelessWidget
   @override
   Widget build(BuildContext context) {
 
+    // Set vertical/horizontal, depending on the device or window-dimensions.
+    Orientation orientation = MediaQuery.of(context).orientation;
+
     // Find the Puzzle object, which has been created empty by Provider.
     Puzzle puzzle = context.read<Puzzle>();
 
     // Create a Puzzle state for the type of puzzle selected by the user.
     // This sets up a puzzle-area of the required size and shape, which is left
-    // empty (0n the screen) until the user taps in a puzzle or generates one.
+    // empty (on the screen) until the user taps in a puzzle or generates one.
 
-    puzzle.createState(index);
-
-    // TODO - Could make PaintingSpecs a COMPONENT of Puzzle, not a reference.
-
-    // Precalculate and save the operations for paint(Canvas canvas, Size size).
-    // These are held in unit form and scaled up when the canvas-size is known.
-
-    PaintingSpecs paintingSpecs = PaintingSpecs(puzzle.puzzleMap);
-
-    puzzle.paintingSpecs = paintingSpecs;	// Save the reference.
-    paintingSpecs.calculatePainting();
-
-    // Set vertical/horizontal, depending on the device or window-dimensions.
-    paintingSpecs.portrait =
-            (MediaQuery.of(context).orientation == Orientation.portrait);
+    puzzle.createState(index, orientation == Orientation.portrait);
 
     // Create the list of action-icons.
     List<Widget> actionIcons = [
@@ -144,9 +133,9 @@ class PuzzleView extends StatelessWidget
       ),
     ]; // End list of action icons
 
-    if (! paintingSpecs.portrait) {
+    if (orientation == Orientation.landscape) {
       // Landscape orientation.
-      // Paint the puzzle with the action icons in a column on the RHS.
+      // Paint the puzzle with the action icons in a column on the right.
       return Scaffold(			// Omit AppBar, to maximize real-estate.
         body: Row(
           children: <Widget>[
@@ -155,7 +144,6 @@ class PuzzleView extends StatelessWidget
             ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
-              // DEBUGGING width: 200.0,
               child: Column(
                 children: actionIcons,
               ),
