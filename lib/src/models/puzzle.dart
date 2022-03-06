@@ -94,8 +94,7 @@ class Puzzle with ChangeNotifier
     // Set up data structures and PuzzleMap for an empty Puzzle Board.
     _init();
 
-    // TODO - DELETE this: maybe write a note in the comments.
-    // notifyListeners(); // Already building widgets: causes a CRASH...
+    // Already repainting. Do NOT do notifyListeners(): it would cause a crash.
     return true;
   }
 
@@ -104,7 +103,6 @@ class Puzzle with ChangeNotifier
     // Initialize the lists of cells, using deep copies. The solution is empty
     // in case the user taps in a puzzle: it gets filled if they generate one.
     _puzzleGiven = [..._puzzleMap.emptyBoard];
-    // _solution    = [..._puzzleMap.emptyBoard];
     _solution    = [];		// Needs to be empty if tapping in a puzzle.
     _stateOfPlay = [..._puzzleMap.emptyBoard];
     _cellStatus  = [..._puzzleMap.emptyBoard];
@@ -178,7 +176,7 @@ class Puzzle with ChangeNotifier
           }
           // Cages have been added to PuzzleMap. Move to ReadyToPlay status.
           makeReadyToPlay();
-          notifyListeners();
+          notifyListeners();		// Trigger a repaint of the Puzzle View.
         }
         return response;
         break;
@@ -191,9 +189,9 @@ class Puzzle with ChangeNotifier
                                              _difficulty, _symmetry);
         if (response.messageType != 'F') {	// Succeeded - up to a point...
           makeReadyToPlay();
-          notifyListeners();
+          notifyListeners();		// Trigger a repaint of the Puzzle View.
         }
-        else {					// FAILED. Please try again.
+        else {				// FAILED. Please try again.
           // Generator/solver may have failed internally.
         }
         return response;
@@ -278,11 +276,10 @@ class Puzzle with ChangeNotifier
       print('Selected control $selectedControl');
       // TODO - Allow multiple entry of Notes in current Puzzle cell.
     }
-    notifyListeners();
+    notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
   }
 
-  // PuzzleState hitPuzzleArea(int n)
   bool hitPuzzleArea(int x, int y)
   {
     // User has tapped on  a puzzle-cell: implement the rules of play.
@@ -290,8 +287,6 @@ class Puzzle with ChangeNotifier
     if (_puzzlePlay == Play.Solved) {
       // The Puzzle has been solved: only undo/redo  moves are allowed.
       // The user can also generate a new Puzzle or Quit/Save, etc.
-      // return PuzzleState(n, CellState(INVALID, UNUSABLE),
-                         // _puzzlePlay, _puzzlePlay);
       return false;
     }
     else if (_puzzlePlay == Play.HasError) {
@@ -304,15 +299,11 @@ class Puzzle with ChangeNotifier
 
     if (symbol == UNUSABLE || status == UNUSABLE || status == GIVEN) {
       // Check that the user has selected a symbol and that the cell is usable.
-      // return PuzzleState(n, CellState(INVALID, UNUSABLE),
-                         // _puzzlePlay, _puzzlePlay);
       return false;
     }
 
     if ((symbol == VACANT) && (_stateOfPlay[n] == VACANT)) {
       // Don't clear a cell that is already empty.
-      // return PuzzleState(n, CellState(INVALID, VACANT),
-                         // _puzzlePlay, _puzzlePlay);
       return false;
     }
 
@@ -341,9 +332,8 @@ class Puzzle with ChangeNotifier
 
       // TODO - Stop the clock when changing to Solved status.
     }
-    // return PuzzleState(n, c, _previousPuzzlePlay, _puzzlePlay);
     // The move has been accepted and made.
-    notifyListeners();
+    notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
   }
 
@@ -471,7 +461,7 @@ class Puzzle with ChangeNotifier
     int n = change.cellIndex;
     _cellStatus[n]  = change.before.status;
     _stateOfPlay[n] = change.before.cellValue;
-    notifyListeners();
+    notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
   }
 
@@ -490,7 +480,7 @@ class Puzzle with ChangeNotifier
     _cellStatus[n]  = change.after.status;
     _stateOfPlay[n] = change.after.cellValue;
     _indexUndoRedo++;
-    notifyListeners();
+    notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
   }
 
