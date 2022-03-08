@@ -32,11 +32,7 @@ class PaintingSpecs
   PuzzleMap _puzzleMap = PuzzleMap(specStrings: emptySpec);
   void set puzzleMap(PuzzleMap p) => _puzzleMap = p;
 
-  PaintingSpecs(PuzzleMap this._puzzleMap, this._portrait);
-
-  PaintingSpecs.empty();
-
-  Offset lastHit = Offset(-1.0, -1.0);
+  PaintingSpecs(PuzzleMap this._puzzleMap);
 
   // A fixed text-painter and style for painting Sudoku symbols on a Canvas.
   final TextPainter _tp = TextPainter(
@@ -86,6 +82,8 @@ class PaintingSpecs
   Rect      get puzzleRect  => _puzzleRect;
   Rect      get controlRect => _controlRect;
 
+  void set portrait(bool b)           => _portrait = b;
+
   void set canvasSize(Size s)         => _canvasSize = s;
   void set puzzleRect(Rect r)         => _puzzleRect = r;
   void set controlRect(Rect r)        => _controlRect = r;
@@ -98,12 +96,10 @@ class PaintingSpecs
     _sizeX    = _puzzleMap.sizeX;
     _sizeY    = _puzzleMap.sizeY;
     print('nSymbols = ${_nSymbols}, sizeX = ${_sizeX}, sizeY = ${_sizeY}');
-    print('Portrait orientation = ${_portrait}');
 
     _calculatePaintAreas();
     _calculateEdgeLines();
-    // print('In calculatePainting(): calculateEdgeLines() gets edgesEW');
-    // print('${_edgesEW}');
+
     _calculateTextProperties();
   }
 
@@ -268,11 +264,13 @@ class PaintingSpecs
     _tp.text = TextSpan(style: symbolStyle, text: cageLabel);
     _tp.textScaleFactor = textSize / baseSize;
     _tp.layout();
-    Rect labelRect = Rect.fromPoints(offset, offset + Offset(padding + _tp.width, textSize * 5.0 / 4.0));
+    Rect labelRect = Rect.fromPoints(offset, offset +
+                          Offset(padding + _tp.width, textSize * 5.0 / 4.0));
     // print('LABEL RECT $labelRect, point 1 = $offset,'
           // ' W ${padding + _tp.width}, H ${textSize * 5.0 / 4.0}');
     canvas.drawRect(labelRect, cageLabel_bg);
-    _tp.paint(canvas, offset + Offset(padding, 0.0));
+    // Need padding at both ends of Label, so inset by padding / 2.0;
+    _tp.paint(canvas, offset + Offset(padding / 2.0, 0.0));
   }
 
   void _markEdges (List<int> cells,
@@ -343,8 +341,8 @@ class PaintingSpecs
 
   void markCageBoundaries(PuzzleMap puzzleMap)
   {
-    // After generating a Mathdoku or Killer Sudoku puzzle, set up
-    // the painting specifications for thw boundaries of the cages.
+    // After generating a Mathdoku or Killer Sudoku puzzle, set up the painting
+    // specifications for the boundaries of the cages.
     int nCages = puzzleMap.cageCount();
     if (nCages <= 0) {
       return;				// No cages in this puzzle.

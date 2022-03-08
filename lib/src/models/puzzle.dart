@@ -21,7 +21,10 @@ class CellChange
 class Puzzle with ChangeNotifier
 {
   // Constructor.
-  Puzzle();
+  Puzzle(int index)
+  {
+    createState(index);
+  }
 
   late PuzzleMap _puzzleMap;
   PuzzleMap get puzzleMap => _puzzleMap;
@@ -73,15 +76,15 @@ class Puzzle with ChangeNotifier
   bool notesMode       = false;
   int  lastCellHit     = 0;
 
-  bool createState(int index, bool portrait)
+  bool createState(int index)
   {
     // Create the state for the puzzle type the user selected.
     print('Create Puzzle: index $index hash ${hashCode}');
 
-    // Create a list of puzzle specifications in textual form.
+    // Get a list of puzzle specifications in textual form.
     PuzzleTypesText puzzleList = PuzzleTypesText();
 
-    // Get a specification of a puzzle, using the index supplied via the user.
+    // Get a specification of a puzzle, using the index selected by the user.
     List<String> puzzleMapSpec = puzzleList.puzzleTypeText(index);
 
     // Parse it and create the corresponding Puzzle Map, with an empty board.
@@ -89,13 +92,13 @@ class Puzzle with ChangeNotifier
 
     // Precalculate and save the operations for paint(Canvas canvas, Size size).
     // These are held in unit form and scaled up when the canvas-size is known.
-    _paintingSpecs = PaintingSpecs(_puzzleMap, portrait);
+    _paintingSpecs = PaintingSpecs(_puzzleMap);
     _paintingSpecs.calculatePainting();
 
     // Set up data structures and PuzzleMap for an empty Puzzle Board.
     _init();
 
-    // Already repainting. Do NOT do notifyListeners(): it would cause a crash.
+    // Already painting. Do NOT call notifyListeners(): it would cause a crash.
     return true;
   }
 
@@ -103,6 +106,11 @@ class Puzzle with ChangeNotifier
   {
     // Initialize the lists of cells, using deep copies. The solution is empty
     // in case the user taps in a puzzle: it gets filled if they generate one.
+    //
+    // Having separate initialisation or re-initialisation for this part of the
+    // Puzzle Model allows the user to generate new puzzles of the same type as
+    // before, but without having to go back to the Puzzle List screen.
+
     _puzzleGiven = [..._puzzleMap.emptyBoard];
     _solution    = [];		// Needs to be empty if tapping in a puzzle.
     _stateOfPlay = [..._puzzleMap.emptyBoard];
@@ -127,7 +135,7 @@ class Puzzle with ChangeNotifier
   // Generate a new puzzle of the type and size selected by the user.
   // This can be re-used, without going back to the puzzle selection screen.
   {
-    _init();			// Clear the state of the Puzzle.
+    _init();			// Clear relevant parts of the Puzzle state.
 
     Message response = Message('', '');
     SudokuType puzzleType = _puzzleMap.specificType;
@@ -152,6 +160,7 @@ class Puzzle with ChangeNotifier
 	int numTries;
         for (numTries = 1; numTries <= maxTries; numTries++) {
           _solution = _fillBoard();
+          print('GENERATE $puzzleType, $_difficulty');
           if (mg.generateMathdokuKillerTypes(_puzzleGiven, _solution,
                                              _SudokuMoves, _difficulty)) {
             response.messageType = 'I';
@@ -186,6 +195,7 @@ class Puzzle with ChangeNotifier
       default:
 	// Generate variants of Sudoku (2D) and Roxdoku (3D) types.
         SudokuGenerator srg = SudokuGenerator(_puzzleMap);
+        print('GENERATE $puzzleType, $_difficulty, $_symmetry');
 	response = srg.generateSudokuRoxdoku(_puzzleGiven, _solution,
                                              _SudokuMoves,
                                              _difficulty, _symmetry);

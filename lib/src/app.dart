@@ -31,7 +31,6 @@ class MyApp extends StatelessWidget {
       animation: settingsController,
       builder: (BuildContext context, Widget? child) {
         return MaterialApp(
-          // TODO - DROP THIS body: const MyStatefulWidget(),
 
           debugShowCheckedModeBanner: false, // No Debug stripe at top-right.
 
@@ -94,8 +93,8 @@ class MyApp extends StatelessWidget {
                     // notifyListeners() and these are watched for by Provider.
 
                     return ChangeNotifierProvider(
-                      create: (context) => Puzzle(),	// Model to watch.
-                      child:  PuzzleView(index),	// Top widget in screen.
+                      create: (context) => Puzzle(index), // The Model to watch.
+                      child:  PuzzleView(),		// Top widget of screen.
                       lazy:   false,			// Create Puzzle NOW, to
                                                         // avoid startup crash.
                     );

@@ -30,24 +30,22 @@ import 'messages.dart';
 /// Displays a Sudoku puzzle of a selected type and size.
 class PuzzleView extends StatelessWidget
 {
-  final int       index;	// Position in puzzle-specifications list.
+  // final int       index;	// Position in puzzle-specifications list.
 
-  const PuzzleView(this.index, {Key? key,}) : super(key: key);
+  // const PuzzleView(this.index, {Key? key,}) : super(key: key);
+  const PuzzleView({Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
 
-    // Set vertical/horizontal, depending on the device or window-dimensions.
+    // Set portrait/landscape, depending on the device or window-dimensions.
     Orientation orientation = MediaQuery.of(context).orientation;
 
-    // Find the Puzzle object, which has been created empty by Provider.
+    // Find the Puzzle object, which has been created by Provider.
     Puzzle puzzle = context.read<Puzzle>();
 
-    // Create a Puzzle state for the type of puzzle selected by the user.
-    // This sets up a puzzle-area of the required size and shape, which is left
-    // empty (on the screen) until the user taps in a puzzle or generates one.
-
-    puzzle.createState(index, orientation == Orientation.portrait);
+    // Save the orientation, for later use by PuzzlePainter and paint().
+    puzzle.paintingSpecs.portrait = (orientation == Orientation.portrait);
 
     // Create the list of action-icons.
     List<Widget> actionIcons = [
@@ -396,12 +394,6 @@ class _PuzzleView extends StatelessWidget
 } // End class _PuzzleView extends StatelessWidget
 
 
-  // TODO - Find out for sure how to use Listenable and repaint param properly.
-  //
-  //        For now, adding 2nd param and super() seems to get repaints OK.
-  //        Oh, and adding "repaint: repaint" to the super's parameters is
-  //        harmless and might help us get re-painting on value-change later. 
-
 class PuzzlePainter extends CustomPainter
 {
   final Puzzle puzzle;
@@ -409,9 +401,9 @@ class PuzzlePainter extends CustomPainter
   PuzzlePainter(this.puzzle);
 
   // NOTE: PuzzlePainter does not use the Listenable? repaint parameter of
-  //       CustomerPainter, nor the technique of re-implementing it with
+  //       CustomerPainter, nor does it re-implement CustomPainter with
   //       ChangeNotifier (which has been tried). Instead PuzzlePainter and
-  //       the Puzzle class rely on Provider to trigger repaints on any change
+  //       the Puzzle class rely on Provider to trigger repaints on ANY change
   //       in the Puzzle model, whether the user taps on icon-buttons or Canvas.
 
   Offset topLeft  = Offset (0.0, 0.0);
@@ -512,17 +504,23 @@ class PuzzlePainter extends CustomPainter
       ..strokeCap = StrokeCap.round
       ..strokeJoin  = StrokeJoin.round;
     var cageLinePaint = Paint()		// Style for lines around cages.
-      // ..color = Colors.lime.shade800
-      ..color = Colors.lightGreen
+      ..color = Colors.green.shade600
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin  = StrokeJoin.round;
 
+    // TODO - Paint Notes a little higher: bottom row clear of cage-lines.
+    //        Make circles a bit smaller on Givens and Error cells (gradient?).
+    //        Paint Symbols a little higher within the circles.
+    //        Complete the "knees" on corners of some cages.
+
     // Calculated widths of lines, depending on canvas size and puzzle size.
     thinLinePaint.strokeWidth  = cellSize / 30.0;
-    cageLinePaint.strokeWidth  = cellSize / 30.0;
+    // cageLinePaint.strokeWidth  = cellSize / 30.0;
+    cageLinePaint.strokeWidth  = cellSize / 20.0;
     thickLinePaint.strokeWidth = cellSize / 15.0;
-    highlight.strokeWidth      = cellSize / 15.0;
+    // highlight.strokeWidth      = cellSize / 15.0;
+    highlight.strokeWidth      = cellSize / 20.0;
 
     // Now paint the background of the canvas.
     canvas.drawRect(Offset(0, 0) & size, paint1);
@@ -647,7 +645,7 @@ class PuzzlePainter extends CustomPainter
       int status = puzzle.cellStatus[pos];
       if ((status == GIVEN) || (status == ERROR)) {
         Paint cellPaint = (status == GIVEN) ? paint3 : paintError;
-        gap = 12.0;
+        gap = cellSize / 3.0;		// TODO - Set this in a better place.
         o1 = topLeftX + gap/2.0 + (pos~/sizeY) * cellSize;
         o2 = topLeftY + gap/2.0 + (pos %sizeY) * cellSize;
         canvas.drawOval(Offset(o1, o2) & Size(cellSize - gap, cellSize - gap),
@@ -659,7 +657,10 @@ class PuzzlePainter extends CustomPainter
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
                 cellSize, isNote: (ns > 1024), isCell: true);
       if (pos == puzzle.lastCellHit) {
-        canvas.drawRect(cellPos & Size(cellSize, cellSize), highlight);
+        double shrinkBy = cellSize / 10.0;
+        double inset = shrinkBy / 2.0;
+        canvas.drawRect(cellPos + Offset(inset, inset) &
+                   Size(cellSize - shrinkBy, cellSize - shrinkBy), highlight);
       }
     }
 
@@ -668,7 +669,10 @@ class PuzzlePainter extends CustomPainter
     int    n  = puzzle.selectedControl + (hideNotes ? 0 : 1);
     double d  = n * controlSize;
     cellPos  = cellPos + (paintingSpecs.portrait ? Offset(d, 0) : Offset(0, d));
-    canvas.drawRect(cellPos & Size(controlSize, controlSize), highlight);
+    double shrinkBy = controlSize / 10.0;
+    double inset = shrinkBy / 2.0;
+    canvas.drawRect(cellPos + Offset(inset, inset) &
+               Size(controlSize - shrinkBy, controlSize - shrinkBy), highlight);
 
     // Add the label for the Notes button and highlight it, if required.
     cellPos = Offset(topLeftXc, topLeftYc);
@@ -679,6 +683,8 @@ class PuzzlePainter extends CustomPainter
                   controlSize, isNote: true, isCell: false);
       }
       if (puzzle.notesMode) {
+        // TODO - Need a function for all THREE highlighting operations.
+        //        Need constants for the shrinkage and similar cell fractions.
         canvas.drawRect(cellPos & Size(controlSize, controlSize), highlight);
       }
     }
@@ -759,21 +765,25 @@ class PuzzlePainter extends CustomPainter
     PuzzleMap map = puzzle.puzzleMap;
     for (int cageNum = 0; cageNum < map.cageCount(); cageNum++) {
       String cageLabel  = getCageLabel(map, cageNum);
+      if (cageLabel == '') {
+        continue;		// Don't paint labels on size 1 cages (Givens).
+      }
 
       int labelCell     = map.cageTopLeft(cageNum);
       int cellX         = map.cellPosX(labelCell);
       int cellY         = map.cellPosY(labelCell);
       double textSize   = cellSide / 6.0;
       Offset cellOrigin = topLeft + Offset(cellX * cellSide, cellY * cellSide);
+      Offset inset      = Offset(cellSide/20.0, cellSide/20.0);
       paintingSpecs.paintCageLabelText(canvas, cageLabel,
-                                       textSize, cellOrigin,
+                                       textSize, cellOrigin + inset,
                                        labelPaint_fg, labelPaint_bg);
     }
   }
 
   String getCageLabel (PuzzleMap map, int cageNum) // bool killerStyle)
   {
-    bool killerStyle = false;	// TODO - For testing only.
+    bool killerStyle = (map.specificType == SudokuType.KillerSudoku);
     if (map.cage(cageNum).length < 2) {
 	return '';		// 1-cell cages are displayed as Givens (clues).
     }
