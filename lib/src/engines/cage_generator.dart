@@ -101,7 +101,7 @@ class CageGenerator
 
   DLXSolver     _DLXSolver;		// A solver for generated puzzles.
 
-  bool          myDebug = true;
+  bool          myDebug = false;
 
   int           _nSymbols = 0;		// The height and width of the grid.
   int           _boardArea = 0;		// The number of cells in the grid.

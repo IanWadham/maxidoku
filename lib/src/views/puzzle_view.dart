@@ -87,9 +87,7 @@ class PuzzleView extends StatelessWidget
         icon: const Icon(CommunityMaterialIcons.lightbulb_on_outline),
         tooltip: 'Get a hint',
         onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
+          puzzle.hint();
         },
       ),
       IconButton(

@@ -358,11 +358,11 @@ class PaintingSpecs
     {
       // Get the list of cells in the cage.
       List<int> cage = puzzleMap.cage(cageNum);
-      print('Find boundaries of $cage');
+      // print('Find boundaries of $cage');
 
       // Find the outer boundaries of the cage, represented as 4 bits per cell.
       List<int> edges = findOutsideEdges(cage, puzzleMap);
-      print('Edges of cage      $edges');
+      // print('Edges of cage      $edges');
 
       // For each cell in the cage...
       for (int n = 0; n < cage.length; n++)

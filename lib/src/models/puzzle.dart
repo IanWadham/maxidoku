@@ -155,8 +155,8 @@ class Puzzle with ChangeNotifier
       case SudokuType.KillerSudoku:
 	// Generate variants of Killer Sudoku or Mathdoku (aka KenKen TM) types.
         MathdokuGenerator mg = MathdokuGenerator(_puzzleMap);
-	// int maxTries = 10;	// TODO - RESTORE THIS !!!!!!!!!
-	int maxTries = 1;
+	int maxTries = 10;
+	// int maxTries = 1;	// DEBUG.
 	int numTries;
         for (numTries = 1; numTries <= maxTries; numTries++) {
           _solution = _fillBoard();
@@ -457,6 +457,23 @@ class Puzzle with ChangeNotifier
       return false;				// Play status changed.
     }
     return true;				// Play status is unchanged.
+  }
+
+  void hint()
+  {
+    // print('HINTS: $_SudokuMoves');		// Cell numbers in play-order.
+    if(_puzzlePlay != Play.ReadyToStart && _puzzlePlay != Play.InProgress) {
+      return;
+    }
+    for (int n in _SudokuMoves) {
+      if (stateOfPlay[n] == VACANT) {
+        // Move in the usual way, including Undo/Redo data and highlighting.
+        move(n, _solution[n]);	// Copy a move from the solution.
+        notifyListeners();	// Trigger a repaint of the Puzzle View.
+        break;
+      }
+    }
+    return;
   }
 
   bool undo() {

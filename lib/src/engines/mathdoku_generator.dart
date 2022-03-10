@@ -70,19 +70,17 @@ class MathdokuGenerator
 	n = cageGen.makeCages (solutionMoves,
                                maxSize, maxVal, hideOps, maxCombos);
         print('CageGen return = $n, numTries $numTries, numMultis $numMultis');
-        return true;	// TODO - DROP this FORCED EXIT.....................
+        // return true;	// TODO - DROP this FORCED EXIT.....................
 	if (n < 0) {
 	    numMultis++;
 	}
     }
     if (numTries >= maxTries) {
-	// qDebug() << "makeCages() FAILED after" << numTries << "tries"
-	         // << numMultis << "multi-solutions";
+	print('makeCages() FAILED after $numTries tries $numMultis multis');
         return false;		// Try another set of Sudoku cell-values.
     }
 
-    // qDebug() << "makeCages() required" << numTries << "tries"
-             // << numMultis << "multi-solutions";;
+    print('makeCages() required $numTries tries $numMultis multi-solutions');
     puzzle = [..._puzzleMap.emptyBoard];	// Deep copy: modifiable later.
     for (int n = 0; n < _puzzleMap.cageCount(); n++) {
          if (_puzzleMap.cage(n).length == 1) {	// Single-cell cage => GIVEN.

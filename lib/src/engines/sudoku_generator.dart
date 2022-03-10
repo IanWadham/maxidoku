@@ -631,6 +631,10 @@ class SudokuGenerator
       puzzle.add(bestPuzzle[n]);
       solution.add(bestSolution[n]);
     }
+    SudokuMoves.clear();
+    for (int n in _SudokuMoves) {
+      SudokuMoves.add(n);
+    }
     return response;
   }
 
@@ -683,12 +687,6 @@ class SudokuGenerator
         // avGuesses, avDeduces, avDeduced, _accum.rating, _accum.difficulty);
 
     return _accum.difficulty;
-  }
-
- 
-  void getMoveList (List<int> moveList)
-  {
-    moveList = _SudokuMoves;
   }
 
   BoardContents insertValues (BoardContents solution,
