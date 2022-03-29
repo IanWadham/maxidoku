@@ -200,7 +200,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 3
     NGroups 18
     NSymbols 9
-    SpecificType Samurai
+    SpecificType Roxdoku
     PuzzleMap
     RoxdokuGroups 0  
     RoxdokuGroups 36 '''
@@ -336,7 +336,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 5
     NGroups 18
     NSymbols 9
-    SpecificType Samurai
+    SpecificType Roxdoku
     PuzzleMap
     RoxdokuGroups 0  
     RoxdokuGroups 62 '''
@@ -374,7 +374,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 7
     NGroups 81
     NSymbols 9
-    SpecificType Samurai
+    SpecificType Roxdoku
     PuzzleMap
     RoxdokuGroups 0  
     RoxdokuGroups 196
