@@ -44,8 +44,9 @@ class PuzzleView extends StatelessWidget
     // Find the Puzzle object, which has been created by Provider.
     Puzzle puzzle = context.read<Puzzle>();
 
-    // Save the orientation, for later use by PuzzlePainter and paint().
-    puzzle.paintingSpecs.portrait = (orientation == Orientation.portrait);
+    // Save the orientation, for later use by PuzzlePainters and paint().
+    // A setter in Puzzle saves "portrait" in either 2D or 3D PaintingSpecs.
+    puzzle.portrait = (orientation == Orientation.portrait);
 
     // Create the list of action-icons.
     List<Widget> actionIcons = [
@@ -53,7 +54,7 @@ class PuzzleView extends StatelessWidget
         icon: const Icon(CommunityMaterialIcons.exit_run), // exit_to_app),
         tooltip: 'Return to list of puzzles',
         onPressed: () {
-          exitScreen(context);
+          exitScreen(context, puzzle);
         },
       ),
       IconButton(
@@ -255,15 +256,20 @@ class PuzzleView extends StatelessWidget
     }
   }
 
-  void exitScreen(BuildContext context)
+  void exitScreen(BuildContext context, Puzzle puzzle)
   async
   {
     // Quit the Puzzle screen, maybe leaving a puzzle unfinished.
-    bool okToQuit = await questionMessage(
-      context,
-      'Quit?',
-      'You could lose your work so far. Do you really want to quit?',
-    );
+    bool okToQuit = (puzzle.puzzlePlay == Play.NotStarted) ||
+                    (puzzle.puzzlePlay == Play.ReadyToStart) ||
+                    (puzzle.puzzlePlay == Play.Solved);
+    if (! okToQuit) {
+      okToQuit = await questionMessage(
+                 context,
+                 'Quit?',
+                 'You could lose your work so far. Do you really want to quit?',
+                 );
+    }
     if (okToQuit) {
       Navigator.pop(context);
     }
@@ -289,21 +295,38 @@ class _PuzzleView extends StatelessWidget
 
     puzzle = context.watch<Puzzle>();
 
-    // Enable the issuing of messages to the userafter major changes.
+    // Enable the issuing of messages to the user after major changes.
     WidgetsBinding.instance?.addPostFrameCallback((_)
                              {executeAfterBuild(context);});
 
-    return Container(
-      // We wish to fill the parent, in either Portrait or Landscape layout.
-      height: (MediaQuery.of(context).size.height),
-      width:  (MediaQuery.of(context).size.width),
-      child:  Listener(
-        onPointerDown: _possibleHit,
-        child: CustomPaint(
-          painter: PuzzlePainter(puzzle),
+    if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {
+      return Container(
+        // We wish to fill the parent, in either Portrait or Landscape layout.
+        height: (MediaQuery.of(context).size.height),
+        width:  (MediaQuery.of(context).size.width),
+        child:  Listener(
+          onPointerDown: _possibleHit3D,
+          // child: Text('\n\n    3D Widget Coming Soon'
+          // ),
+          child: CustomPaint(
+            painter: PuzzlePainter3D(puzzle),
+          ),
         ),
-      ),
-    );
+      );
+    }
+    else {
+      return Container(
+        // We wish to fill the parent, in either Portrait or Landscape layout.
+        height: (MediaQuery.of(context).size.height),
+        width:  (MediaQuery.of(context).size.width),
+        child:  Listener(
+          onPointerDown: _possibleHit2D,
+          child: CustomPaint(
+            painter: PuzzlePainter2D(puzzle),
+          ),
+        ),
+      );
+    }
   } // End Widget build()
 
   Future<void> executeAfterBuild(BuildContext context) async
@@ -343,34 +366,35 @@ class _PuzzleView extends StatelessWidget
   }
 
   // Handle the user's PointerDown actions on the puzzle-area and controls.
-  void _possibleHit(PointerEvent details)
+  bool _possibleHit(String D, Rect puzzleRect, Rect controlRect)
   {
-    hitPos = details.localPosition;
-    print ('_possibleHit at $hitPos');
-    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
-    Rect r = paintingSpecs.puzzleRect;
+    print ('_possibleHit$D at $hitPos');
     bool modelChanged = false;
-    bool puzzleHit = r.contains(hitPos);
-    if (puzzleHit) {
+    bool puzzleHit = puzzleRect.contains(hitPos);
+    if (puzzleHit && (D == '2D')) {
       // Hit is on puzzle-area: get integer co-ordinates of cell.
       Offset point = hitPos - Offset(topLeftX, topLeftY);
-      double cellSize = r.width / paintingSpecs.sizeX;
+      double cellSize = puzzleRect.width / puzzle.puzzleMap.sizeX;
       int x = (point.dx / cellSize).floor();
       int y = (point.dy / cellSize).floor();
       print('Hit is at puzzle-cell ($x, $y)');
       // If hitting this cell is a valid move, the Puzzle model will be updated.
       modelChanged = puzzle.hitPuzzleArea(x, y);
     }
+    else if (puzzleHit && (D == '3D')) {
+      return true;		// Do the rest using 3D functions.
+    }
     else {
-      Rect r = paintingSpecs.controlRect;
-      if (r.contains(hitPos)) {
+      if (controlRect.contains(hitPos)) {
         // Hit is on control-area: get current number of controls.
-        int nSymbols = paintingSpecs.nSymbols;
+        // Use the same control-area actions for both 2D and 3D puzzles.
+        int nSymbols = puzzle.puzzleMap.nSymbols;
         int nCells = (puzzle.puzzlePlay == Play.NotStarted) ||
                      (puzzle.puzzlePlay == Play.BeingEntered) ?
                      nSymbols + 1 : nSymbols + 2;
-        bool portrait = paintingSpecs.portrait;
-        double cellSize = portrait ? r.width / nCells : r.height / nCells;
+        bool portrait = controlRect.width > controlRect.height;
+        double cellSize = portrait ? controlRect.width / nCells
+                                   : controlRect.height / nCells;
         Offset point = hitPos - Offset(topLeftXc, topLeftYc);
         int x = (point.dx / cellSize).floor();
         int y = (point.dy / cellSize).floor();
@@ -379,8 +403,41 @@ class _PuzzleView extends StatelessWidget
         modelChanged = puzzle.hitControlArea(selection);
       }
       else {
-        print('_possibleHit: NOT A HIT');
-        return;			// Not a hit. Don't repaint.
+        // Not a hit. Don't repaint.
+        print('_possibleHit$D: NOT A HIT');
+      }
+    }
+    print('MODEL CHANGED $modelChanged');
+    // NOTE: If the hit led to a valid change in the puzzle model,
+    //       notifyListeners() has been called and a repaint will
+    //       be scheduled by Provider. If the attempted move was
+    //       invalid, there is no model-change and no repaint.
+    return false;
+  }
+
+  // Handle the user's PointerDown actions on a 2D puzzle-area and controls.
+  void _possibleHit2D(PointerEvent details)
+  {
+    hitPos = details.localPosition;
+    PaintingSpecs2D paintingSpecs = puzzle.paintingSpecs2D;
+    _possibleHit('2D', paintingSpecs.puzzleRect, paintingSpecs.controlRect);
+  }
+
+  // Handle the user's PointerDown actions on a 3D puzzle-area and controls.
+  void _possibleHit3D(PointerEvent details)
+  {
+    hitPos = details.localPosition;
+    PaintingSpecs3D paintingSpecs = puzzle.paintingSpecs3D;
+    bool modelChanged = false;
+    if (_possibleHit('3D', paintingSpecs.puzzleRect, paintingSpecs.controlRect))
+    {
+      // Hit on 3D puzzle-area - special processing required.
+      int n = paintingSpecs.whichSphere(hitPos);
+      if (n >= 0) {
+        modelChanged = puzzle.hitPuzzleCellN(n);
+      }
+      else {
+        print('_possibleHit3D: NO SPHERE HIT');
       }
     }
     print('MODEL CHANGED $modelChanged');
@@ -389,18 +446,19 @@ class _PuzzleView extends StatelessWidget
     //       be scheduled by Provider. If the attempted move was
     //       invalid, there is no model-change and no repaint.
   }
+
 } // End class _PuzzleView extends StatelessWidget
 
 
-class PuzzlePainter extends CustomPainter
+class PuzzlePainter2D extends CustomPainter
 {
   final Puzzle puzzle;
 
-  PuzzlePainter(this.puzzle);
+  PuzzlePainter2D(this.puzzle);
 
-  // NOTE: PuzzlePainter does not use the Listenable? repaint parameter of
+  // NOTE: PuzzlePainter2D does not use the Listenable? repaint parameter of
   //       CustomerPainter, nor does it re-implement CustomPainter with
-  //       ChangeNotifier (which has been tried). Instead PuzzlePainter and
+  //       ChangeNotifier (which has been tried). Instead PuzzlePainter2D and
   //       the Puzzle class rely on Provider to trigger repaints on ANY change
   //       in the Puzzle model, whether the user taps on icon-buttons or Canvas.
 
@@ -408,7 +466,6 @@ class PuzzlePainter extends CustomPainter
   double cellSide = 1.0;
 
   Offset hitPosition = Offset(-1.0, -1.0);
-  Size   prevSize = Size(10.0, 10.0);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -416,21 +473,16 @@ class PuzzlePainter extends CustomPainter
     // the given-values (clues) for the puzzle and the symbols and notes
     // that the user has entered as their solution.
 
+    // If anything goes wrong, don't paint outside the Canvas.
     canvas.clipRect((Offset(0.0, 0.0) & size));
-    // print('\n\nENTERED PuzzlePainter.paint(Canvas canvas, Size size)');
-    // print('Size $size, previous size $prevSize');
-    bool sizeChanged = (size != prevSize);
-    if (sizeChanged) {
-      prevSize = size;
-    }
 
     // ******** DEBUG ********
     int w = size.width.floor();
     int h = size.height.floor();
-    // print('ENTERED PuzzlePainter W $w, H $h');
+    // print('ENTERED PuzzlePainter2D W $w, H $h');
     // ***********************
 
-    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
+    PaintingSpecs2D paintingSpecs = puzzle.paintingSpecs2D;
 
     int  nSymbols      = paintingSpecs.nSymbols;
     int  sizeX         = paintingSpecs.sizeX;
@@ -440,35 +492,23 @@ class PuzzlePainter extends CustomPainter
     bool hideNotes     = (puzzle.puzzlePlay == Play.NotStarted) ||
                          (puzzle.puzzlePlay == Play.BeingEntered);
     int  nControls     = hideNotes ? nSymbols + 1 : nSymbols + 2;
-    List<double> xy    = calculatePuzzleLayout (portrait, size,
-                                                paintingSpecs, hideNotes);
+    // List<double> xy    = paintingSpecs.calculatePuzzleLayout(size, hideNotes);
+    paintingSpecs.calculatePuzzleLayout(size, hideNotes);
 
-    // Co-ordinates of top-left corner of puzzle-area.
-    topLeftX           = xy[0];
-    topLeftY           = xy[1];
-    topLeft            = Offset(xy[0], xy[1]);
-    cellSide           = cellSize;     // xy[4];
+    topLeftX   = paintingSpecs.puzzleRect.left;
+    topLeftY   = paintingSpecs.puzzleRect.top;
+    topLeft    = paintingSpecs.puzzleRect.topLeft;
+    cellSide   = paintingSpecs.cellSide;
+    cellSize   = cellSide;
 
-    // Co-ordinates of top-left corner of puzzle-controls (symbols).
-    topLeftXc          = xy[2];
-    topLeftYc          = xy[3];
-
-    // Cell sizes for puzzle-area and controls (symbols).
-    // NOTE: Can we make this a file-global?  double cellSize    = xy[4];
-    double controlSize = xy[5];
+    topLeftXc  = paintingSpecs.controlRect.left;
+    topLeftYc  = paintingSpecs.controlRect.top;
+    double controlSize = paintingSpecs.controlSide;
 
     var lightScheme = ColorScheme.fromSeed(seedColor: Colors.amber.shade200);
     var darkScheme  = ColorScheme.fromSeed(seedColor: Colors.amber.shade200,
                                            brightness: Brightness.dark);
-    // Save the resulting rectangles for use in hit tests.
-    paintingSpecs.canvasSize = size;
-    paintingSpecs.puzzleRect = Rect.fromLTWH(
-          topLeftX, topLeftY, sizeX * cellSize, sizeY * cellSize);
-    Size controlRectSize = paintingSpecs.portrait ?
-          Size(controlSize * nControls, controlSize) : // Horizontal.
-          Size(controlSize, controlSize * nControls);  // Vertical.
-    paintingSpecs.controlRect = Rect.fromLTWH(
-          topLeftXc, topLeftYc, controlRectSize.width, controlRectSize.height);
+
     // Paints (and brushes/pens) for areas and lines.
     var paint1 = Paint()		// Background colour of canvas.
       ..color = Colors.amber.shade100
@@ -514,11 +554,9 @@ class PuzzlePainter extends CustomPainter
 
     // Calculated widths of lines, depending on canvas size and puzzle size.
     thinLinePaint.strokeWidth  = cellSize / 30.0;
-    // cageLinePaint.strokeWidth  = cellSize / 30.0;
     cageLinePaint.strokeWidth  = cellSize / 20.0;
     thickLinePaint.strokeWidth = cellSize / 15.0;
-    // highlight.strokeWidth      = cellSize / 15.0;
-    highlight.strokeWidth      = cellSize / 20.0;
+    highlight.strokeWidth      = cellSize * paintingSpecs.highlightInset;
 
     // Now paint the background of the canvas.
     canvas.drawRect(Offset(0, 0) & size, paint1);
@@ -550,22 +588,6 @@ class PuzzlePainter extends CustomPainter
       }
     }
 
-    // Paint backgrounds of control_cells (symbols), including Erase and Notes.
-    for (int i = 0; i < nControls; i++) {
-      double o1, o2;
-      if (portrait) {
-        o1 = topLeftXc + i * controlSize;
-        o2 = topLeftYc;
-      }
-      else {
-        o1 = topLeftXc;
-        o2 = topLeftYc + i * controlSize;
-      } 
-      canvas.drawRect(Offset(o1, o2) & Size(controlSize, controlSize), paint2);
-    }
-
-    // TODO - Draw thin edges first, then thick edges. Use different "heights"?
-
     // Draw light and dark edges of puzzle-area, as required by the puzzle type.
     int nEdges   = sizeY * (sizeX + 1);
     for (int i = 0; i < nEdges; i++) {
@@ -592,49 +614,12 @@ class PuzzlePainter extends CustomPainter
                 paint3, paint2, cageLinePaint);
     }
 
-    // Paint framework of control-area, thick lines last, to cover thin ends.
-    // Draw the lines between cells, horizontal or vertical, as required.
-    if (portrait) {
-      // Horizontal - at the bottom of the screen or window.
-      for (int n = 0; n < nControls - 1; n++) {
-        double o1 = topLeftXc + (n + 1) * controlSize;
-        double o2 = topLeftYc + controlSize;
-        canvas.drawLine(Offset(o1, topLeftYc), Offset(o1, o2), thinLinePaint);
-      }
-      canvas.drawRect(Offset(topLeftXc, topLeftYc) &
-                      Size(nControls * controlSize, controlSize),
-                      thickLinePaint);
-    }
-    else {
-      // Vertical - at the side of the screen or window.
-      for (int n = 0; n < nControls - 1; n++) {
-        double o1 = topLeftXc + controlSize;
-        double o2 = topLeftYc + (n + 1) * controlSize;
-        canvas.drawLine(Offset(topLeftXc, o2), Offset(o1, o2), thinLinePaint);
-      }
-      canvas.drawRect(Offset(topLeftXc, topLeftYc) &
-                      Size(controlSize, nControls * controlSize),
-                      thickLinePaint);
-    }
-
-    // Add the graphics for the control symbols.
-    Offset cellPos;
-    int st = hideNotes ? 0 : 1;
-    for (int n = 1; n <= nSymbols; n++) {
-      if (portrait) {
-        // Step over Erase and Notes at the left, then add the symbols.
-        cellPos = Offset(topLeftXc + (n + st) * controlSize, topLeftYc);
-      }
-      else {
-        // Step over Erase and Notes at the top, then add the symbols.
-        cellPos = Offset(topLeftXc, topLeftYc + (n + st) * controlSize);
-      }
-      paintingSpecs.paintSymbol(canvas, n, cellPos, controlSize,
-                                isNote: false, isCell: false);
-    }
+    paintingSpecs.paintPuzzleControls(canvas, nControls, thinLinePaint,
+                  thickLinePaint, puzzle.notesMode, puzzle.selectedControl);
 
     // Paint/repaint the graphics for all the symbols in the puzzle area.
     int puzzleSize = paintingSpecs.sizeX * paintingSpecs.sizeY;
+    Offset cellPos;
     for (int pos = 0; pos < puzzleSize; pos++) {
       int ns = puzzle.stateOfPlay[pos];
       if (ns == UNUSABLE) {
@@ -643,11 +628,16 @@ class PuzzlePainter extends CustomPainter
       int status = puzzle.cellStatus[pos];
       if ((status == GIVEN) || (status == ERROR)) {
         Paint cellPaint = (status == GIVEN) ? paint3 : paintError;
-        gap = cellSize / 3.0;		// TODO - Set this in a better place.
+        gap = cellSize / 8.0;		// TODO - Set this in a better place.
         o1 = topLeftX + gap/2.0 + (pos~/sizeY) * cellSize;
         o2 = topLeftY + gap/2.0 + (pos %sizeY) * cellSize;
-        canvas.drawOval(Offset(o1, o2) & Size(cellSize - gap, cellSize - gap),
-                        cellPaint);
+        List<Color> shaderColors = [cellPaint.color, Color(0x00FFFFFF)];
+        RadialGradient rg = RadialGradient(radius: 1.1, colors: shaderColors);
+        Rect r = Offset(o1, o2) & Size(cellSize - gap, cellSize - gap);
+        Shader shader = rg.createShader(r);
+        Paint p = Paint();
+        p.shader = shader;
+        canvas.drawOval(r, p);
       }
       int i = puzzle.puzzleMap.cellPosX(pos);
       int j = puzzle.puzzleMap.cellPosY(pos);
@@ -661,41 +651,16 @@ class PuzzlePainter extends CustomPainter
                    Size(cellSize - shrinkBy, cellSize - shrinkBy), highlight);
       }
     }
-
-    // Highlight the user's latest control-selection.
-    cellPos   = Offset(topLeftXc, topLeftYc);
-    int    n  = puzzle.selectedControl + (hideNotes ? 0 : 1);
-    double d  = n * controlSize;
-    cellPos  = cellPos + (paintingSpecs.portrait ? Offset(d, 0) : Offset(0, d));
-    double shrinkBy = controlSize / 10.0;
-    double inset = shrinkBy / 2.0;
-    canvas.drawRect(cellPos + Offset(inset, inset) &
-               Size(controlSize - shrinkBy, controlSize - shrinkBy), highlight);
-
-    // Add the label for the Notes button and highlight it, if required.
-    cellPos = Offset(topLeftXc, topLeftYc);
-    if (! hideNotes) {
-      cellPos = Offset(topLeftXc, topLeftYc);
-      for (int n = 1; n <= 3; n++) {
-        paintingSpecs.paintSymbol(canvas, n, cellPos,
-                  controlSize, isNote: true, isCell: false);
-      }
-      if (puzzle.notesMode) {
-        // TODO - Need a function for all THREE highlighting operations.
-        //        Need constants for the shrinkage and similar cell fractions.
-        canvas.drawRect(cellPos & Size(controlSize, controlSize), highlight);
-      }
-    }
   } // End void paint(Canvas canvas, Size size)
 
   @override
-  bool shouldRepaint(PuzzlePainter oldDelegate) {
-    print('ENTERED PuzzlePainter shouldRepaint()');
+  bool shouldRepaint(PuzzlePainter2D oldDelegate) {
+    // print('ENTERED PuzzlePainter shouldRepaint()');
     return true;
   }
 
   @override
-  // Don't need hitTest function? Can do everything required in _possibleHit().
+  // Can do everything required in _possibleHit2D().
   bool? hitTest(Offset position)
   {
     return null;
@@ -704,7 +669,7 @@ class PuzzlePainter extends CustomPainter
   void paintCages(Canvas canvas, int cageCount, 
                  Paint labelPaint_fg, Paint labelPaint_bg, Paint cageLinePaint)
   {
-    PaintingSpecs paintingSpecs = puzzle.paintingSpecs;
+    PaintingSpecs2D paintingSpecs = puzzle.paintingSpecs2D;
 
     List<int> cageBoundaryBits = paintingSpecs.cageBoundaries;
     double inset = cellSide/12.0;
@@ -818,14 +783,12 @@ class PuzzlePainter extends CustomPainter
                                // (0.0, lSide),       (0.0, 0.0)];
   // List<Offset> innerCorners = [(lSide - 1.0, 1.0), (lSide - 1.0, lSide - 1.0),
                                // (1.0, lSide - 1.0), (1.0, 1.0)];
-// TODO - Maybe use the above in PuzzlePainter?
+// TODO - Maybe use the above in PuzzlePainters?
 
-} // End class PuzzlePainter extends CustomPainter
+} // End class PuzzlePainter2D extends CustomPainter
 
 
-// ************************************************************************** //
-//   This function is outside any class... It is used by class PuzzlePainter.
-// ************************************************************************** //
+// TODO - Phase these OUT. ALSO change cellSize to cellSide everywhere.
 double cellSize    = 10.0;
 double controlSize = 10.0;
 double topLeftX    = 10.0;
@@ -833,75 +796,134 @@ double topLeftY    = 10.0;
 double topLeftXc   = 10.0;
 double topLeftYc   = 10.0;
 
-List<double> calculatePuzzleLayout (bool portrait, Size size,
-                                    PaintingSpecs paintingSpecs,
-                                    bool hideNotes)
+class PuzzlePainter3D extends CustomPainter
 {
-  // print('LAYOUT: Portrait $portrait, Size $size, hideNotes $hideNotes');
+  final Puzzle puzzle;
 
-  // Set up the layout calculation for landscape orientation.
-  double shortSide   = size.height;
-  double longSide    = size.width;
-  int    puzzleCells = paintingSpecs.sizeY;
-  if (portrait) {
-    // Change to portrait setup.
-    shortSide   = size.width;
-    longSide    = size.height;
-    puzzleCells = paintingSpecs.sizeX;
-  }
-  // Fix the size of the margin in relation to the canvas size.
-  double margin   = shortSide / 35.0;
+  PuzzlePainter3D(this.puzzle);
 
-  // Fix the spaces now remaining for the puzzle and the symbol buttons.
-  shortSide = shortSide - margin * 2.0;
-  longSide  = longSide  - margin * 3.0;
-  // print('MARGIN: $margin, shortSide $shortSide, longSide $longSide');
+  // NOTE: PuzzlePainter3D does not use the Listenable? repaint parameter of
+  //       CustomerPainter, nor does it re-implement CustomPainter with
+  //       ChangeNotifier (which has been tried). Instead PuzzlePainter3D and
+  //       the Puzzle class rely on Provider to trigger repaints on ANY change
+  //       in the Puzzle model, whether the user taps on icon-buttons or Canvas.
 
-  // Calculate the space allocations. Initially assume that the puzzle-area
-  // will fill the short side, except for the two margins.
-         cellSize        = shortSide / puzzleCells;	// Calculate cell size.
-  int    x               = hideNotes ? 1 : 2;
-  int    nControls       = paintingSpecs.nSymbols + x;	// Add Erase and Notes.
-         controlSize     = shortSide / nControls;
-  double padding         = longSide - shortSide - controlSize;
-  bool   longSidePadding = (padding >= 1.0);	// Enough space for padding?
+  Offset topLeft  = Offset (0.0, 0.0);
+  double cellSide = 1.0;
 
-  // print('X $x, nControls $nControls, shortSide $shortSide');
-  // print('longSide $longSide, padding $padding, controlSize $controlSize');
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Paint or re-paint the puzzle-area, the puzzle-controls (symbols),
+    // the given-values (clues) for the puzzle and the symbols and notes
+    // that the user has entered as their solution so far.
 
-  // If everything fits, fine...
-  if (longSidePadding) {
-    // Calculate space left at top-left corner.
-    // print('LONG SIDE PADDING $padding');
-    longSide  = margin + padding / 2.0;
-    shortSide = margin;
-    // print('Long side $longSide, short side $shortSide');
+    // If anything goes wrong, don't paint outside the Canvas.
+    canvas.clipRect((Offset(0.0, 0.0) & size));
+
+    // ******** DEBUG ********
+    int w = size.width.floor();
+    int h = size.height.floor();
+    print('ENTERED PuzzlePainter3D.paint() W $w, H $h');
+    // ***********************
+
+    PaintingSpecs3D paintingSpecs = puzzle.paintingSpecs3D;
+
+    int  nSymbols      = paintingSpecs.nSymbols;
+
+    bool hideNotes     = (puzzle.puzzlePlay == Play.NotStarted) ||
+                         (puzzle.puzzlePlay == Play.BeingEntered);
+    int  nControls     = hideNotes ? nSymbols + 1 : nSymbols + 2;
+
+    paintingSpecs.calculatePuzzleLayout(size, hideNotes);
+
+    // Paints (and brushes/pens) for areas and lines.
+    var paint1 = Paint()		// Background colour of canvas.
+      ..color = Colors.amber.shade100
+      ..style = PaintingStyle.fill;
+    var thinLinePaint = Paint()		// Style for lines between cells.
+      ..color = Colors.brown.shade400
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin  = StrokeJoin.round;
+    var thickLinePaint = Paint()	// Style for edges of groups of cells.
+      ..color = Colors.brown.shade300
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin  = StrokeJoin.round
+      ..strokeWidth = 1.5;
+    var paintError = Paint()		// Colour of Error cells.
+      ..color = Colors.amber.shade700
+      ..style = PaintingStyle.fill;
+    var paint3 = Paint()		// Colour of Given cells.
+      // ..color = Colors.amberAccent.shade700
+      ..color = Color(0xffffd600)	// yellow.shade700
+      ..style = PaintingStyle.fill;
+    var paint2 = Paint()		// Background colour of cells.
+      ..color = Colors.amber.shade200
+      ..style = PaintingStyle.fill;
+
+    // Now paint the background of the canvas.
+    canvas.drawRect(Offset(0, 0) & size, paint1);
+
+    paintingSpecs.paintPuzzleControls(canvas, nControls, thinLinePaint,
+                  thickLinePaint, puzzle.notesMode, puzzle.selectedControl);
+
+    paintingSpecs.calculateScale();
+
+    double sc     = paintingSpecs.scale;
+    double diam   = paintingSpecs.diameter * sc;
+    Offset origin = paintingSpecs.origin;
+
+    int nCircles  = paintingSpecs.rotated.length;
+    for (int n = 0; n < nCircles; n++) {
+      if (! paintingSpecs.rotated[n].used) {
+        continue;			// Don't paint UNUSED cells.
+      }
+
+      // Scale the XY co-ordinates and reverse the Y-axis for 2D display.
+      Offset centre = paintingSpecs.rotatedXY(n).scale(sc, -sc) + origin;
+
+      int ID = paintingSpecs.rotated[n].ID;
+      int status = puzzle.cellStatus[ID];
+      Paint cellPaint = paint2;
+      if ((status == GIVEN) || (status == ERROR)) {
+        cellPaint = (status == GIVEN) ? paint3 : paintError;
+      }
+
+      Rect r = Rect.fromCenter(center: centre, width: diam, height: diam);
+      // List<Color> shaderColors = [paintError.color, Colors.white];
+      List<Color> shaderColors = [cellPaint.color, Colors.white];
+      RadialGradient rg = RadialGradient(radius: 1.1, colors: shaderColors);
+      Shader shader = rg.createShader(r);
+      Paint circleGradient = Paint();
+      circleGradient.shader = shader;
+      canvas.drawOval(r, circleGradient);
+      canvas.drawOval(r, thickLinePaint);
+
+      // Scale and paint the symbols on this sphere, if any.
+      int ns = puzzle.stateOfPlay[ID];
+      Offset cellPos = centre - Offset(diam/2.0, diam/2.0);
+      paintingSpecs.paintSymbol(canvas, ns, cellPos,
+                diam, isNote: (ns > 1024), isCell: true);
+    }
+
+    // DEBUGGING - Mark the origin of the 3D co-ordinates.
+    Rect r = Rect.fromCenter(center: origin, width: 10.0, height: 10.0);
+    canvas.drawRect(r, thickLinePaint);
+    
+  } // End void paint(Canvas canvas, Size size)
+
+  @override
+  bool shouldRepaint(PuzzlePainter3D oldDelegate) {
+    // print('ENTERED PuzzlePainter3D shouldRepaint()');
+    return true;
   }
-  else {
-    // ...otherwise make the puzzle-area smaller and pad the short side.
-    cellSize    = (shortSide + padding) / puzzleCells;
-    controlSize = (shortSide + padding) / nControls;
-    padding     = shortSide - puzzleCells * cellSize;   // Should be +'ve now.
-    // print('SHORT SIDE PADDING $padding');
-    // Calculate space left at top-left corner.
-    shortSide   = margin + padding / 2.0;
-    longSide    = margin;
-    // print('Long side $longSide, short side $shortSide');
+
+  @override
+  // Can do everything required in _possibleHit2D().
+  bool? hitTest(Offset position)
+  {
+    return null;
   }
-  // Set the offsets and sizes to be used for co-ordinates within the puzzle.
-  // Order is topLeftX, topLeftY, topLeftXc, topLeftYc, cellSize, controlSize.
-  List<double> result;
-  if (portrait) {
-    result = [shortSide, longSide,
-              shortSide, size.height - controlSize - margin];
-              // margin, size.height - controlSize - margin];
-  }
-  else {
-    result = [longSide, shortSide,
-              size.width - controlSize - margin, shortSide];
-              // size.width - controlSize - margin, margin];
-  }
-  result.add(cellSize);
-  result.add(controlSize);
-  return result;
-}
+
+} // End class PuzzlePainter3D
