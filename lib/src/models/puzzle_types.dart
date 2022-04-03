@@ -187,6 +187,9 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     NGroups 9
     NSymbols 9
     SpecificType Roxdoku
+    Diameter 350
+    RotateX 15
+    RotateY 27
     PuzzleMap
     RoxdokuGroups 0 ''' 
 ,
@@ -201,6 +204,9 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     NGroups 18
     NSymbols 9
     SpecificType Roxdoku
+    Diameter 350
+    RotateX 15
+    RotateY -27
     PuzzleMap
     RoxdokuGroups 0  
     RoxdokuGroups 36 '''
@@ -337,6 +343,9 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     NGroups 18
     NSymbols 9
     SpecificType Roxdoku
+    Diameter 350
+    RotateX 15
+    RotateY -27
     PuzzleMap
     RoxdokuGroups 0  
     RoxdokuGroups 62 '''
@@ -375,6 +384,9 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     NGroups 81
     NSymbols 9
     SpecificType Roxdoku
+    Diameter 350
+    RotateX 15
+    RotateY -27
     PuzzleMap
     RoxdokuGroups 0  
     RoxdokuGroups 196
@@ -402,7 +414,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SudokuGroups 6   HasSquareBlocks
     SudokuGroups 258 HasSquareBlocks
     SudokuGroups 138 HasSquareBlocks '''
-// TODO - ERROR - NGroups = 131 in XML file, should have been 108 ?
 ,
 ''' Name Tetromino 4x4
     Description Jigsaw with Tetromino blocks (Tetris pieces)
@@ -445,7 +456,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     Group 9 198 199 200 219 220 221 240 241 242
     SudokuGroups 9   HasSquareBlocks
     SudokuGroups 201 HasSquareBlocks '''
-// TODO - ERROR - NGroups = 131 in XML file, should have been 127 ?
 ,
 ''' Name XSudoku
     Description XSudoku shape puzzle
@@ -496,9 +506,12 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 4
     SizeY 4
     SizeZ 4
-    NGroups 9
+    NGroups 12
     NSymbols 16
     SpecificType Roxdoku
+    Diameter 350
+    RotateX 15
+    RotateY 27
     PuzzleMap
     RoxdokuGroups 0 ''' 
 ,
@@ -509,9 +522,12 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 5
     SizeY 5
     SizeZ 5
-    NGroups 9
+    NGroups 15
     NSymbols 25
     SpecificType Roxdoku
+    Diameter 350
+    RotateX 15
+    RotateY 27
     PuzzleMap
     RoxdokuGroups 0 ''' 
 ,

@@ -429,9 +429,16 @@ class _PuzzleView extends StatelessWidget
     hitPos = details.localPosition;
     PaintingSpecs3D paintingSpecs = puzzle.paintingSpecs3D;
     bool modelChanged = false;
-    if (_possibleHit('3D', paintingSpecs.puzzleRect, paintingSpecs.controlRect))
-    {
+    if (paintingSpecs.hit3DViewControl(hitPos)) {
+      // If true, the 3D Puzzle View is to be rotated and re-painted,
+      // but the Puzzle Model's contents are actually unchanged.
+      puzzle.triggerRepaint();	// No Model change, but View must be repainted.
+      modelChanged = true;
+    }
+    else if (_possibleHit('3D', paintingSpecs.puzzleRect,
+                                paintingSpecs.controlRect)) {
       // Hit on 3D puzzle-area - special processing required.
+      // Hit on controlRect is handled by _possibleHit() exactly as for 2D case.
       int n = paintingSpecs.whichSphere(hitPos);
       if (n >= 0) {
         modelChanged = puzzle.hitPuzzleCellN(n);
@@ -510,9 +517,13 @@ class PuzzlePainter2D extends CustomPainter
                                            brightness: Brightness.dark);
 
     // Paints (and brushes/pens) for areas and lines.
-    var paint1 = Paint()		// Background colour of canvas.
-      ..color = Colors.amber.shade100
+    var fill   = Paint()
       ..style = PaintingStyle.fill;
+    var paint1 = fill
+      ..color = Colors.amber.shade100;
+    // var paint1 = Paint()		// Background colour of canvas.
+      // ..color = Colors.amber.shade100
+      // ..style = PaintingStyle.fill;
     var paint2 = Paint()		// Background colour of cells.
       ..color = Colors.amber.shade200
       ..style = PaintingStyle.fill;
@@ -637,6 +648,7 @@ class PuzzlePainter2D extends CustomPainter
         Shader shader = rg.createShader(r);
         Paint p = Paint();
         p.shader = shader;
+        // TODO - Rethink this. Use Canvas.drawCircle(centre, radius, paint).
         canvas.drawOval(r, p);
       }
       int i = puzzle.puzzleMap.cellPosX(pos);
@@ -865,6 +877,8 @@ class PuzzlePainter3D extends CustomPainter
     // Now paint the background of the canvas.
     canvas.drawRect(Offset(0, 0) & size, paint1);
 
+    paintingSpecs.add3DViewControls(canvas);
+
     paintingSpecs.paintPuzzleControls(canvas, nControls, thinLinePaint,
                   thickLinePaint, puzzle.notesMode, puzzle.selectedControl);
 
@@ -885,6 +899,9 @@ class PuzzlePainter3D extends CustomPainter
 
       int ID = paintingSpecs.rotated[n].ID;
       int status = puzzle.cellStatus[ID];
+      // if (ID >= 36 && ID <= 38) status = ERROR;
+      // int z = puzzle.puzzleMap.cellPosZ(ID);
+      // if (z == 0) status = ERROR;
       Paint cellPaint = paint2;
       if ((status == GIVEN) || (status == ERROR)) {
         cellPaint = (status == GIVEN) ? paint3 : paintError;
@@ -897,19 +914,21 @@ class PuzzlePainter3D extends CustomPainter
       Shader shader = rg.createShader(r);
       Paint circleGradient = Paint();
       circleGradient.shader = shader;
+      // TODO - Rethink this. Use Canvas.drawCircle(centre, radius, paint).
       canvas.drawOval(r, circleGradient);
       canvas.drawOval(r, thickLinePaint);
 
       // Scale and paint the symbols on this sphere, if any.
       int ns = puzzle.stateOfPlay[ID];
-      Offset cellPos = centre - Offset(diam/2.0, diam/2.0);
+      // Offset cellPos = centre - Offset(diam/2.0, diam/2.0);
+      Offset cellPos = centre - Offset(diam * 0.4, diam * 0.4);
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
-                diam, isNote: (ns > 1024), isCell: true);
+                diam * 0.8, isNote: (ns > 1024), isCell: true);
     }
 
     // DEBUGGING - Mark the origin of the 3D co-ordinates.
-    Rect r = Rect.fromCenter(center: origin, width: 10.0, height: 10.0);
-    canvas.drawRect(r, thickLinePaint);
+    // Rect r = Rect.fromCenter(center: origin, width: 10.0, height: 10.0);
+    // canvas.drawRect(r, thickLinePaint);
     
   } // End void paint(Canvas canvas, Size size)
 

@@ -439,7 +439,7 @@ class SudokuGenerator
     _order        = puzzleMap.nSymbols;
     _blockSize    = puzzleMap.blockSize;
     _boardArea    = puzzleMap.size;
-    _nGroups      = puzzleMap.nGroups;
+    _nGroups      = puzzleMap.groupCount();
     _groupSize    = _order;
 
     _stats.type      = _type;

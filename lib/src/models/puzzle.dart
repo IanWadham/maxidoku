@@ -274,6 +274,13 @@ class Puzzle with ChangeNotifier
     notifyListeners();
   }
 
+  bool triggerRepaint()
+  {
+    // Used by 3D View Rotation (with no Puzzle Model change).
+    notifyListeners();		// Trigger a repaint of the Puzzle View.
+    return true;
+  }
+
   bool hitControlArea(int selection)
   {
     // User has tapped on the control area, to choose a symbol (1-9, A-Y)

@@ -46,7 +46,7 @@ class SudokuSolver
     _puzzleMap = puzzleMap,
     _random    = puzzleMap.random,
     _nSymbols  = puzzleMap.nSymbols,
-    _nGroups   = puzzleMap.nGroups,
+    _nGroups   = puzzleMap.groupCount(),
     _boardArea = puzzleMap.size
   {
     _groupSize = _nSymbols;

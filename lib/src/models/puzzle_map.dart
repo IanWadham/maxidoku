@@ -143,6 +143,7 @@ class PuzzleMap
       // print(fields);
       String key = fields[0];
 
+      int ok = -1;
       switch (key) {
         case 'Name':
           if (_name == '') {
@@ -188,6 +189,8 @@ class PuzzleMap
           print('_sizeZ = $_sizeZ');
           break;
         case 'NGroups':
+          // OBSOLETE: Use groupCount(). Human error in the PuzzleTypes data
+          //           for this number can cause nasty hard-to-find bugs.
           _nGroups = fields[1] == 'Mathdoku*2' ? 12 :
                                     _getDimension(fields, nFields, _nGroups);
           print('_nGroups = $_nGroups');
@@ -261,6 +264,22 @@ class PuzzleMap
             }
           }
           break;
+        // Settings for a good view of a 3D Roxdoku puzzle.
+        case 'Diameter':	// Diameter of spheres * 100.
+          ok = _getDimension(fields, nFields, _diameter);
+          if (ok > 0) _diameter = ok;
+          print('$fields ok = $ok _diameter = $_diameter');
+          break;
+        case 'RotateX':		// Degrees rotation around the X axis.
+          ok = _getDimension(fields, nFields, _rotateX);
+          if (ok != -1) _rotateX = ok;
+          print('$fields ok = $ok _rotateX = $_rotateX');
+          break;
+        case 'RotateY':		// Degrees rotation around the Y axis.
+          ok = _getDimension(fields, nFields, _rotateY);
+          if (ok != -1) _rotateY = ok;
+          print('$fields ok = $ok _rotateY = $_rotateY');
+          break;
         default:
           break;
       }
@@ -286,12 +305,17 @@ class PuzzleMap
 
   int get size    => _size;
 
-  int get nGroups => _nGroups;
+  // int get nGroups => _nGroups;	// OBSOLETE: Use PuzzleMap.groupCount().
 
   String get name =>  _name;
 
   SudokuType    get specificType  => _specificType;
   BoardContents get emptyBoard    => _emptyBoard;
+
+  // Viewing parameters for 3D Roxdoku puzzles.
+  int get diameter => _diameter;
+  int get rotateX  => _rotateX;
+  int get rotateY  => _rotateY;
 
   // Methods for calculating cell positions and X, Y and Z co-ordinates.
 
@@ -418,10 +442,14 @@ class PuzzleMap
   int _sizeX;
   int _sizeY;
   int _sizeZ;
-  int _size;		// Size of the puzzle's whole area or volume (the board).
+  int _size;		// Size of puzzle's whole area or volume (the board).
   int _blockSize;	// Edge-length of a square 2D block or 3D cube.
   int _nGroups;		// Number of groups (cliques) in the puzzle.
-  int _nSymbols;	// Number of symbols (4 9 16 or 25: 0-4, 0-9, A-P or A-Y).
+  int _nSymbols;	// Number of symbols (4 9 16 25: 0-4, 0-9, A-P or A-Y).
+
+  int _diameter = 350;	// Default diameter of spheres in 3D puzzle * 100.
+  int _rotateX  = 15;	// Default degrees rotation of view around X axis.
+  int _rotateY  = 27;	// Default degrees rotation of view around Y axis.
 
   // High-level structures, 3 values per structure: structure type (see
   // enum), structure position and whether structure has square blocks.
@@ -576,6 +604,7 @@ class PuzzleMap
 
     // Now look up each group, break out the cells that belong to it and
     // add the group number to the index-list of each cell.
+    _nGroups = groupCount();
     for (int groupNumber = 0; groupNumber < _nGroups; groupNumber++) {
       List<int> cells = _groups[groupNumber];
       int nCells = cells.length;
@@ -632,6 +661,7 @@ class PuzzleMap
   void printGroups()
   {
     print('GROUPS: $_nGroups');
+    print('GROUP_COUNT: ${groupCount()}');
     print(_groups);
     print('');
   }

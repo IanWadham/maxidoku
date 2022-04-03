@@ -608,29 +608,38 @@ class PaintingSpecs3D extends PaintingSpecs
 {
   PuzzleMap map;
 
+  var thickLinePaint = Paint()	// Style for edges of groups of cells.
+    ..color = Colors.brown.shade300
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin  = StrokeJoin.round
+    ..strokeWidth = 1.5;
+
   PaintingSpecs3D(PuzzleMap this.map)
     :
     super(map);
 
   final int spacing = 6;
   final int radius  = 1;
-  final int lStick  = 4;
+  // final int lStick  = 4;
   final double deg  = pi / 180.0;
 
-  final Matrix identityM = Matrix.identity();
+  // final Matrix identityM = Matrix.identity();
 
   Offset       _origin      = Offset(0, 0);	// Centre of 3D puzzle-area.
   double       _scale       = 1.0;		// Current scale of puzzle.
-  final double _diameter    = 3.5;		// Relative size of spheres.
+  double       _diameter    = 2.0;		// Relative size of spheres.
+  double       _rotateX     = 0.0;		// Deg to rotate view around X.
+  double       _rotateY     = 0.0;		// Deg to rotate view around Y.
 
   Offset    get origin      => _origin;		// Centre of 3D puzzle-area.
   double    get scale       => _scale;		// Current scale of puzzle.
   double    get diameter    => _diameter;	// Relative size of spheres.
 
   var homeRotM  = Matrix.identity();
-  var scalingM  = Matrix.identity();
   var rotationM = Matrix.identity();
-  var perspectM = Matrix.identity();
+  // var scalingM  = Matrix.identity();
+  // var perspectM = Matrix.identity();
 
   Coords newOrigin = Coords(0.0, 0.0, 0.0);
   List<Sphere> spheres = [];
@@ -640,11 +649,14 @@ class PaintingSpecs3D extends PaintingSpecs
   void calculatePainting()
   // Pre-calculate details of puzzle background (fixed at start of puzzle-play).
   {
+    print('Executing PaintingSpecs3D.calculatePainting()');
+
     _nSymbols = map.nSymbols;
     _calculateTextProperties();
 
-    print('Executing PaintingSpecs3D.calculatePainting()');
-    // Quaternion q = Quaternion(1.0, 0.0, 0.0, 0.0);
+    _diameter = map.diameter/100.0;
+    _rotateX  = map.rotateX + 0.0;
+    _rotateY  = map.rotateY + 0.0;
 
     newOrigin[0] = ((map.sizeX - 1) * spacing) / 2;
     newOrigin[1] = ((map.sizeY - 1) * spacing) / 2;
@@ -656,42 +668,50 @@ class PaintingSpecs3D extends PaintingSpecs
     BoardContents board = map.emptyBoard;
     for (int n = 0; n < nPoints; n++) {
       bool used = (board[n] == UNUSABLE) ? false : true;
-      print('Sphere: $n, X = ${map.cellPosX(n)}, Y = ${map.cellPosY(n)},'
-	               ' Z = ${map.cellPosZ(n)} used $used');
+      // print('Sphere: $n, X = ${map.cellPosX(n)}, Y = ${map.cellPosY(n)},'
+	               // ' Z = ${map.cellPosZ(n)} used $used');
       Coords sphereN = Coords(0.0, 0.0, 0.0);
       sphereN[0] =  map.cellPosX(n) * spacing - newOrigin[0];
       sphereN[1] = -map.cellPosY(n) * spacing + newOrigin[1];
-      sphereN[2] =  map.cellPosZ(n) * spacing - newOrigin[2];
+      sphereN[2] = -map.cellPosZ(n) * spacing + newOrigin[2];
       spheres.add(Sphere(n, used, sphereN));
       print('Sphere $n: $sphereN');
     }
 
-    rotationM = Matrix.rotationX(-15*deg).multiplied(Matrix.rotationY(27*deg));
+    // TODO - Roxdoku Windmill - 5 3 x 3 cubes locked together.
+    print('\nROTATIONS: _rotateX $_rotateX _rotateY $_rotateY\n');
+    rotationM = Matrix.rotationX(_rotateX*deg).
+                multiplied(Matrix.rotationY(_rotateY*deg));
     homeRotM  = rotationM.clone();
+    rotateCentresOfSpheres();
+  }
+
+  void rotateCentresOfSpheres()
+  {
     rotated.clear();
 
-    for (int n = 0; n < nPoints; n++) {
+    for (int n = 0; n < spheres.length; n++) {
       Coords sphereN = rotationM.rotated3(spheres[n].xyz);
       Coords XYZ = sphereN.clone();
       String s = '[';
       s = s + XYZ[0].toStringAsFixed(2) + ', ';
       s = s + XYZ[1].toStringAsFixed(2) + ', ';
       s = s + XYZ[2].toStringAsFixed(2) + ']';
-      print('Sphere $n: from ${spheres[n].xyz} to $s');
+      // print('Sphere $n: from ${spheres[n].xyz} to $s');
       rotated.add(Sphere(n, spheres[n].used, sphereN));
     }
     // Sort the centres of the spheres into Z order, so that, when painting the
     // Canvas, the furthest-away spheres are painted first and the nearest last.
     rotated.sort((s1, s2) => s1.xyz[2].compareTo(s2.xyz[2]));
 
-    print('\nSPHERES IN Z ORDER');
-    for (int n = 0; n < nPoints; n++) {
+    // print('\nSPHERES IN Z ORDER');
+    for (int n = 0; n < spheres.length; n++) {
       Coords XYZ = rotated[n].xyz;
       String s = '[';
       s = s + XYZ[0].toStringAsFixed(2) + ', ';
       s = s + XYZ[1].toStringAsFixed(2) + ', ';
       s = s + XYZ[2].toStringAsFixed(2) + ']';
-      print('Sphere ${rotated[n].ID}: $s');
+      // print('Sphere ${rotated[n].ID}: $s');
     }
   }
 
@@ -733,15 +753,105 @@ class PaintingSpecs3D extends PaintingSpecs
     print('hitXY = $hitXY relative to origin $origin');
     hitXY = Offset(hitXY.dx / scale, -hitXY.dy / scale);
     print('hitXY scaled back by factor $scale = $hitXY');
-    Rect r = Rect.fromCenter(center: hitXY, width: diameter, height: diameter);
+
+    double d = diameter;
+    Rect r = Rect.fromCenter(center: hitXY, width: d, height: d);
+    List<Sphere> possibles = [];
     for (Sphere s in rotated) {
       if (! s.used) {
         continue;
       }
-      if (r.contains(Offset(s.xyz[0], s.xyz[1]))) return s.ID;
+      // if (r.contains(Offset(s.xyz[0], s.xyz[1]))) return s.ID;
+      if (r.contains(Offset(s.xyz[0], s.xyz[1]))) possibles.add(s);
     }
-    return -1;
+    if (possibles.length == 0) {
+      return -1;
+    }
+    else if (possibles.length == 1) {
+      print('whichSphere: SINGLE POSSIBILITY ${possibles[0].ID}');
+      return possibles[0].ID;
+    }
+    Sphere closestZ  = possibles[0];
+    Sphere closestXY = possibles[0];
+    double bestZ     = closestZ.xyz[2];
+    Point p          = Point(hitXY.dx, hitXY.dy);
+    double bestXY    = 10000.0;
+
+    for (Sphere s in possibles) {
+      if (s.xyz[2] > bestZ) {
+        bestZ = s.xyz[2];
+        closestZ = s;
+      }
+      Point xy = Point(s.xyz[0], s.xyz[1]);
+      double d = p.distanceTo(xy);
+      if (d < bestXY) {
+        bestXY = d;
+        closestXY = s;
+      }
+    }
+    print('POSSIBLES ${possibles}');
+    print('Closest Z $bestZ: sphere ${closestZ.ID}');
+    print('Closest XY $bestXY: sphere ${closestXY.ID}');
+    return closestZ.ID;
+  }
+
+  List<Path> _arrowList = [];
+
+  void add3DViewControls(Canvas canvas)
+  {
+    // Add an outward-pointing arrow at each midpoint of the puzzleRect edges.
+    double aS = _puzzleRect.width / 40.0;	// Arrow size.
+    _arrowList.clear();
+    Offset p = _puzzleRect.topCenter;
+    drawAnArrow(canvas,
+                [Offset(-aS,0.0) + p, Offset(0.0,-aS) + p, Offset(aS,0.0) + p]);
+    p = _puzzleRect.centerRight;
+    drawAnArrow(canvas,
+                [Offset(0.0,-aS) + p, Offset(aS,0.0) + p, Offset(0.0,aS) + p]);
+    p = _puzzleRect.bottomCenter;
+    drawAnArrow(canvas,
+                [Offset(aS,0.0) + p, Offset(0.0,aS) + p, Offset(-aS,0.0) + p]);
+    p = _puzzleRect.centerLeft;
+    drawAnArrow(canvas,
+                [Offset(0.0,aS) + p, Offset(-aS,0.0) + p, Offset(0.0,-aS) + p]);
+  }
+
+  void drawAnArrow(Canvas canvas, List<Offset> points)
+  {
+    Path arrow = Path();
+    bool close = true;
+    arrow.addPolygon(points, close);
+    canvas.drawPath(arrow, thickLinePaint);
+    _arrowList.add(arrow);
+  }
+
+  bool hit3DViewControl(Offset hitPos)
+  {
+    // Find out if the user has hit one of the outward-pointing arrows and, if
+    // so, rotate the puzzle by +90 or -90 deg in the corresponding direction
+    // and signal the Puzzle model to trigger a repaint (via Provider).
+    for (int n = 0; n < _arrowList.length; n++) {
+      if (_arrowList[n].contains(hitPos)) {
+        print('Zinnngggg! $n');
+        switch(n) {
+          case 0:
+            rotationM.rotateX(-pi/2.0);
+            break;
+          case 1:
+            rotationM.rotateY(pi/2.0);
+            break;
+          case 2:
+            rotationM.rotateX(pi/2.0);
+            break;
+          case 3:
+            rotationM.rotateY(-pi/2.0);
+            break;
+        }
+        rotateCentresOfSpheres();
+        return true;
+      }
+    }
+    return false;
   }
 
 } // End class PaintingSpecs3D
-
