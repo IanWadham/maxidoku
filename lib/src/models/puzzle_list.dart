@@ -12,6 +12,42 @@ class PuzzleList
   // static const List<List<String>> puzzleList =
   static const List<List<String>> puzzleList =
   [
+  ['2', // Puzzle ID
+  'Classic 9x9 Sudoku',
+  'Each row, column and square block must contain each symbol 1-9 exactly once.',
+  // Author Francesco Rossi
+  'ksudoku-ksudoku_9x9' // Icon ID
+  ],
+  ['5', // Puzzle ID
+  'Roxdoku 9 (3x3x3)',
+  'Three-dimensional puzzle with one 3x3x3 cube',
+  // Author Ian Wadham
+  'ksudoku-roxdoku_3x3x3' // Icon ID
+  ],
+  ['9', // Puzzle ID
+  'Killer Sudoku',
+  'Classic Sudoku, but cages must add to totals shown',
+  // Author Ian Wadham
+  'ksudoku-ksudoku_9x9' // Icon ID
+  ],
+  ['11', // Puzzle ID
+  'Mathdoku - Settable Size',
+  'Size 3x3 to 9x9 grid, with calculated cages',
+  // Author Ian Wadham
+  'ksudoku-ksudoku_9x9' // Icon ID
+  ],
+  ['15', // Puzzle ID
+  'Samurai',
+  'Samurai shape puzzle',
+  // Author Francesco Rossi
+  'ksudoku-samurai' // Icon ID
+  ],
+  ['20', // Puzzle ID
+  'XSudoku',
+  'XSudoku shape puzzle',
+  // Author Francesco Rossi
+  'ksudoku-xsudoku' // Icon ID
+  ],
   ['0', // Puzzle ID
   'Classic 4x4 Sudoku',
   'Each row, column and square block must contain each symbol 1-4 exactly once.',
@@ -24,12 +60,6 @@ class PuzzleList
   // Author Francesco Rossi
   'ksudoku-tiny_samurai' // Icon ID
   ],
-  ['2', // Puzzle ID
-  'Classic 9x9 Sudoku',
-  'Each row, column and square block must contain each symbol 1-9 exactly once.',
-  // Author Francesco Rossi
-  'ksudoku-ksudoku_9x9' // Icon ID
-  ],
   ['3', // Puzzle ID
   '6x6 Pseudo Sudoku',
   '6x6 puzzle with rectangular blocks',
@@ -41,12 +71,6 @@ class PuzzleList
   'Jigsaw variant shaped like an Aztec pyramid',
   // Author Ian Wadham
   'ksudoku-jigsaw' // Icon ID
-  ],
-  ['5', // Puzzle ID
-  'Roxdoku 9 (3x3x3)',
-  'Three-dimensional puzzle with one 3x3x3 cube',
-  // Author Ian Wadham
-  'ksudoku-roxdoku_3x3x3' // Icon ID
   ],
   ['6', // Puzzle ID
   'Double Roxdoku',
@@ -66,23 +90,11 @@ class PuzzleList
   // Author Ian Wadham
   'ksudoku-ksudoku_4x4' // Icon ID
   ],
-  ['9', // Puzzle ID
-  'Killer Sudoku',
-  'Classic Sudoku, but cages must add to totals shown',
-  // Author Ian Wadham
-  'ksudoku-ksudoku_9x9' // Icon ID
-  ],
   ['10', // Puzzle ID
   'Mathdoku 101',
   'Size 4x4 grid, with calculated cages',
   // Author Ian Wadham
   'ksudoku-ksudoku_4x4' // Icon ID
-  ],
-  ['11', // Puzzle ID
-  'Mathdoku - Settable Size',
-  'Size 3x3 to 9x9 grid, with calculated cages',
-  // Author Ian Wadham
-  'ksudoku-ksudoku_9x9' // Icon ID
   ],
   ['12', // Puzzle ID
   'Nonomino 9x9',
@@ -101,12 +113,6 @@ class PuzzleList
   'Three-dimensional puzzle with two 3x3x3 cubes which share a corner',
   // Author Ian Wadham
   'ksudoku-roxdoku_3x3x3' // Icon ID
-  ],
-  ['15', // Puzzle ID
-  'Samurai',
-  'Samurai shape puzzle',
-  // Author Francesco Rossi
-  'ksudoku-samurai' // Icon ID
   ],
   ['16', // Puzzle ID
   'Samurai Roxdoku',
@@ -131,12 +137,6 @@ class PuzzleList
   'Windmill puzzle with five overlapping 9x9 squares',
   // Author Ian Wadham
   'ksudoku-samurai' // Icon ID
-  ],
-  ['20', // Puzzle ID
-  'XSudoku',
-  'XSudoku shape puzzle',
-  // Author Francesco Rossi
-  'ksudoku-xsudoku' // Icon ID
   ],
   ['21', // Puzzle ID
   'Classic 16x16 Sudoku',
