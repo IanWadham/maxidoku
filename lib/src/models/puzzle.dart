@@ -21,10 +21,12 @@ class CellChange
 class Puzzle with ChangeNotifier
 {
   // Constructor.
-  Puzzle(int index)
+  Puzzle(int index, this.settings)
   {
     createState(index);
   }
+
+  final SettingsController settings;
 
   late PuzzleMap _puzzleMap;
   PuzzleMap get puzzleMap => _puzzleMap;
@@ -60,9 +62,8 @@ class Puzzle with ChangeNotifier
 
   // The required difficulty and symmetry of the puzzle to be generated.
   // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
-  // Difficulty _difficulty = Difficulty.Diabolical;
   Difficulty _difficulty = Difficulty.Easy;
-  Symmetry   _symmetry   = Symmetry.NONE;
+  Symmetry   _symmetry   = Symmetry.RANDOM_SYM;
 
   // The current status of each cell.
   // Possible values are UNUSABLE, VACANT, GIVEN, CORRECT, ERROR and NOTES.
@@ -131,15 +132,19 @@ class Puzzle with ChangeNotifier
 
     _cellChanges.clear();
 
-    // TODO - Get/set these in Settings. Prompt the user.
-    Difficulty _difficulty = Difficulty.Diabolical;
-    Symmetry   _symmetry   = Symmetry.NONE;
+    // Get the user's chosen/default Difficulty and Symmetry from Settings.
+    _difficulty = settings.difficulty;
+    _symmetry   = settings.symmetry;
+    print('Puzzle._init(): Difficulty $_difficulty, Symmetry $_symmetry');
 
     int  _indexUndoRedo  = 0;
 
-    int  selectedControl = 1;
-    bool notesMode       = false;
-    int  lastCellHit     = 0;
+    // int  selectedControl = 1;
+    // bool notesMode       = false;
+    // int  lastCellHit     = 0;
+    selectedControl = 1;
+    notesMode       = false;
+    lastCellHit     = 0;
 
     _puzzlePlay = Play.NotStarted;
   }
@@ -296,7 +301,16 @@ class Puzzle with ChangeNotifier
       // The value selected is treated as a cell-value, a note or an erase.
       selectedControl = selection - (hideNotes ? 0 : 1);
       print('Selected control $selectedControl');
-      // TODO - Allow multiple entry of Notes in current Puzzle cell.
+      // Allow multiple entry of Notes in current Puzzle cell.
+/*
+      if (notesMode) {
+        int n = lastCellHit;
+        if (_cellStatus[n] == NOTES) {
+          // Cell already has a note, so OK to add more or clear existing.
+          hitPuzzleCellN(n);
+        }
+      }
+*/
     }
     notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
@@ -411,6 +425,10 @@ class Puzzle with ChangeNotifier
         // If puzzle exists and has a solution, check for incorrect moves.
         newStatus = ((newValue != _solution[n]) && (_solution[n] != VACANT)) ?
                      ERROR : CORRECT;
+        if (newStatus == CORRECT) {
+          autoClearNotes(n, newValue);
+          autoDimControls(n);
+        }
       }
     }
 
@@ -526,6 +544,38 @@ class Puzzle with ChangeNotifier
     _indexUndoRedo++;
     notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
+  }
+
+  void autoClearNotes(int n, int newValue)
+  {
+    print('autoClearNotes cell $n value $newValue');
+    int noteBit = 1 << newValue;
+    List<int> groupList = puzzleMap.groupList(n);
+    print('groupList $groupList');
+    for (int g in groupList) {
+      print('Group $g ${puzzleMap.group(g)}');
+      for (int cell in puzzleMap.group(g)) {
+        print('Cell $cell value ${_stateOfPlay[cell]}');
+        if ((cell != n) && (_cellStatus[cell] == NOTES)) {
+          if ((_stateOfPlay[cell] & noteBit) != 0) {
+            // Use an exclusive-OR to clear the required bit.
+            _stateOfPlay[cell] = _stateOfPlay[cell] ^ noteBit;
+            if (_stateOfPlay[cell] == NotesBit) {
+              _stateOfPlay[cell] = VACANT;
+              _cellStatus[cell]  = VACANT;
+            }
+          }
+        }
+      }
+    }
+    // TODO - Does the above need to be Undoable. If so how? Would it need the
+    //        Undo/Redo to handle multi-cell changes? It all seems a bit academic
+    //        considering that the user has just made a winning move. Or maybe a
+    //        Redo could just redo every move from the start of play.
+  }
+
+  void autoDimControls(int n)
+  {
   }
 
   void testPuzzle() {

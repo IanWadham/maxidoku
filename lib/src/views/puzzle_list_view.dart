@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../settings/settings_view.dart';
 import '../settings/settings_controller.dart';
+import '../globals.dart';
 import '../models/puzzle_list.dart';
 import 'puzzle_view.dart';
 
@@ -28,12 +29,87 @@ class PuzzleListView extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
+    // AnimatedBuilder in app.dart and NotifyListeners() in SettingsController
+    // guarantee a repaint whenever Difficulty, Symmetry, ThemeMode etc. change.
+    Difficulty initialDifficulty = settings.difficulty;
+    Symmetry   initialSymmetry   = settings.symmetry;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Welcome to MultiDoku\nPlease choose a game'),
+        title: const Text('Welcome to MultiDoku'),
+        automaticallyImplyLeading: false,
+        leading: null,
         actions: [
+          PopupMenuButton<Difficulty>(
+            icon: const Icon(Icons.leaderboard),
+            tooltip: 'Difficulty',
+            initialValue: initialDifficulty,
+            onSelected: settings.setDifficulty,
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<Difficulty>>[
+              const PopupMenuItem<Difficulty>(
+                value: Difficulty.VeryEasy,
+                child: Text('Very Easy'),
+              ),
+              const PopupMenuItem<Difficulty>(
+                value: Difficulty.Easy,
+                child: Text('Easy'),
+              ),
+              const PopupMenuItem<Difficulty>(
+                value: Difficulty.Medium,
+                child: Text('Medium'),
+              ),
+              const PopupMenuItem<Difficulty>(
+                value: Difficulty.Hard,
+                child: Text('Hard'),
+              ),
+              const PopupMenuItem<Difficulty>(
+                value: Difficulty.Diabolical,
+                child: Text('Diabolical'),
+              ),
+              const PopupMenuItem<Difficulty>(
+                value: Difficulty.Unlimited,
+                child: Text('Unlimited'),
+              ),
+            ],
+          ),
+          PopupMenuButton<Symmetry>(
+            icon: const Icon(Icons.all_out),
+            tooltip: 'Symmetry',
+            initialValue: initialSymmetry,
+            onSelected: settings.setSymmetry,
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<Symmetry>>[
+              const PopupMenuItem<Symmetry>(
+                value: Symmetry.DIAGONAL_1,
+                child: Text('Diagonal'),
+              ),
+              const PopupMenuItem<Symmetry>(
+                value: Symmetry.CENTRAL,
+                child: Text('Central'),
+              ),
+              const PopupMenuItem<Symmetry>(
+                value: Symmetry.LEFT_RIGHT,
+                child: Text('Left-Right'),
+              ),
+              const PopupMenuItem<Symmetry>(
+                value: Symmetry.SPIRAL,
+                child: Text('Spiral'),
+              ),
+              const PopupMenuItem<Symmetry>(
+                value: Symmetry.FOURWAY,
+                child: Text('Four-Way'),
+              ),
+              const PopupMenuItem<Symmetry>(
+                value: Symmetry.RANDOM_SYM,
+                child: Text('Randomly Chosen Symmetry'),
+              ),
+              const PopupMenuItem<Symmetry>(
+                value: Symmetry.NONE,
+                child: Text('No Symmetry'),
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'More Settings',
             onPressed: () {
               // Navigate to the settings page. If the user leaves and returns
               // to the app after it has been killed while running in the

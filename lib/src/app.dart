@@ -9,6 +9,8 @@ import 'views/puzzle_list_view.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
+import 'globals.dart';
+
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
   const MyApp({
@@ -20,13 +22,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO - Try out the shared_preferences package. It is Flutter's most
-    //        popular package. Sounds as if it is something like KConfig.
+    // Make the MaterialApp listen for changes in Settings, by using the
+    // AnimatedBuilder to listen to the SettingsController. So whenever
+    // the user updates their settings, the MaterialApp and dependent
+    // widgets are rebuilt.
     //
-    // Glue the SettingsController to the MaterialApp.
-    //
-    // The AnimatedBuilder Widget listens to the SettingsController for changes.
-    // Whenever the user updates their settings, the MaterialApp is rebuilt.
+    // NOTE: In this instance the AnimatedBuilder does not listen for a tick of
+    //       the clock. Rather it listens for any NotifyListeners() in the
+    //       SettingsController, signalling a change in a Setting or Preference.
     return AnimatedBuilder(
       animation: settingsController,
       builder: (BuildContext context, Widget? child) {
@@ -63,7 +66,7 @@ class MyApp extends StatelessWidget {
 
           // Define a light and dark color theme. Then, read the user's
           // preferred ThemeMode (light, dark, or system default) from the
-          // SettingsController to display the correct theme.
+          // SettingsController to display the required theme.
           theme: ThemeData(),
           darkTheme: ThemeData.dark(),
           themeMode: settingsController.themeMode,
@@ -85,15 +88,16 @@ class MyApp extends StatelessWidget {
                     int index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
 
                     // Use Provider to monitor the state of the Puzzle model
-                    // and repaint the Puzzle View after any change of any type:
-                    // such as taps on the CustomPaint Canvas by the user when
-                    // making Puzzle moves or taps on buttons to Undo/Redo
+                    // and then repaint the Puzzle View after any change of any
+                    // kind: such as taps on the CustomPaint Canvas by the user
+                    // when making Puzzle moves or taps on buttons to Undo/Redo
                     // moves, get a Hint or generate a new Puzzle. There are
                     // several places in the Puzzle Class code where it calls
                     // notifyListeners() and these are watched for by Provider.
 
                     return ChangeNotifierProvider(
-                      create: (context) => Puzzle(index), // The Model to watch.
+                      create: (context) =>		// The Model to watch.
+                              Puzzle(index, settingsController),
                       child:  PuzzleView(),		// Top widget of screen.
                       lazy:   false,			// Create Puzzle NOW, to
                                                         // avoid startup crash.
