@@ -5,6 +5,7 @@ Future<bool> questionMessage(
   String heading,
   String question,
   {
+  // Optional named parameters and their default values.
   String okText     = 'Yes',
   String cancelText = 'No',
   }
@@ -52,6 +53,7 @@ Future<void> infoMessage
   String heading,
   String information,
   {
+  // Optional named parameter and its default value.
   String okText     = 'OK',
   }
 )
