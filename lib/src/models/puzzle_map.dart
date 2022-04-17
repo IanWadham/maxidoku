@@ -200,6 +200,16 @@ class PuzzleMap
                                      _getDimension(fields, nFields, _nSymbols);
           print('_nSymbols = $_nSymbols');
           break;
+        case 'SpecialCells':
+          // Cells that are specially coloured to draw attention, such as the
+          // diagonals in XSudoku or certain cells in 3D Roxdoku puzzles.
+          for (int i = 2; i < nFields; i++) {
+            int cell = int.tryParse(fields[i], radix: 10) ?? -1; 
+            if (cell >= 0) {
+              _specialCells.add(cell);
+            }
+          }
+          break;
         case 'PuzzleMap':
           mapStarted = true;
 
@@ -311,6 +321,8 @@ class PuzzleMap
 
   SudokuType    get specificType  => _specificType;
   BoardContents get emptyBoard    => _emptyBoard;
+
+  List<int>     get specialCells  => _specialCells;
 
   // Viewing parameters for 3D Roxdoku puzzles.
   int get diameter => _diameter;
@@ -450,6 +462,9 @@ class PuzzleMap
   int _diameter = 350;	// Default diameter of spheres in 3D puzzle * 100.
   int _rotateX  = 15;	// Default degrees rotation of view around X axis.
   int _rotateY  = 27;	// Default degrees rotation of view around Y axis.
+
+  // Cells to get special colour, such as XSudoku diagonals and some 3D cells.
+  List<int>            _specialCells = [];
 
   // High-level structures, 3 values per structure: structure type (see
   // enum), structure position and whether structure has square blocks.
