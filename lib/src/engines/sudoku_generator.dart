@@ -487,7 +487,7 @@ class SudokuGenerator
     // TODO - Rationalise the use of Random and seeding across all Classes.
     // Random random = Random(DateTime.now().millisecondsSinceEpoch);
 
-    symmetry = Symmetry.RANDOM_SYM;	// TESTING ONLY.
+    // symmetry = Symmetry.RANDOM_SYM;	// TESTING ONLY.
     // QTime t;
     // t.start();
     if (_puzzleMap.sizeZ > 1) {
