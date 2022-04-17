@@ -190,6 +190,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     Diameter 350
     RotateX 15
     RotateY 27
+    SpecialCells 1 13
     PuzzleMap
     RoxdokuGroups 0 ''' 
 ,
@@ -207,6 +208,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     Diameter 350
     RotateX 15
     RotateY -27
+    SpecialCells 3 36 37 38
     PuzzleMap
     RoxdokuGroups 0  
     RoxdokuGroups 36 '''
@@ -346,6 +348,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     Diameter 350
     RotateX 15
     RotateY -27
+    SpecialCells 1 62
     PuzzleMap
     RoxdokuGroups 0  
     RoxdokuGroups 62 '''
@@ -387,6 +390,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     Diameter 350
     RotateX 15
     RotateY -27
+    SpecialCells 27 114 115 116 121 122 123 128 129 130 163 164 165 170 171 172 177 178 179 212 213 214 219 220 221 226 227 228
     PuzzleMap
     RoxdokuGroups 0  
     RoxdokuGroups 196
@@ -468,6 +472,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     NGroups 29
     NSymbols 9
     SpecificType XSudoku
+    SpecialCells 17 0 10 20 30 40 50 60 70 80 8 16 24 32 48 56 64 72
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks
     Group 9 0 10 20 30 40 50 60 70 80
@@ -513,6 +518,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     RotateX 15
     RotateY 27
     PuzzleMap
+    SpecialCells 8 21 22 25 26 37 38 41 42
     RoxdokuGroups 0 ''' 
 ,
 ''' Name Roxdoku 25 (5x5x5)
@@ -528,6 +534,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     Diameter 350
     RotateX 15
     RotateY 27
+    SpecialCells 27 31 32 33 36 37 38 41 42 43 56 57 58 61 62 63 66 67 68 81 82 83 86 87 88 91 92 93
     PuzzleMap
     RoxdokuGroups 0 ''' 
 ,
