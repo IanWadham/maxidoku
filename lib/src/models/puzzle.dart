@@ -83,6 +83,7 @@ class Puzzle with ChangeNotifier
   int  selectedControl = 1;
   bool notesMode       = false;
   int  lastCellHit     = 0;
+  bool multiNotes      = false;
 
   bool createState(int index)
   {
@@ -139,12 +140,10 @@ class Puzzle with ChangeNotifier
 
     int  _indexUndoRedo  = 0;
 
-    // int  selectedControl = 1;
-    // bool notesMode       = false;
-    // int  lastCellHit     = 0;
     selectedControl = 1;
     notesMode       = false;
     lastCellHit     = 0;
+    multiNotes      = false;
 
     _puzzlePlay = Play.NotStarted;
   }
@@ -154,6 +153,8 @@ class Puzzle with ChangeNotifier
   // This can be re-used, without going back to the puzzle selection screen.
   {
     _init();			// Clear relevant parts of the Puzzle state.
+
+    // TODO - Generate Roxdoku Twin, Very Easy level ===> LOOP ... Easy is OK.
 
     Message response = Message('', '');
     SudokuType puzzleType = _puzzleMap.specificType;
@@ -300,17 +301,15 @@ class Puzzle with ChangeNotifier
     else {
       // The value selected is treated as a cell-value, a note or an erase.
       selectedControl = selection - (hideNotes ? 0 : 1);
-      print('Selected control $selectedControl');
-      // Allow multiple entry of Notes in current Puzzle cell.
-/*
-      if (notesMode) {
-        int n = lastCellHit;
-        if (_cellStatus[n] == NOTES) {
-          // Cell already has a note, so OK to add more or clear existing.
-          hitPuzzleCellN(n);
-        }
+      print('hitControlArea: Selected control $selectedControl');
+      // Conditionally allow multiple entry of Notes in current Puzzle cell.
+      print('NotesMode $notesMode lastCellHit $lastCellHit');
+      if (notesMode && (_cellStatus[lastCellHit] == NOTES)) {
+        // Cell already has a note, so OK to add more or clear existing.
+        print('Call hitPuzzleCell for lastCellHit $lastCellHit');
+        move(lastCellHit, selectedControl);
+        multiNotes = true;
       }
-*/
     }
     notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
@@ -338,14 +337,27 @@ class Puzzle with ChangeNotifier
     CellValue  symbol = selectedControl;
     CellStatus status = _cellStatus[n];
 
+    // Check that the user has selected a symbol and that the cell is usable.
     if (symbol == UNUSABLE || status == UNUSABLE || status == GIVEN) {
-      // Check that the user has selected a symbol and that the cell is usable.
       return false;
     }
 
     if ((symbol == VACANT) && (_stateOfPlay[n] == VACANT)) {
       // Don't clear a cell that is already empty.
       return false;
+    }
+
+    if (n != lastCellHit) {
+      lastCellHit = n;
+      if (multiNotes) {
+         multiNotes = false;
+         if (notesMode) {
+           // Avoid automatically repeating the last note in the previous cell,
+           // but do a repaint to capture the highlight  on the new cell.
+           notifyListeners();
+           return false;
+         }
+      }
     }
 
     _previousPuzzlePlay = _puzzlePlay;	// In case the move changes the Play.
@@ -403,8 +415,9 @@ class Puzzle with ChangeNotifier
       int newV   = newValue     & (NotesBit - 1);
       // If the last Note has been cleared, clear the whole cell-state.
       if (newValue == NotesBit) {
-        newValue  = VACANT;
-        newStatus = VACANT;
+        newValue   = VACANT;
+        newStatus  = VACANT;
+        multiNotes = false;
       }
       print('Puzzle: cell $n: new val $newV status $newStatus');
       print('Puzzle: cell $n: old val $currV status $currentStatus');
@@ -453,8 +466,6 @@ class Puzzle with ChangeNotifier
 
     print('NEW MOVE: cell $n status $newStatus value $newValue changes'
           ' ${_cellChanges.length} Undo/Redo $_indexUndoRedo');
-    // print('StateOfPlay $_stateOfPlay');
-    lastCellHit = n;
     return newState;
   }
 
@@ -500,8 +511,11 @@ class Puzzle with ChangeNotifier
     for (int n in _SudokuMoves) {
       if (stateOfPlay[n] == VACANT) {
         // Move in the usual way, including Undo/Redo data and highlighting.
-        move(n, _solution[n]);	// Copy a move from the solution.
-        notifyListeners();	// Trigger a repaint of the Puzzle View.
+        bool savedNotesMode = notesMode;
+        notesMode = false;		// Do not display the move as a Note.
+        move(n, _solution[n]);		// Copy a move from the solution.
+        notesMode = savedNotesMode;
+        notifyListeners();		// Trigger a repaint of the Puzzle View.
         break;
       }
     }
@@ -547,15 +561,17 @@ class Puzzle with ChangeNotifier
   }
 
   void autoClearNotes(int n, int newValue)
+    // TODO - Does this function need to be Undoable. If so how? Would it need
+    //        the Undo/Redo to handle multi-cell changes? It all seems  academic
+    //        considering that the user has just made a winning move.
+    //
+    //        Or maybe a Redo could just redo every move from the start of play.
   {
-    print('autoClearNotes cell $n value $newValue');
+    // print('autoClearNotes cell $n value $newValue');
     int noteBit = 1 << newValue;
     List<int> groupList = puzzleMap.groupList(n);
-    print('groupList $groupList');
     for (int g in groupList) {
-      print('Group $g ${puzzleMap.group(g)}');
       for (int cell in puzzleMap.group(g)) {
-        print('Cell $cell value ${_stateOfPlay[cell]}');
         if ((cell != n) && (_cellStatus[cell] == NOTES)) {
           if ((_stateOfPlay[cell] & noteBit) != 0) {
             // Use an exclusive-OR to clear the required bit.
@@ -568,14 +584,11 @@ class Puzzle with ChangeNotifier
         }
       }
     }
-    // TODO - Does the above need to be Undoable. If so how? Would it need the
-    //        Undo/Redo to handle multi-cell changes? It all seems a bit academic
-    //        considering that the user has just made a winning move. Or maybe a
-    //        Redo could just redo every move from the start of play.
   }
 
   void autoDimControls(int n)
   {
+    // Not implemented yet.
   }
 
   void testPuzzle() {
