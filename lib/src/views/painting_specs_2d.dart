@@ -115,6 +115,19 @@ abstract class PaintingSpecs
 
   void calculatePainting();		// VIRTUAL.
 
+  void _calculatePaintAreas()
+  {
+    // Some cells may have type UNUSABLE. The rest will have type VACANT (zero).
+    // Some may be changed to GIVEN, ERROR or SPECIAL background types and
+    // colours, so the PaintingSpecs class makes a DEEP copy of the empty
+    // board's cells.
+    _cellBackG = [..._puzzleMap.emptyBoard];	// Make background-colour list.
+    for(int index in _puzzleMap.specialCells) {
+      cellBackG[index] = SPECIAL;
+    }
+    // print('cellBackG ${_cellBackG}');
+  }
+
   void _calculateTextProperties()
   {
 
@@ -383,15 +396,6 @@ class PaintingSpecs2D extends PaintingSpecs
     _calculateTextProperties();
   }
 
-  void _calculatePaintAreas()
-  {
-    // Some cells may have type UNUSABLE. The rest will have type zero
-    // (VACANT). Some may be later made into GIVEN, ERROR or SPECIAL types,
-    // so the PaintingSpecs class makes a DEEP copy of the empty board's cells.
-    _cellBackG = [..._puzzleMap.emptyBoard];
-    // print('cellBackG ${_cellBackG}');
-  }
-
   void _calculateEdgeLines()
   {
     int sizeX    = _sizeX;
@@ -467,13 +471,9 @@ class PaintingSpecs2D extends PaintingSpecs
 
     int nCells = cells.length;
     for (int n = 0; n < nCells; n++) {
-      // Colour detached cells (as in XSudoku diagonals), but not 1-cell cages.
       int edges = edgeCellFlags[n];
       if (edges == all) {
-        if (_puzzleMap.specificType == SudokuType.XSudoku) {
-          int cellPos = cells[n];
-          cellBackG[cellPos] = SPECIAL;	// i.e. On an XSudoku diagonal.
-        }
+        // Keep thin lines around detached cells (e.g. on XSudoku diagonals).
         continue;
       }
       int x = _puzzleMap.cellPosX(cells[n]);
@@ -650,6 +650,8 @@ class PaintingSpecs3D extends PaintingSpecs
   // Pre-calculate details of puzzle background (fixed at start of puzzle-play).
   {
     print('Executing PaintingSpecs3D.calculatePainting()');
+
+    _calculatePaintAreas();
 
     _nSymbols = map.nSymbols;
     _calculateTextProperties();

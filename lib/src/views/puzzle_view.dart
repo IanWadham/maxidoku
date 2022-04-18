@@ -873,6 +873,9 @@ class PuzzlePainter3D extends CustomPainter
     var paint2 = Paint()		// Background colour of cells.
       ..color = Colors.amber.shade200
       ..style = PaintingStyle.fill;
+    var paintSpecial = Paint()		// Colour of Special cells.
+      ..color = Colors.lime.shade400	// amberAccent.shade400
+      ..style = PaintingStyle.fill;
 
     // Now paint the background of the canvas.
     canvas.drawRect(Offset(0, 0) & size, paint1);
@@ -897,14 +900,19 @@ class PuzzlePainter3D extends CustomPainter
       // Scale the XY co-ordinates and reverse the Y-axis for 2D display.
       Offset centre = paintingSpecs.rotatedXY(n).scale(sc, -sc) + origin;
 
+      // Set the colour for this cell. The order of priority
+      // is ERROR, SPECIAL, GIVEN and then Normal.
       int ID = paintingSpecs.rotated[n].ID;
       int status = puzzle.cellStatus[ID];
-      // if (ID >= 36 && ID <= 38) status = ERROR;
-      // int z = puzzle.puzzleMap.cellPosZ(ID);
-      // if (z == 0) status = ERROR;
-      Paint cellPaint = paint2;
-      if ((status == GIVEN) || (status == ERROR)) {
-        cellPaint = (status == GIVEN) ? paint3 : paintError;
+      Paint cellPaint = paint2;			// Normal colour.
+      if (status == ERROR) {
+        cellPaint = paintError;			// ERROR colour.
+      }
+      else if (paintingSpecs.cellBackG[ID] == SPECIAL) {
+        cellPaint = paintSpecial;		// Enhanced visibility colour.
+      }
+      else if (status == GIVEN) {
+        cellPaint = paint3;			// Colour for GIVEN cells.
       }
 
       Rect r = Rect.fromCenter(center: centre, width: diam, height: diam);
