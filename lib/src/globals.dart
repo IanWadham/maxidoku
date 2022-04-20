@@ -67,12 +67,12 @@ const String letters = '.ABCDEFGHIJKLMNOPQRSTUVWXY';
 // puzzle-generator class is used, Mathdoku for Killer and Mathdoku types,
 // Sudoku for all the other puzzles, including Samurai and 3D Roxdoku types.
 
-enum SudokuType {Plain, XSudoku, Jigsaw, Samurai, TinySamurai, Roxdoku, Aztec,
-                 Mathdoku, KillerSudoku, EndSudokuTypes, Invalid}
+enum SudokuType {PlainSudoku, XSudoku, Jigsaw, Samurai, TinySamurai, Roxdoku,
+                 Aztec, Mathdoku, KillerSudoku, Sohei, Windmill, PseudoSudoku,
+                 EndSudokuTypes, Invalid}
 
 enum Difficulty {VeryEasy, Easy, Medium, Hard, Diabolical, Unlimited}
 
-// TODO - Do we need the LAST_CHOICE id?
 enum Symmetry   {DIAGONAL_1, CENTRAL, LEFT_RIGHT, SPIRAL, FOURWAY,
                  RANDOM_SYM, NONE, DIAGONAL_2}
 

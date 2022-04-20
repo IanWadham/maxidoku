@@ -97,7 +97,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 1
     NGroups 12
     NSymbols 4
-    SpecificType Sudoku
+    SpecificType PlainSudoku
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
 ,
@@ -129,7 +129,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 1
     NGroups 27
     NSymbols 9
-    SpecificType Sudoku
+    SpecificType PlainSudoku
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
 ,
@@ -143,7 +143,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 1
     NGroups 18
     NSymbols 6 
-    SpecificType 6x6
+    SpecificType PseudoSudoku
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
     Group 6  0  1  6  7 12 13 
@@ -302,7 +302,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 1
     NGroups 27
     NSymbols 9 
-    SpecificType Nonomino
+    SpecificType Jigsaw
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
     Group 9  0  9 18  1 10 19  2  3 12
@@ -325,7 +325,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 1
     NGroups 15
     NSymbols 5 
-    SpecificType Pentomino
+    SpecificType PseudoSudoku
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
     Group 5  0  5  1  6  2
@@ -429,7 +429,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 1
     NGroups 12
     NSymbols 4 
-    SpecificType Tetromino
+    SpecificType Jigsaw
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
     Group 4 0  4  1  5
@@ -487,7 +487,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 1
     NGroups 48
     NSymbols 16
-    SpecificType Sudoku
+    SpecificType PlainSudoku
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
 ,
@@ -500,7 +500,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeZ 1
     NGroups 75
     NSymbols 25
-    SpecificType Sudoku
+    SpecificType PlainSudoku
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
 ,
