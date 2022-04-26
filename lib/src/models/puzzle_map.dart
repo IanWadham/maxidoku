@@ -438,10 +438,6 @@ class PuzzleMap
         }
   }
 
-  // Random-number generator for puzzle generators and solvers.
-  Random _random = Random(266133);
-  // Random _random = Random(DateTime.now().millisecondsSinceEpoch);
-
   // Private values and methods.
 
   int _sizeX;
@@ -664,7 +660,50 @@ class PuzzleMap
   }
 */
 
-  // Public methods, for testing and debugging only.
+  // **********************************************************  //
+  // Random-number functions for puzzle generators and solvers.  //
+  // **********************************************************  //
+
+  // Random _random = Random(266133);	// Fixed seed for testing only.
+  // NOTE: There is no setSeed() function. Must re-construct _random to set seed.
+  Random _random = Random(DateTime.now().millisecondsSinceEpoch);
+
+  // Generate a random integer in a given range.
+  int randomInt(int limit)
+  {
+    return _random.nextInt(limit);
+  }
+
+  // Generate a random sequence of non-repeating integers: range 0 to nItems - 1.
+  List<int> randomSequence (int nItems)
+  {
+    List<int> sequence = [];
+
+    // Fill the list with consecutive integers.
+    for (int i = 0; i < nItems; i++) {
+        sequence.add(i);
+    }
+
+    if (nItems <= 1) return sequence;
+
+    // Shuffle the integers.
+    int last = nItems;
+    int z    = 0;
+    int temp = 0;
+    for (int i = 0; i < nItems; i++) {
+        z = _random.nextInt(nItems);
+        last--;
+        temp            = sequence[z];
+        sequence [z]    = sequence[last];
+        sequence [last] = temp;
+    }
+    return sequence;
+  }
+
+  // *********************************************** //
+  // Public methods, for testing and debugging only. //
+  // *********************************************** //
+
   void printGroups()
   {
     print('GROUPS: $_nGroups');
@@ -721,4 +760,5 @@ class Cage {					// In lieu of a struct { }...
   CageOperator cageOperator = CageOperator.Add;	// The mathematical operator.
   int          cageValue = 1;			// The value to be calculated.
   int          cageTopLeft = 0;			// The top-left (display) cell.
+
 }
