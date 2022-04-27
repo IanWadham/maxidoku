@@ -1,15 +1,51 @@
-import 'dart:math';
-
 import '../globals.dart';
 import '../models/puzzle_map.dart';
+
+/****************************************************************************
+ *    Copyright 2011  Ian Wadham <iandw.au@gmail.com>                       *
+ *    Copyright 2006  David Bau <david bau @ gmail com> Original algorithms *
+ *    Copyright 2015  Ian Wadham <iandw.au@gmail.com>                       *
+ *                                                                          *
+ *    This program is free software; you can redistribute it and/or         *
+ *    modify it under the terms of the GNU General Public License as        *
+ *    published by the Free Software Foundation; either version 2 of        *
+ *    the License, or (at your option) any later version.                   *
+ *                                                                          *
+ *    This program is distributed in the hope that it will be useful,       *
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *    GNU General Public License for more details.                          *
+ *                                                                          *
+ *    You should have received a copy of the GNU General Public License     *
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
+ ****************************************************************************/
+
+/* This class is an adaptation of algorithms in a Python program, Copyright (c)
+ * David Bau 2006, which appears at http://davidbau.com/downloads/sudoku.py and
+ * is discussed at http://davidbau.com/archives/2006/09/04/sudoku_generator.html
+ */
+
+// Major entry-points:
+//
+//   deduceValues()          Insert values deduced by two simple logical methods.
+//   solveBoard()            Return a solution, not necessarily unique.
+//   createFilledBoard()     Fill board with values that obey Puzzle rules.
+//   checkSolutionIsValid()  Check if a solution exists and agrees with previous.
+//   checkSolutionIsUnique() Check if there are any further solutions.
+//
+// Private methods:
+//
+//   _solve_1()              Use deduceValues() then _tryGuesses().
+//   _solve_2()              Continue using tryGuesses() until a second solution
+//                           is found or there are no more (States stack empty).
+//   _tryGuesses()           Iterate over a stack of States to try all possible
+//                           values of cells that resist deduceValues() logic.
 
 typedef Guess        = Move;
 typedef GuessesList  = MoveList;
 
 class SudokuSolver
 {
-  Random _random;
-
   final int _unusable         = UNUSABLE;
   final int _vacant           = VACANT;
 
@@ -44,7 +80,6 @@ class SudokuSolver
   SudokuSolver({required PuzzleMap puzzleMap})
       :
     _puzzleMap = puzzleMap,
-    _random    = puzzleMap.random,
     _nSymbols  = puzzleMap.nSymbols,
     _nGroups   = puzzleMap.groupCount(),
     _boardArea = puzzleMap.size
@@ -64,52 +99,22 @@ class SudokuSolver
 
     // Fill a central block with values 1 to nSymbols in random sequence.  This
     // reduces the solveBoard() time considerably, esp. for 16 or 25 symbols.
-    List<int> sequence = [];
-    for (int n = 1; n <= _nSymbols; n++) {
-      sequence.add(n);
-    }
-    sequence.shuffle();
-    // print('Sequence $sequence');
+
+    List<int> sequence = _puzzleMap.randomSequence(_nSymbols);
+    print('SEED SEQUENCE $sequence');
     List<int> cellList = _puzzleMap.group (_nGroups ~/ 2);
-    // print('GROUP ${_nGroups ~/ 2}: cellList $cellList');
-    // TODO - NEEDED?? randomSequence (sequence);
+    print('GROUP ${_nGroups ~/ 2}: cellList $cellList');
     for (int n = 0; n < _nSymbols; n++) {
-        _currentBoard [cellList[n]] = sequence[n];
+        _currentBoard [cellList[n]] = sequence[n] + 1;
     }
 
-    // _puzzleMap.printBoard(_currentBoard);
+    _puzzleMap.printBoard(_currentBoard);
     BoardContents b = solveBoard (_currentBoard, GuessingMode.Random);
-    // print(b.isEmpty ? 'SOLVE BOARD FAILED\n' : 'BOARD FILLED\n');
-    // _puzzleMap.printBoard(_currentBoard);
+    print(b.isEmpty ? 'SOLVE BOARD FAILED\n' : 'BOARD FILLED\n');
+    _puzzleMap.printBoard(_currentBoard);
     return _currentBoard;
   }
 
-/* void randomSequence (List<int> sequence)
-{
-    if (sequence.isEmpty()) return;
-
-    // Fill the vector with consecutive integers.
-    int size = sequence.size();
-    for (int i = 0; i < size; i++) {
-        sequence [i] = i;
-    }
-
-    if (size == 1) return;
-
-    // Shuffle the integers.
-    int last = size;
-    int z    = 0;
-    int temp = 0;
-    for (int i = 0; i < size; i++) {
-        z = qrand() % last;
-        last--;
-        temp            = sequence.at (z);
-        sequence [z]    = sequence.at (last);
-        sequence [last] = temp;
-    }
-} */
-
-  // TODO - This should be part of the SudokuSolver????
   int checkSolutionIsValid (BoardContents puzzle, BoardContents solution)
   {
     // Classic 4x4 Sudoku - test cases.
@@ -122,14 +127,18 @@ class SudokuSolver
     // solution = [1,3,2,4, 4,2,3,1, 2,4,1,3, 3,1,4,2,0]; // Too long.
     // solution = [1,3,2,4, 4,2,3,1, 2,4,1,3, 3,1,4];	// Too short.
 
+    // Calculate a solution from scratch: return it as "answer".
     BoardContents answer = solveBoard (puzzle, GuessingMode.Random);
+
     if (answer.isEmpty) {
       return -1;		// There is no solution.
     }
-    if (solution.isEmpty) {
-      return 0;			// A solution exists.
+
+    if (solution.isEmpty) {	// No need to compare answer and prior solution.
+      return 0;			// Answer IS a solution, but maybe not unique.
     }
-    // Check that "answer" agrees with "solution" loaded from a file.
+
+    // Check that "answer" agrees with a "solution" that is already available.
     int result = 0;
     if (answer.length != solution.length) {
       print('Wrong length: ans ${answer.length}, sol ${solution.length}'); 
@@ -160,11 +169,19 @@ class SudokuSolver
     return 0;			// The solution is unique.
   }
 
+  /**
+   * Solve a puzzle and return the first solution found, if any solution exists.
+   * It does not matter if the solution is unique.
+   *
+   * @param boardValues   The board-contents of the puzzle to be solved.
+   *
+   * @return              The board-contents of a solution OR an empty list.
+   */
   BoardContents solveBoard (BoardContents boardValues, GuessingMode gMode)
   {
     if (dbgLevel >= 2) {
-        // dbo "solveBoard()\n");
-        // print (boardValues);
+        print('ENTER "solveBoard()\n');
+        print(boardValues);
     }
     _currentBoard = [...boardValues];		// Deep copy.
     return _solve_1 (gMode);
@@ -172,8 +189,8 @@ class SudokuSolver
 
   BoardContents _solve_1 ([GuessingMode gMode = GuessingMode.Random])
   {
-    // First attempt to solve a board. Eliminate any previous solver work.
-    // qDeleteAll (_states);
+    // First attempt to solve a board. Eliminate any previous solver work. If
+    // there is no solution, return an empty board.
     _states.clear();
     _moves.clear();
     _moveTypes.clear();
@@ -183,34 +200,34 @@ class SudokuSolver
     // _puzzleMap.printBoard(_currentBoard);
     if (g.isEmpty) {
         // The entire solution can be deduced by applying the Sudoku rules.
-        // dbo1 "NO GUESSES NEEDED, the solution can be entirely deduced.\n");
         // print('NO GUESSES NEEDED, the solution can be entirely deduced.\n');
         return _currentBoard;
     }
 
     int n = g.length;
-    // print('\n\nTIME TO START GUESSING... ADD FIRST STATE TO STACK $n guesses');
+    // print('\n\nSTART GUESSING... ADD FIRST STATE TO STACK $n guesses');
     // _puzzleMap.printBoard(_currentBoard);
-    // We need to use a mix of guessing, deducing and backtracking.
+
+    // From now on we need to use a mix of guessing, deducing and backtracking.
     _states.add (new State (g, 0, _currentBoard, _moves, _moveTypes));
+    return _tryGuesses (gMode);
+
         // TODO - DELETE BoardContents a = _states.last.values;
         // int len = _states.length;
         // print('Test number of states $len value a = $a');
-    return _tryGuesses (gMode);
   }
 
   BoardContents _solve_2 ([GuessingMode gMode = GuessingMode.Random])
   {
     // Second attempt to solve a board. Continue previous solver work where it
-    // left off, to check if there are two or more solutions to the board.
+    // left off, to check if there are two or more solutions to the board. If
+    // there are no more solutions, return an empty board.
     return _tryGuesses (gMode);
   }
 
   BoardContents _tryGuesses ([GuessingMode gMode = GuessingMode.Random])
   {
-    int limit = 0;
-    while (_states.length > 0 && limit < 60) {
-        /* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX DEBUG */
+    while (_states.length > 0) {
         int nStates = _states.length;
         GuessesList guesses = _states.last.guesses;
         int n = _states.last.guessNumber;
@@ -252,13 +269,12 @@ class SudokuSolver
         if (guesses.isEmpty) {
             // NOTE: We keep the stack of states.  It is needed by checkPuzzle()
 	    //       for the multiple-solutions test and deleted when its parent
-	    //       SudokuBoard object (i.e. this->) is deleted.
+	    //       SudokuSolver object (i.e. this) is deleted.
             return _currentBoard;
         }
         int ng = guesses.length;
         // print('\n\nADD ANOTHER STATE TO THE STACK... $ng guesses');
         _states.add (new State (guesses, 0, _currentBoard, _moves, _moveTypes));
-        // TODO - limit++;
     }
 
     // No solution.
@@ -340,11 +356,11 @@ class SudokuSolver
                         int gl = guesses.length;
                         int ngl = newGuesses.length;
                         guessCounter++;
-                        if (_random.nextInt(guessCounter) == 0) {
-                        // print('B: Take newGuesses $newGuesses not $guesses');
-                            guesses.clear();
-                            guesses = [...newGuesses];
-                        // print('Guess count $guessCounter guesses $guesses');
+                        if (_puzzleMap.randomInt(guessCounter) == 0) {
+                          //print('B: Take newGuesses $newGuesses not $guesses');
+                          guesses.clear();
+                          guesses = [...newGuesses];
+                          // print('Guess count $guessCounter guesses $guesses');
                         }
                     }
                 }
@@ -370,15 +386,11 @@ class SudokuSolver
             while (numbers != 0) {
                 if (numbers.isOdd) {	// Found a 1-bit.
                     newGuesses.clear();
-                    // TODO - Uses of "index" not required: still in C++ code.
-                    // int index = groupNumber * _groupSize;
                     for (int n = 0; n < _groupSize; n++) {
 			cell = cellList[n];
                         if ((_validCellValues[cell] & bit) != 0) {
                             newGuesses.add (setPair (cell, validNumber));
                         }
-                    // TODO - Uses of "index" not required: still in C++ code.
-                        // index++;
                     }
                     if (newGuesses.isEmpty) {
                         // dbo2 "SOLUTION FAILED: RETURN at group %d\n", groupNumber);
@@ -415,8 +427,8 @@ class SudokuSolver
                             ;
                         }
                         else if (gMode == GuessingMode.Random){
-                            guessCounter++;
-                            if (_random.nextInt(guessCounter) == 0) {
+                          guessCounter++;
+                          if (_puzzleMap.randomInt(guessCounter) == 0) {
                         // print('D: Take newGuesses $newGuesses not $guesses');
                                 guesses.clear();
                                 guesses = [...newGuesses];
@@ -432,29 +444,19 @@ class SudokuSolver
         } // Next groupNumber
 
         if (stuck) {
-            // dbo2 "Guess    ");
-            for (int i = 0; i < guesses.length; i++) {
-                // dbo3 "%d,%d ",
-                        // pairPos (guesses[i]), pairVal (guesses[i]));
-            }
-            // dbo2 "\n");
-
             // print('\nGuesses $guesses');
             if (gMode == GuessingMode.Random) {
               // Put the list of guesses into random order.
-              guesses.shuffle();
+              GuessesList original = [...guesses];
+              guesses.clear();
+
+              List<int> sequence = _puzzleMap.randomSequence(original.length);
+              for (int i = 0; i < original.length; i++) {
+                guesses.add(original[sequence[i]]);
+              }
+              original.clear();
               // print('Shuffled guesses $guesses');
             }
-
-            // dbo2 "Shuffled ");
-            for (int i = 0; i < guesses.length; i++) {
-                // dbo3 "%d,%d ",
-                        // pairPos (guesses[i]), pairVal (guesses[i]));
-            }
-            // dbo2 "\n");
-
-            // TODO: We never get here. Why not?
-            // print('STUCK: guesses $guesses\n');
             return guesses;
         }
     } // End while (true)
@@ -475,10 +477,10 @@ class SudokuSolver
     int allValues = (1 << _nSymbols) - 1;
     // print(allValues);
 
-    // TODO if (dbgLevel >= 2) {
-        // print('ENTER _setUpValueRequirements()\n');
-        // _puzzleMap.printBoard(boardValues);
-    // TODO }
+    if (dbgLevel >= 2) {
+        print('ENTER _setUpValueRequirements()\n');
+        _puzzleMap.printBoard(boardValues);
+    }
 
     // Set bit-patterns to show what values each row, col or block needs.
     // The starting pattern is allValues, but bits are set to zero as the
@@ -488,8 +490,6 @@ class SudokuSolver
     //        just do a fillRange() here.
     _requiredGroupValues = List.filled(_nGroups, 0, growable: false);
 
-    // TODO - Uses of "index" not required: still in C++ code.
-    // int index = 0;
     int bitPattern = 0;
     for (int groupNumber = 0; groupNumber < _nGroups; groupNumber++) {
 	// dbo3 "Group %3d ", groupNumber);
@@ -501,8 +501,6 @@ class SudokuSolver
                 bitPattern |= (1 << value);	// Add bit for each value found.
             }
 	    // dbo3 "%3d=%2d ", cellList[n], value + 1);
-            // TODO - Uses of "index" not required: still in C++ code.
-            // index++;
         }
         // Reverse all the bits, giving values currently not found in the group.
         _requiredGroupValues [groupNumber] = bitPattern ^ allValues;
@@ -542,15 +540,11 @@ class SudokuSolver
     // group to which that cell belongs.  For example, if the row already has 1,
     // 2, 3, the column has 3, 4, 5, 6 and the block has 6, 9, then the cell
     // can only have 7 or 8, with bit value 192.
-    // TODO - Uses of "index" not required: still in C++ code.
-    // index = 0;
     for (int groupNumber = 0; groupNumber < _nGroups; groupNumber++) {
 	List<int> cellList = _puzzleMap.group (groupNumber);
         for (int n = 0; n < _nSymbols; n++) {
 	    int cell = cellList[n];
             _validCellValues [cell] &= _requiredGroupValues[groupNumber];
-            // TODO - Uses of "index" not required: still in C++ code.
-            // index++;
         }   
     }
     // print('Bit maps for the currently valid cell values');
@@ -608,14 +602,15 @@ class State
 {
 /**
  * Saves a deep copy (or snapshot) of the current state of the solver. The
- * ... operator delivers the current *contents* of the collections (e.g.
- * Lists) rather than *references* to the collections back in the caller.
- * The caller (the solver) is likely to add to the moves, guesses and board
+ * ... operator delivers the current CONTENTS of the collections (e.g. Lists)
+ * rather than REFERENCES to the collections back in the caller.
+ *
+ * The caller (the Solver) is likely to add to the moves, guesses and board
  * contents, but may get stuck and then have to revert to an earlier state
  * and try another guess from the guesses list.
  */
 
-/* public: */
+  // CONSTRUCTOR.
   State (GuessesList   guesses,
          int           guessNumber,
          BoardContents inputValues,
@@ -630,6 +625,7 @@ class State
   {
   }
 
+  // Getters and setters of properties.
   GuessesList    get   guesses     => _guesses;
   int            get   guessNumber => _guessNumber;
   BoardContents  get   values      => _values;
@@ -638,7 +634,7 @@ class State
 
   void           set   guessNumber(int n) => _guessNumber = n;
 
-/* private: */
+  // The underlying properties (private).
   GuessesList    _guesses;
   int            _guessNumber;
   BoardContents  _values = [];
