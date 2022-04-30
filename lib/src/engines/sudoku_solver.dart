@@ -84,6 +84,8 @@ class SudokuSolver
     _nGroups   = puzzleMap.groupCount(),
     _boardArea = puzzleMap.size
   {
+    // Now that _nGroups is known, set the list of group values to fixed-size.
+    _requiredGroupValues = List.filled(_nGroups, 0, growable: false);
     _groupSize = _nSymbols;
     print('CREATE SudokuSolver(): _nGroups $_nGroups, _boardArea $_boardArea');
   }
@@ -101,17 +103,14 @@ class SudokuSolver
     // reduces the solveBoard() time considerably, esp. for 16 or 25 symbols.
 
     List<int> sequence = _puzzleMap.randomSequence(_nSymbols);
-    print('SEED SEQUENCE $sequence');
     List<int> cellList = _puzzleMap.group (_nGroups ~/ 2);
-    print('GROUP ${_nGroups ~/ 2}: cellList $cellList');
     for (int n = 0; n < _nSymbols; n++) {
         _currentBoard [cellList[n]] = sequence[n] + 1;
     }
 
-    _puzzleMap.printBoard(_currentBoard);
     BoardContents b = solveBoard (_currentBoard, GuessingMode.Random);
-    print(b.isEmpty ? 'SOLVE BOARD FAILED\n' : 'BOARD FILLED\n');
-    _puzzleMap.printBoard(_currentBoard);
+    print(b.isEmpty ? 'CREATE FILLED BOARD FAILED\n' : 'BOARD FILLED\n');
+    // _puzzleMap.printBoard(_currentBoard);
     return _currentBoard;
   }
 
@@ -141,15 +140,15 @@ class SudokuSolver
     // Check that "answer" agrees with a "solution" that is already available.
     int result = 0;
     if (answer.length != solution.length) {
-      print('Wrong length: ans ${answer.length}, sol ${solution.length}'); 
+      // print('Wrong length: ans ${answer.length}, sol ${solution.length}'); 
       result = -2;		// The solution differs from the one supplied.
     }
     else {
       for (int n = 0; n < answer.length; n++) {
         if (answer[n] != solution[n]) {
-          print('Clash at cell $n: ans ${answer[n]}, sol ${solution[n]}');
-          print('ANS $answer');
-          print('SOL $solution');
+          // print('Clash at cell $n: ans ${answer[n]}, sol ${solution[n]}');
+          // print('ANS $answer');
+          // print('SOL $solution');
           result = -2;		// The solution differs from the one supplied.
           break;
         }
@@ -163,8 +162,8 @@ class SudokuSolver
     BoardContents answer = [];
     answer = _solve_2();
     if (! answer.isEmpty) {
-        // dbo1 "checkPuzzle: There is MORE THAN ONE SOLUTION.\n");
-        return -3;		// There is more than one solution.
+      // print('Solver.checkSolutionIsUnique: There is MORE THAN ONE SOLUTION.\n');
+      return -3;		// There is more than one solution.
     }
     return 0;			// The solution is unique.
   }
@@ -213,6 +212,7 @@ class SudokuSolver
     return _tryGuesses (gMode);
 
         // TODO - DELETE BoardContents a = _states.last.values;
+        // TODO - When do the States get deleted? Do we need to code something?
         // int len = _states.length;
         // print('Test number of states $len value a = $a');
   }
@@ -486,9 +486,7 @@ class SudokuSolver
     // The starting pattern is allValues, but bits are set to zero as the
     // corresponding values are supplied during puzzle generation and solving.
 
-    // TODO - Maybe should initialise this to the right size earlier and
-    //        just do a fillRange() here.
-    _requiredGroupValues = List.filled(_nGroups, 0, growable: false);
+    _requiredGroupValues.fillRange(0, _nGroups, 0);
 
     int bitPattern = 0;
     for (int groupNumber = 0; groupNumber < _nGroups; groupNumber++) {
