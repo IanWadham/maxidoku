@@ -303,20 +303,16 @@ class PuzzleMap
   } // End of PuzzleMap constructor.
 
   // Getters for PuzzleMap properties.
-  Random get random  => _random;
-
   int get nSymbols   => _nSymbols;
   int get blockSize  => _blockSize;
 
-  int get sizeX   => _sizeX;
-  int get sizeY   => _sizeY;
-  int get sizeZ   => _sizeZ;
+  int get sizeX      => _sizeX;
+  int get sizeY      => _sizeY;
+  int get sizeZ      => _sizeZ;
 
-  int get size    => _size;
+  int get size       => _size;
 
-  // int get nGroups => _nGroups;	// OBSOLETE: Use PuzzleMap.groupCount().
-
-  String get name =>  _name;
+  String get name    => _name;
 
   SudokuType    get specificType  => _specificType;
   BoardContents get emptyBoard    => _emptyBoard;
@@ -324,9 +320,9 @@ class PuzzleMap
   List<int>     get specialCells  => _specialCells;
 
   // Viewing parameters for 3D Roxdoku puzzles.
-  int get diameter => _diameter;
-  int get rotateX  => _rotateX;
-  int get rotateY  => _rotateY;
+  int get diameter   => _diameter;
+  int get rotateX    => _rotateX;
+  int get rotateY    => _rotateY;
 
   // Methods for calculating cell positions and X, Y and Z co-ordinates.
 
