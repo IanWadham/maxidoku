@@ -1,10 +1,6 @@
-import 'dart:math';
-
 import '../globals.dart';
 import '../models/puzzle_map.dart';
 import 'dlx_solver.dart';
-
-// TODO - SORT OUT REFFERENCES TO qrand() and _DLXSolver (parameters, at least).
 
 /****************************************************************************
  *    Copyright 2015  Ian Wadham <iandw.au@gmail.com>                       *
@@ -40,7 +36,7 @@ import 'dlx_solver.dart';
  * (as well as rows and columns) that must satisfy Sudoku rules and a cage
  * cannot contain the same digit more than once.
  *
- * In Mathdoku (aka KenKen TM), all four operators can occur, a digit can occur
+ * In Mathdoku (aka Kenken TM), all four operators can occur, a digit can occur
  * more than once in a cage and Sudoku rules apply only to rows and columns. The
  * latter means that a Mathdoku puzzle can have any size from 3x3 up to 9x9.
  * Division and subtraction operators are a special case. They can only appear
@@ -97,11 +93,10 @@ class CageGenerator
   PuzzleMap     _puzzleMap;		// The geometry of the puzzle.
   BoardContents _solution;
 
-  Random        _random;		// Random-number generator.
-
   DLXSolver     _DLXSolver;		// A solver for generated puzzles.
 
   bool          myDebug = false;
+  // bool          myDebug = true;
 
   int           _nSymbols = 0;		// The height and width of the grid.
   int           _boardArea = 0;		// The number of cells in the grid.
@@ -136,12 +131,11 @@ class CageGenerator
 
   // CONSTRUCTOR.
 
-  /* const */ CageGenerator (PuzzleMap     this._puzzleMap,
-                             BoardContents this._solution)
+  CageGenerator (PuzzleMap this._puzzleMap, BoardContents this._solution)
     :
-    _random    = _puzzleMap.random,
     _DLXSolver = new DLXSolver(_puzzleMap);
  
+  // TODO - Do we need to clear these lists at least?
   // ~CageGenerator()
   // {
     // _possibilities.clear();
@@ -268,7 +262,7 @@ class CageGenerator
           case 13:
           case 14:
             index = k;		// Enclosed on three sides: start here.
-            chosenSize = _random.nextInt(maxSize - 1) + 2;
+            chosenSize = _puzzleMap.randomInt(maxSize - 1) + 2;
             if (myDebug) print("CHOSE CUL-DE-SAC flags ${_neighbourFlags[k]}"
                                " at cell $index, cage-size $chosenSize");
             break;
@@ -291,7 +285,7 @@ class CageGenerator
 
       // Pick a starting cell at random.
       if (index < 0) {
-        int n = _random.nextInt(_unusedCells.length);
+        int n = _puzzleMap.randomInt(_unusedCells.length);
         index = _unusedCells[n];
         if (_singles < _minSingles) {
           // Choose size 1 (clues) first, until the minimum number is provided.
@@ -301,7 +295,7 @@ class CageGenerator
         }
         else {
           // Then avoid size 1. Isolated cells left over => size 1 (see above).
-          chosenSize = _random.nextInt(maxSize - 1) + 2;
+          chosenSize = _puzzleMap.randomInt(maxSize - 1) + 2;
           if (myDebug) print("CHOSE RANDOM START flags"
                              " ${_neighbourFlags[index]}"
                              " at cell $index, cage-size $chosenSize");
@@ -370,21 +364,20 @@ class CageGenerator
         int nVals = _possibilitiesIndex[n+1] - _possibilitiesIndex[n];
         int size = _puzzleMap.cage (n).length;
         int nCombos =  nVals ~/ size;
-        /* #ifdef MATHDOKU_LOG
-        if (myDebug) print("Cage" << n << "values" << nVals << "size" << size
-                 << "combos" << nCombos << "target" << _puzzleMap.cageValue(n)
-                 << "op" << _puzzleMap.cageOperator(n)
-                 << "topleft" << _puzzleMap.cageTopLeft(n);
-        #endif */
+        // /* #ifdef MATHDOKU_LOG
+        if (myDebug) print('Cage $n values $nVals size $size combos $nCombos target ${_puzzleMap.cageValue(n)} op ${_puzzleMap.cageOperator(n)} topleft ${_puzzleMap.cageTopLeft(n)}');
+        // #endif */
         totCombos += nCombos;
       }
       if (myDebug) print("TOTAL COMBOS $totCombos\n");
     } // End while()
 
     // Use the DLX solver to check if this puzzle has a unique solution.
-    int nSolutions = _DLXSolver.solveMathdoku (_puzzleMap, solutionMoves,
-                                               _possibilities,
-                                               _possibilitiesIndex, 2);
+    int maxSolutions = 2;		// Stop if 2 solutions are found.
+    int nSolutions = _DLXSolver.solveMathdokuKillerTypes (_puzzleMap,
+                                                          _possibilities,
+                                                          _possibilitiesIndex,
+                                                          maxSolutions);
     if (nSolutions == 0) {
       if (myDebug) print("FAILED TO FIND A SOLUTION:"
                          " nSolutions = $nSolutions");
@@ -397,6 +390,13 @@ class CageGenerator
 
     if (myDebug) print("UNIQUE SOLUTION FOUND: nSolutions = $nSolutions");
     print('_puzzleMap.cageCount() ${_puzzleMap.cageCount()}');
+    // If there is a unique solution, retrieve it from the solver.
+    // TODO - Do we need THIS solution? Compare it with the existing soln?
+    // solution      = _DLXSolver.currentSolution;
+    solutionMoves.clear();
+    for (int n in _DLXSolver.solutionMoves) {
+      solutionMoves.add(n);
+    }
     return _puzzleMap.cageCount();	// Unique solution: return # of cages.
   }
 
@@ -464,13 +464,21 @@ class CageGenerator
     if (myDebug) print("INDEX" << (*_possibilitiesIndex);
     if (myDebug) print("POSS:" << (*_possibilities);
     #endif */
+
     // Use the DLX solver to check if this puzzle has a unique solution.
-    result = _DLXSolver.solveMathdoku (_puzzleMap, solutionMoves,
-                                               _possibilities,
-                                               _possibilitiesIndex, 2);
+    int maxSolutions = 2;		// Stop if 2 solutions are found.
+    result = _DLXSolver.solveMathdokuKillerTypes (_puzzleMap,
+                                                  _possibilities,
+                                                  _possibilitiesIndex,
+                                                  maxSolutions);
     if (result == 1) {
         // If there is a unique solution, retrieve it from the solver.
-        _DLXSolver.retrieveSolution (solution);
+        // TODO - Do we need THIS solution? Compare it with the existing soln?
+        // solution      = _DLXSolver.currentSolution;
+        solutionMoves.clear();
+        for (int n in _DLXSolver.solutionMoves) {
+          solutionMoves.add(n);
+        }
     }
     return result;
   }
@@ -536,7 +544,7 @@ class CageGenerator
         }
         if (index < 0) {
             // Otherwise, choose a neighbouring cell at random.
-            unb = _random.nextInt(unusedNeighbours.length);
+            unb = _puzzleMap.randomInt(unusedNeighbours.length);
             index = unusedNeighbours[unb];
         }
     }
@@ -590,7 +598,7 @@ class CageGenerator
             weights[0] = ((hi % lo) == 0) ? 50 : 0;
         }
 
-        int roll = _random.nextInt(weights[0]+weights[1]+weights[2]+weights[3]);
+        int roll = _puzzleMap.randomInt(weights[0]+weights[1]+weights[2]+weights[3]);
     /* #ifdef MATHDOKU_LOG
         int wTotal = (weights[0]+weights[1]+weights[2]+weights[3]);
         if (myDebug) print("ROLL" << roll << "VERSUS" << wTotal << "WEIGHTS"
@@ -885,9 +893,6 @@ class CageGenerator
   {
     _killerSudoku    = (_puzzleMap.specificType == SudokuType.KillerSudoku);
     _hiddenOperators = _killerSudoku ? false : hiddenOperators;
-    /* #ifdef MATHDOKU_LOG
-    if (myDebug) print("\nMAKE CAGES init(): HIDDEN OPERATORS" << _hiddenOperators;
-    #endif */
 
     _nSymbols  = _puzzleMap.nSymbols;
     _boardArea = _puzzleMap.size;
@@ -902,22 +907,17 @@ class CageGenerator
         int limit          = _nSymbols - 1;
         int neighbours     = ALONE;
 
-        if (n == 3) print('Cell $n row $row col $col limit $limit');
         // Mark cells on the perimeter of the board as having dummy neighbours.
         if (row == 0) {
-            if (n == 3) print('Set N $N');
             neighbours = neighbours | N; // Cell to the North is unavailable.
         }
         if (row == limit) {
-            if (n == 3) print('Set S $S');
             neighbours = neighbours | S; // Cell to the South is unavailable.
         }
         if (col == 0) {
-            if (n == 3) print('Set W $W');
             neighbours = neighbours | W; // Cell to the West is unavailable.
         }
         if (col == limit) {
-            if (n == 3) print('Set E $E');
             neighbours = neighbours | E; // Cell to the East is unavailable.
         }
 
@@ -926,21 +926,5 @@ class CageGenerator
     if (myDebug) print("UNUSED CELLS     $_unusedCells");
     if (myDebug) print("NEIGHBOUR-FLAGS  $_neighbourFlags");
   }
-}
 
-/*
-class DLXSolver
-// Dummy - for initial compiling only.
-{
-  int solveMathdoku(PuzzleMap pm, List<int> solutionMoves, List<int> p,
-                    List<int> pIndex, int n)
-  {
-    return 1;
-  }
-
-  List<int> retrieveSolution(List<int> solution)
-  {
-    return solution;
-  }
-}
-*/
+} // End class CageGenerator.
