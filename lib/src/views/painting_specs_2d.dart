@@ -524,6 +524,10 @@ class PaintingSpecs2D extends PaintingSpecs
     return cellEdges;
   }
 
+  Pair setPair (int cell, int corner) => (cell << lowWidth) + corner;
+
+  List<List<int>> cagePerimeters = [];
+
   void markCageBoundaries(PuzzleMap puzzleMap)
   {
     // After generating a Mathdoku or Killer Sudoku puzzle, set up the painting
@@ -533,59 +537,96 @@ class PaintingSpecs2D extends PaintingSpecs
       return;				// No cages in this puzzle.
     }
 
-    List<int> cycle = [N, E, S, W, N, E];
+    // Save the edges bits of each cell in each cage on the board.
+    List<int> cagesEdges = List.filled(_sizeX * _sizeY, 0, growable: false);
+    for (int cageNum = 0; cageNum < nCages; cageNum++)	// For each cage...
+    {
+      // Find the outer boundaries of one cage, represented as 4 bits per cell.
+      List<int> cage  = puzzleMap.cage(cageNum);
+      List<int> edges = findOutsideEdges(cage, puzzleMap);
+      for (int n = 0; n < cage.length; n++) {
+        cagesEdges[cage[n]] = edges[n];
+      }
+    }
 
-    // Cage-boundary values will be filled in randomly, so pre-fill the list.
-    _cageBoundaries.clear();
-    _cageBoundaries = List.filled(_sizeX * _sizeY, 0, growable: true);
+    // For each cage, we begin at the NW corner of the top-left cage and start
+    // travelling East with a cage-wall on our left. We seek always to travel
+    // clockwise around the cage-boundary, keeping a cage-wall on our left,
+    // turning right or left when required and tracing out a line just inside
+    // the cage-boundary, which will be drawn in a special colour and may cross
+    // the boundaries of Sudoku cells and groups.
+
+    // Edges:   0 above, 1 right, 2 bottom and 3 left, with directions E-S-W-N.
+    // Corners: 0 NW, 1 NE, 2 SE and 3 SW.
+
+    const List<int> cycle      = [E, S, W, N];	// Direction-bits starting at E.
+    const List<int> nextEdge   = [1, 2, 3, 0];
+    const List<int> prevEdge   = [3, 0, 1, 2];
+    const List<int> nextCorner = [1, 2, 3, 0];
+          List<int> cellInc    = [puzzleMap.sizeY, 1, -puzzleMap.sizeY, -1];
+
+    // For each direction, where to look in the cell for a wall on our left.
+    const List<int> wallOnLeft = [above, right, below, left];
+
+    // For each direction, where to look in the cell for a wall up ahead.
+    const List<int> wallAhead  = [right, below, left, above];
+
+    cagePerimeters.clear();
 
     for (int cageNum = 0; cageNum < nCages; cageNum++)	// For each cage...
     {
-      // Get the list of cells in the cage.
+      int topLeft    = puzzleMap.cageTopLeft(cageNum);
       List<int> cage = puzzleMap.cage(cageNum);
-      // print('Find boundaries of $cage');
+      int cell       = topLeft;
 
-      // Find the outer boundaries of the cage, represented as 4 bits per cell.
-      List<int> edges = findOutsideEdges(cage, puzzleMap);
-      // print('Edges of cage      $edges');
-
-      // For each cell in the cage...
-      for (int n = 0; n < cage.length; n++)
-      {
-        int cell = cage[n];
-        int edge = edges[n];
-        int cellCageBoundaries = 0;
-        for (int e = 1; e < 5; e++)
-        {
-          // print('EdgeNum $e edges $edge mask ${cycle[e]}'
-                   // ' prev ${cycle[e-1]} next ${cycle[e+1]}');
-          int lineBits = 0;
-          if ((edge & cycle[e]) > 0) {	// This side has part of cage-boundary.
-            lineBits = 2;		// Start with middle of boundary line.
-            if ((edge & cycle[e - 1]) == 0) {
-              // No corner before: extend line backwards to edge of cell.
-              lineBits |= 1;
-            }
-            if ((edge & cycle[e + 1]) == 0) {
-              // No corner after: extend line forwards to edge of cell.
-              lineBits |= 4;
-            }
-          }
-          // Place the boundary-line bits into the 12-bit result for the cell.
-          int shift = 3 * (e - 1);
-          cellCageBoundaries |= lineBits << shift;
-          // print('Cage $cageNum cell $cell edges $edge edge $e'
-                // ' lineBits $lineBits shift $shift');
-          // print('Cage $cageNum cell $cell'
-                // ' cellCageBoundaries $cellCageBoundaries');
-        }
-        // Save the cage-boundary parts that traverse this cell.
-        _cageBoundaries[cell] = cellCageBoundaries;
+      // *********** DEBUG ************ //
+      print('Cage $cageNum $cage topLeft $topLeft'
+            ' label ${puzzleMap.cageValue(cageNum)}');
+      List<int> temp = [];
+      for (int nCell in cage) {
+        temp.add(cagesEdges[nCell]);
       }
-    }
-    print('Cage boundary lines $_cageBoundaries');
-    // Every cage should now have a closed boundary and every cell should have
-    // a 12-bit value representing the cage-boundary parts that appear in it.
+      print('Cage edges $temp');
+      // ****************************** //
+
+      int edgeBits   = cagesEdges[cell];
+      int edgeNum    = 0;
+      int direction  = cycle[edgeNum];
+      List<int> perimeter = [setPair(cell, 0)];
+
+      // Keep marking lines until we get back to the starting cell and direction.
+      do {
+        if ((edgeBits & wallOnLeft[edgeNum]) != 0) {
+          if ((edgeBits & wallAhead[edgeNum]) != 0) {
+            // Go to wall, mark line, turn right and set next edge of cell.
+            int corner = nextCorner[edgeNum];
+            perimeter.add(setPair(cell, corner));
+            edgeNum   = nextEdge[edgeNum];
+            direction = cycle[edgeNum];
+          }
+          else {
+            // Extend line to start of next cell, mark it and set next cell.
+            cell     = cell + cellInc[edgeNum];
+            edgeBits = cagesEdges[cell];
+          }
+        }
+        else {
+          // No wall on left: need to mark a small left-turn corner-piece.
+          // Mark small line, turn left, mark next small line, start next cell.
+          edgeNum   = prevEdge[edgeNum];
+          direction = cycle[edgeNum];
+          int corner = nextCorner[edgeNum];
+          perimeter.add(setPair(cell, corner));
+
+          cell      = cell + cellInc[edgeNum];
+          edgeBits  = cagesEdges[cell];
+        }
+      } while (! ((cell == topLeft) && (direction == E)));
+
+      print('Cage $cageNum $cage perimeter $perimeter');
+      cagePerimeters.add(perimeter);
+
+    } // Mark out next cage.
   }
 
 } // End class PaintingSpecs2D
@@ -733,9 +774,9 @@ class PaintingSpecs3D extends PaintingSpecs
       if (centre.dx > maxX) maxX = centre.dx;
       if (centre.dy > maxY) maxY = centre.dy;
     }
-    print('minX $minX minY $minY, maxX $maxX maxY $maxY');
+    // print('minX $minX minY $minY, maxX $maxX maxY $maxY');
     double rangeX = maxX - minX; double rangeY = maxY - minY;
-    print('rangeX $rangeX rangeY $rangeY height ${puzzleRect.height}');
+    // print('rangeX $rangeX rangeY $rangeY height ${puzzleRect.height}');
     double maxRange = (rangeX > rangeY) ? rangeX : rangeY;
     // Spheres started with diameter 2: now inflated by ~1.75.
     _scale  = _puzzleRect.height / (maxRange + _diameter);
@@ -749,12 +790,12 @@ class PaintingSpecs3D extends PaintingSpecs
 
   int whichSphere(Offset hitPos)
   {
-    print('whichSphere: hitPos = $hitPos');
+    // print('whichSphere: hitPos = $hitPos');
     // Scale back and translate to "List<Sphere> rotated" co-ordinates.
     Offset hitXY = hitPos - origin;
-    print('hitXY = $hitXY relative to origin $origin');
+    // print('hitXY = $hitXY relative to origin $origin');
     hitXY = Offset(hitXY.dx / scale, -hitXY.dy / scale);
-    print('hitXY scaled back by factor $scale = $hitXY');
+    // print('hitXY scaled back by factor $scale = $hitXY');
 
     double d = diameter;
     Rect r = Rect.fromCenter(center: hitXY, width: d, height: d);

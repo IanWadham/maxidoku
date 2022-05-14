@@ -48,6 +48,8 @@ class PuzzleView extends StatelessWidget
     // A setter in Puzzle saves "portrait" in either 2D or 3D PaintingSpecs.
     puzzle.portrait = (orientation == Orientation.portrait);
 
+    // TODO - CRASH!!!  generatePuzzle(puzzle, context);
+
     // Create the list of action-icons.
     List<Widget> actionIcons = [
       IconButton(
@@ -192,7 +194,8 @@ class PuzzleView extends StatelessWidget
       Message m = puzzle.generatePuzzle();
       if (m.messageType == 'Q') {
         trying = await questionMessage(
-                         context, 'Generate Puzzle', m.messageText);
+                         context, 'Generate Puzzle', m.messageText,
+                         okText: 'Try Again', cancelText: 'Accept');
         // If trying == true, keep looping to try for the required Difficulty.
       }
       else if (m.messageType != '') {
@@ -306,8 +309,6 @@ class _PuzzleView extends StatelessWidget
         width:  (MediaQuery.of(context).size.width),
         child:  Listener(
           onPointerDown: _possibleHit3D,
-          // child: Text('\n\n    3D Widget Coming Soon'
-          // ),
           child: CustomPaint(
             painter: PuzzlePainter3D(puzzle),
           ),
@@ -368,7 +369,7 @@ class _PuzzleView extends StatelessWidget
   // Handle the user's PointerDown actions on the puzzle-area and controls.
   bool _possibleHit(String D, Rect puzzleRect, Rect controlRect)
   {
-    print ('_possibleHit$D at $hitPos');
+    // print ('_possibleHit$D at $hitPos');
     bool modelChanged = false;
     bool puzzleHit = puzzleRect.contains(hitPos);
     if (puzzleHit && (D == '2D')) {
@@ -616,21 +617,16 @@ class PuzzlePainter2D extends CustomPainter
         Paint p = (paintType == 1) ? thinLinePaint : thickLinePaint;
         canvas.drawLine(Offset(o1, o2), Offset(o1, o2 + cellSize), p);
       }
-      // print('i = $i x = ${i~/(nSymbols + 1)} y = ${i%(nSymbols + 1)} EW = ${paintingSpecs.edgesEW[i]} NS = ${paintingSpecs.edgesNS[i]}');
     }
 
-    // In Mathdoku or Killer Sudoku, paint the outlines and labels of the cages.
-    if (puzzle.puzzleMap.cageCount() > 0) {
-      paintCages(canvas, puzzle.puzzleMap.cageCount(),
-                paint3, paint2, cageLinePaint);
-    }
-
+    // Paint the control-area.
     paintingSpecs.paintPuzzleControls(canvas, nControls, thinLinePaint,
                   thickLinePaint, puzzle.notesMode, puzzle.selectedControl);
 
     // Paint/repaint the graphics for all the symbols in the puzzle area.
     int puzzleSize = paintingSpecs.sizeX * paintingSpecs.sizeY;
     Offset cellPos;
+    Offset hilitePos = Offset(topLeftX, topLeftY);
     for (int pos = 0; pos < puzzleSize; pos++) {
       int ns = puzzle.stateOfPlay[pos];
       if (ns == UNUSABLE) {
@@ -657,12 +653,22 @@ class PuzzlePainter2D extends CustomPainter
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
                 cellSize, isNote: (ns > 1024), isCell: true);
       if (pos == puzzle.lastCellHit) {
-        double shrinkBy = cellSize / 10.0;
-        double inset = shrinkBy / 2.0;
-        canvas.drawRect(cellPos + Offset(inset, inset) &
-                   Size(cellSize - shrinkBy, cellSize - shrinkBy), highlight);
+        hilitePos = cellPos;		// Paint hilite last, on top of cages.
       }
     }
+
+    // In Mathdoku or Killer Sudoku, paint the outlines and labels of the cages.
+    if (puzzle.puzzleMap.cageCount() > 0) {
+      paintCages(canvas, puzzle.puzzleMap.cageCount(),
+                paint3, paint2, cageLinePaint);
+    }
+
+    // Paint the highlight of the last puzzle-cell hit.
+    double shrinkBy = cellSize / 10.0;
+    double inset = shrinkBy / 2.0;
+    canvas.drawRect(hilitePos + Offset(inset, inset) &
+               Size(cellSize - shrinkBy, cellSize - shrinkBy), highlight);
+
   } // End void paint(Canvas canvas, Size size)
 
   @override
@@ -679,66 +685,38 @@ class PuzzlePainter2D extends CustomPainter
   }
 
   void paintCages(Canvas canvas, int cageCount, 
-                 Paint labelPaint_fg, Paint labelPaint_bg, Paint cageLinePaint)
+                  Paint labelPaint_fg, Paint labelPaint_bg, Paint cageLinePaint)
   {
-    PaintingSpecs2D paintingSpecs = puzzle.paintingSpecs2D;
+    PaintingSpecs2D paintingSpecs  = puzzle.paintingSpecs2D;
+    PuzzleMap       map            = puzzle.puzzleMap;
+    List<List<int>> cagePerimeters = paintingSpecs.cagePerimeters;
 
-    List<int> cageBoundaryBits = paintingSpecs.cageBoundaries;
     double inset = cellSide/12.0;
+    List<Offset> corners = [Offset(inset, inset),			// NW
+                            Offset(cellSide - inset, inset),		// NE
+                            Offset(cellSide - inset, cellSide - inset),	// SE
+                            Offset(inset, cellSide - inset)];		// SW
 
-    for (int n = 0; n < puzzle.puzzleMap.size; n++) {
-      int lineBits = cageBoundaryBits[n];
-      // TODO - Single-cell cages are NOT displaying NOR behaving as GIVENS.
-      if (lineBits == 1170) {
-        // Single-cell cages are not painted (1170 = octal 2222).
-        continue;
-      }
-      for (int side = 0; side < 4; side++) {
-        int bits = lineBits & 7;
-        lineBits = lineBits >> 3;
-        if (bits == 0) {
-          continue;
-        }
-        int i = puzzle.puzzleMap.cellPosX(n);
-        int j = puzzle.puzzleMap.cellPosY(n);
+    // Paint lines to connect lists of right-turn and left-turn points in cage
+    // perimeters. Lines are inset within cage edges and have a special colour.
+    for (List<int> perimeter in cagePerimeters) {
+      Offset? startLine   = null;
+      for (Pair point in perimeter) {
+        int cell          = point >> lowWidth;
+        int corner        = point & lowMask;
+        int i             = puzzle.puzzleMap.cellPosX(cell);
+        int j             = puzzle.puzzleMap.cellPosY(cell);
         Offset cellOrigin = topLeft + Offset(i * cellSide, j * cellSide);
-        double x1 = 0.0, x2 = 0.0;
-        // double x2 = 0.0;
-        double y1 = 0.0;
-        double y2 = 0.0;
-        switch(side) {
-        case 0:
-          x1 = cellSide - inset;
-          x2 = x1;
-          y1 = (bits & 1) > 0 ? 0.0 : inset;
-          y2 = (bits & 4) > 0 ? cellSide : cellSide - inset;
-          break;
-        case 1:
-          x1 = (bits & 1) > 0 ? cellSide : cellSide - inset;
-          x2 = (bits & 4) > 0 ? 0.0 : inset;
-          y1 = cellSide - inset;
-          y2 = y1; 
-          break;
-        case 2:
-          x1 = inset;
-          x2 = x1; 
-          y1 = (bits & 1) > 0 ? cellSide : cellSide - inset;
-          y2 = (bits & 4) > 0 ? 0.0 : inset;
-          break;
-        case 3:
-          x1 = (bits & 1) > 0 ? 0.0 : inset;
-          x2 = (bits & 4) > 0 ? cellSide : cellSide - inset;
-          y1 = inset;
-          y2 = y1;
-          break;
+        Offset endLine    = cellOrigin + corners[corner];
+        if (startLine != null) {
+          canvas.drawLine(startLine, endLine, cageLinePaint);
         }
-        canvas.drawLine(cellOrigin + Offset(x1, y1),
-                        cellOrigin + Offset(x2, y2), cageLinePaint);
+        startLine = endLine;		// Get ready for the next line.
       }
     }
-    // print('CAGE COUNT ${puzzle.puzzleMap.cageCount()}');
-    PuzzleMap map = puzzle.puzzleMap;
-    for (int cageNum = 0; cageNum < map.cageCount(); cageNum++) {
+
+    // Paint the cage labels.
+    for (int cageNum = 0; cageNum < cageCount; cageNum++) {
       String cageLabel  = getCageLabel(map, cageNum);
       if (cageLabel == '') {
         continue;		// Don't paint labels on size 1 cages (Givens).
@@ -771,31 +749,6 @@ class PuzzlePainter2D extends CustomPainter
     // print('Cage Label $cLabel, cage $cageNum, cell $topLeft');
     return cLabel;
   }
-
-  // Result: 12 bits for each cell in the cage.
-  //           bits 0-2   East side,
-  //           bits 3-5   South side,
-  //           bits 6-8   West side,
-  //           bits 9-11  North side.
-  //
-  //         Within a cell, there are 3 bits for each possible cell-boundary
-  //         line. The three bits represent:
-  //           bit  0     First part of possible cage-boundary line,
-  //           bit  1     Second or middle part,
-  //           bit  2     Third part.
-  //
-  // If the three bits == 0, that side of the cell is not a cage-boundary.
-  // If the three bits == 7, the boundary line is full-length. Values 6, 3
-  // or 2, mean that the boundary turns a corner at one end or the other or
-  // both. Values 1, 4 and 5 are not used: the line would have no middle part.
-
-  // TODO: Does "first" mean nearest to top-left origin or first in ESWN order?
-
-  // List<Offset> outerCorners = [(lSide, 0.0),       (lSide, lSide),
-                               // (0.0, lSide),       (0.0, 0.0)];
-  // List<Offset> innerCorners = [(lSide - 1.0, 1.0), (lSide - 1.0, lSide - 1.0),
-                               // (1.0, lSide - 1.0), (1.0, 1.0)];
-// TODO - Maybe use the above in PuzzlePainters?
 
 } // End class PuzzlePainter2D extends CustomPainter
 
@@ -835,7 +788,7 @@ class PuzzlePainter3D extends CustomPainter
     // ******** DEBUG ********
     int w = size.width.floor();
     int h = size.height.floor();
-    print('ENTERED PuzzlePainter3D.paint() W $w, H $h');
+    // print('ENTERED PuzzlePainter3D.paint() W $w, H $h');
     // ***********************
 
     PaintingSpecs3D paintingSpecs = puzzle.paintingSpecs3D;
