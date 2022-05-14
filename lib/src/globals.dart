@@ -71,10 +71,32 @@ enum SudokuType {PlainSudoku, XSudoku, Jigsaw, Samurai, TinySamurai, Roxdoku,
                  Aztec, Mathdoku, KillerSudoku, Sohei, Windmill, PseudoSudoku,
                  EndSudokuTypes, Invalid}
 
+// Const Difficulty and Symmetry texts must appear as simple names in Flutter's
+// StatelessWidgets, but are needed in lookup-lists for generated messages.
+
 enum Difficulty {VeryEasy, Easy, Medium, Hard, Diabolical, Unlimited}
+
+const String diff0 = 'Very Easy';
+const String diff1 = 'Easy';
+const String diff2 = 'Medium';
+const String diff3 = 'Hard';
+const String diff4 = 'Diabolical';
+const String diff5 = 'Unlimited';
+const List<String> difficultyTexts =
+                             [diff0, diff1, diff2, diff3, diff4, diff5];
 
 enum Symmetry   {DIAGONAL_1, CENTRAL, LEFT_RIGHT, SPIRAL, FOURWAY,
                  RANDOM_SYM, NONE, DIAGONAL_2}
+
+const String symm0 = 'Diagonal';
+const String symm1 = 'Central';
+const String symm2 = 'Left-Right';
+const String symm3 = 'Spiral';
+const String symm4 = 'Four-Way';
+const String symm5 = 'Randomly Chosen Symmetry';
+const String symm6 = 'No Symmetry';
+const List<String> symmetryTexts =
+                           [symm0, symm1, symm2, symm3, symm4, symm5, symm6];
 
 enum CageOperator {NoOperator, Divide, Subtract, Multiply, Add}
 

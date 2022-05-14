@@ -47,27 +47,27 @@ class PuzzleListView extends StatelessWidget
             itemBuilder: (BuildContext context) => <PopupMenuEntry<Difficulty>>[
               const PopupMenuItem<Difficulty>(
                 value: Difficulty.VeryEasy,
-                child: Text('Very Easy'),
+                child: Text(diff0),
               ),
               const PopupMenuItem<Difficulty>(
                 value: Difficulty.Easy,
-                child: Text('Easy'),
+                child: Text(diff1),
               ),
               const PopupMenuItem<Difficulty>(
                 value: Difficulty.Medium,
-                child: Text('Medium'),
+                child: Text(diff2),
               ),
               const PopupMenuItem<Difficulty>(
                 value: Difficulty.Hard,
-                child: Text('Hard'),
+                child: Text(diff3),
               ),
               const PopupMenuItem<Difficulty>(
                 value: Difficulty.Diabolical,
-                child: Text('Diabolical'),
+                child: Text(diff4),
               ),
               const PopupMenuItem<Difficulty>(
                 value: Difficulty.Unlimited,
-                child: Text('Unlimited'),
+                child: Text(diff5),
               ),
             ],
           ),
@@ -79,31 +79,31 @@ class PuzzleListView extends StatelessWidget
             itemBuilder: (BuildContext context) => <PopupMenuEntry<Symmetry>>[
               const PopupMenuItem<Symmetry>(
                 value: Symmetry.DIAGONAL_1,
-                child: Text('Diagonal'),
+                child: Text(symm0),
               ),
               const PopupMenuItem<Symmetry>(
                 value: Symmetry.CENTRAL,
-                child: Text('Central'),
+                child: Text(symm1),
               ),
               const PopupMenuItem<Symmetry>(
                 value: Symmetry.LEFT_RIGHT,
-                child: Text('Left-Right'),
+                child: Text(symm2),
               ),
               const PopupMenuItem<Symmetry>(
                 value: Symmetry.SPIRAL,
-                child: Text('Spiral'),
+                child: Text(symm3),
               ),
               const PopupMenuItem<Symmetry>(
                 value: Symmetry.FOURWAY,
-                child: Text('Four-Way'),
+                child: Text(symm4),
               ),
               const PopupMenuItem<Symmetry>(
                 value: Symmetry.RANDOM_SYM,
-                child: Text('Randomly Chosen Symmetry'),
+                child: Text(symm5),
               ),
               const PopupMenuItem<Symmetry>(
                 value: Symmetry.NONE,
-                child: Text('No Symmetry'),
+                child: Text(symm6),
               ),
             ],
           ),
@@ -181,7 +181,7 @@ class _MyListViewState extends State<MyListView>
           ),
           // Highlight prevous selection (from settings).
           selected:    index == _selectedIndex,
-          enabled:     true,	// TODO - Use for unavailable puzzles?
+          enabled:     true,
           // Called when the user has selected an item from the list.
           onTap: () {
             item = items.getItem(index);
