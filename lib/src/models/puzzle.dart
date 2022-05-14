@@ -28,6 +28,8 @@ class Puzzle with ChangeNotifier
 
   final SettingsController settings;
 
+  Message delayedMessage = Message('', '');
+
   late PuzzleMap _puzzleMap;
   PuzzleMap get puzzleMap => _puzzleMap;
 
@@ -111,7 +113,17 @@ class Puzzle with ChangeNotifier
     }
 
     // Set up data structures and PuzzleMap for an empty Puzzle Board.
-    _init();
+    // _init();
+
+    // TODO - Issuing a message right now causes a crash. Can it be issued by
+    //        the executeAfterBuild() and isPlayUnchanged() logic?
+    // TODO - YES: _puzzlePlay status changes from PlayNotStarted to ReadyToPlay
+    //        and this could be picked up in executeAfterBuild(), which would
+    //        have to retrieve/delete the delayed message (if any) from Puzzle.
+
+    // Start by generating a puzzle and a delayed message immediately. The users
+    // can tap an icon button or message reply if they wish to tap in a puzzle.
+    delayedMessage = generatePuzzle();
 
     // Already painting. Do NOT call notifyListeners(): it would cause a crash.
     return true;
@@ -131,12 +143,12 @@ class Puzzle with ChangeNotifier
     _stateOfPlay = [..._puzzleMap.emptyBoard];
     _cellStatus  = [..._puzzleMap.emptyBoard];
 
-    _cellChanges.clear();
+    _cellChanges.clear();	// No moves to undo/redo yet.
+    _SudokuMoves.clear();	// No hints available yet.
 
     // Get the user's chosen/default Difficulty and Symmetry from Settings.
     _difficulty = settings.difficulty;
     _symmetry   = settings.symmetry;
-    print('Puzzle._init(): Difficulty $_difficulty, Symmetry $_symmetry');
 
     int  _indexUndoRedo  = 0;
 
@@ -154,26 +166,21 @@ class Puzzle with ChangeNotifier
   {
     _init();			// Clear relevant parts of the Puzzle state.
 
-    // TODO - Generate Roxdoku Twin, Very Easy level ===> LOOP ... Easy is OK.
-
     Message response = Message('', '');
     SudokuType puzzleType = _puzzleMap.specificType;
     switch (puzzleType) {
       case SudokuType.Mathdoku:
       case SudokuType.KillerSudoku:
-	// Generate variants of Killer Sudoku or Mathdoku (aka KenKen TM) types.
+	// Generate variants of Killer Sudoku or Mathdoku (aka Kenken TM) types.
         MathdokuGenerator mg = MathdokuGenerator(_puzzleMap);
 	int maxTries = 10;
-	// int maxTries = 1;	// DEBUG.
-	int numTries;
-        for (numTries = 1; numTries <= maxTries; numTries++) {
+        print('GENERATE $puzzleType, $_difficulty');
+        for (int numTries = 1; numTries <= maxTries; numTries++) {
+          // Try up to 10 different starting-solutions.
           _solution = _fillBoard();
-          print('GENERATE $puzzleType, $_difficulty');
-          if (mg.generateMathdokuKillerTypes(_puzzleGiven, _solution,
-                                             _SudokuMoves, _difficulty)) {
-            response.messageType = 'I';
-            response.messageText = 'TESTING: MathdokuKiller generator = TRUE';
-            _paintingSpecs2D.markCageBoundaries(_puzzleMap);
+          response  = mg.generateMathdokuKillerTypes(_puzzleGiven, _solution,
+                                                     _SudokuMoves, _difficulty);
+          if ((response.messageType != '') && (response.messageType != 'F')) {
             break;
           } 
         }
@@ -184,44 +191,30 @@ class Puzzle with ChangeNotifier
                                  ' about 200 tries. Try again?';
         }
         else {
-          // Valid puzzle found: move single-cell cage-values to _puzzleGiven.
-          for (int cageNum = 0; cageNum < _puzzleMap.cageCount(); cageNum++) {
-            List<int> cage = _puzzleMap.cage(cageNum);
-            if (cage.length == 1) {
-              int cell = cage[0];
-              _puzzleGiven[cell] = _solution[cell];
-              print('Cage $cageNum $cage cell $cell value ${_solution[cell]}');
-            }
-          }
-          // Cages have been added to PuzzleMap. Move to ReadyToPlay status.
-          makeReadyToPlay();
-          notifyListeners();		// Trigger a repaint of the Puzzle View.
+          _paintingSpecs2D.markCageBoundaries(_puzzleMap);
         }
-        return response;
         break;
-
       default:
-	// Generate variants of Sudoku (2D) and Roxdoku (3D) types.
+	// Generate Sudoku (2D) and Roxdoku (3D) types - and all their variants.
         SudokuGenerator srg = SudokuGenerator(_puzzleMap);
         print('GENERATE $puzzleType, $_difficulty, $_symmetry');
 	response = srg.generateSudokuRoxdoku(_puzzleGiven, _solution,
                                              _SudokuMoves,
                                              _difficulty, _symmetry);
-        if (response.messageType != 'F') {	// Succeeded - up to a point...
-          makeReadyToPlay();
-          notifyListeners();		// Trigger a repaint of the Puzzle View.
-        }
-        else {				// FAILED. Please try again.
-          // Generator/solver may have failed internally.
-        }
-        return response;
         break;
     }
+    if (response.messageType != 'F') {	// Succeeded - up to a point maybe...
+      makeReadyToPlay();
+      notifyListeners();		// Trigger a repaint of the Puzzle View.
+    }
+    else {				// FAILED. Please try again.
+      // Generator/solver may have failed internally.
+    }
+    return response;
   }
 
   void makeReadyToPlay()
   {
-    // print('_puzzleGiven $_puzzleGiven');
     _stateOfPlay = [..._puzzleGiven];
     for (int n = 0; n < _puzzleGiven.length; n++) {
       if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
@@ -229,10 +222,6 @@ class Puzzle with ChangeNotifier
       }
     }
     _cellChanges.clear();			// No moves made yet.
-    print('PUZZLE\n');
-    _puzzleMap.printBoard(_stateOfPlay);
-    // print('Cell statuses $_cellStatus');
-    print('Cell changes  $_cellChanges');
 
     // Change the Puzzle Play status to receive solving moves.
     _puzzlePlay = Play.ReadyToStart;
@@ -243,16 +232,28 @@ class Puzzle with ChangeNotifier
   {
     // This is in a function so that "solver" will release resources as soon
     // as possible, in cases when the Mathdoku/Killer-Sudoku generator runs.
-    print('In Puzzle._fillBoard(): SudokuSolver about to be created.');
     SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
     return solver.createFilledBoard();
   }
 
+  /**
+   * Check that a puzzle is soluble, has the desired solution and has only one
+   * solution.  This method can be used to check puzzles loaded from a file or
+   * entered manually, in which case the solution parameter can be omitted. It
+   * is also used to check a puzzle tapped in by the user.
+   *
+   * @return              The result of the check, with values as follows:
+   * @retval >= 0         The difficulty of the puzzle, approximately, after
+   *                      one solver run.  If there are guesses, the
+   *                      difficulty can vary from one run to another,
+   *                      depending on which guesses are randomly chosen.
+   * @retval -1           No solution.
+   * @retval -2           Wrong solution.
+   * @retval -3           More than one solution.
+   */
   int checkPuzzle()
   {
     // Check that a puzzle tapped in or loaded by user has a proper solution.
-    // Returns 0 if solution is OK, -1 if no solution, -3 if solution not unique
-    // or -2 if puzzle and solution loaded from a file are not self-consistent.
     print('ENTERED checkPuzzle().');
     SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
     int error = 0;
@@ -260,6 +261,7 @@ class Puzzle with ChangeNotifier
     if (error != 0) {
       return error;
     }
+    // TODO - It would be nice if we could return a Difficulty index >= 0.
     error = solver.checkSolutionIsUnique(_stateOfPlay, _solution);
     return error;
   }
@@ -600,51 +602,6 @@ class Puzzle with ChangeNotifier
                                     _SudokuMoves,
                                     Difficulty.Easy,
                                     Symmetry.SPIRAL);
-    return;
-    // print('TEST Puzzle class');
-    // print(boardValues);
-    print('');
-    BoardContents _testBoard = []; // = boardValues;
-    for (int n = 0; n < _puzzleMap.size; n++) {
-      _testBoard.add(_stateOfPlay[n]);
-      // _testBoard[n] = _stateOfPlay[n];
-      // if (boardValues[n] > 0) {
-        // _cellStatus[n] = GIVEN;
-      // }
-    }
-    // paintingSpecs.cellBackG = _cellStatus;
-    _puzzleMap.printBoard(_testBoard);
-
-    // _setUpValueRequirements (board);
-    // _deduceValues (board);
-    // print('RETURNED FROM _deduceValues');
-    /* ---------------------------------------------------------- */
-    SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
-    /* ---------------------------------------------------------- */
-    Stopwatch sw = Stopwatch();
-    sw.start();
-    /* ---------------------------------------------------------- */
-    _testBoard = solver.solveBoard(_testBoard, GuessingMode.Random);
-    /* ---------------------------------------------------------- */
-    print('RETURNED FROM solveBoard');
-    _puzzleMap.printBoard(_testBoard);
-    // TODO - If _testBoard is empty, NO SOLUTION.
-    //        If not, need to enter solver again and check for >1 solution.
-    // TODO - If solution is unique and accepted by user, set up the lists for
-    //        _puzzleGiven, _solution, _stateOfPlay and _cellStatus. Then actual
-    //        play can begin...
- 
-    // int result = solver.checkPuzzle(_testBoard); // TODO - IMPLEMENT THIS.
-    // print('Solver RESULT = $result');
-    // print('ELAPSED TIME (msec)');
-    // print (sw.elapsedMilliseconds);
-    // for (int n = 0; n < 1; n++) {
-      /* --------------------------- */
-      /* solver.createFilledBoard(); */
-      /* --------------------------- */
-    // }
-    // print('ELAPSED TIME (msec)');
-    // print (sw.elapsedMilliseconds);
     return;
   }
 }
