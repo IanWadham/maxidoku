@@ -42,14 +42,22 @@ class MathdokuGenerator
    *                    when it reached a solution: used to provide Hints.
    * difficultyRequired The requested level of difficulty.
    *
-   * return             True  if puzzle-generation succeeded.
-   *                    False if too many tries were required.
+   * return             A message about the outcome to be shown to the user.
+   *                    Message type F = generation failed internally, Q = it
+   *                    did not reach the level of difficulty required, I = it
+   *                    reached the required level and the message provides
+   *                    some information about the puzzle.
    */
-  bool generateMathdokuKillerTypes (BoardContents puzzle,
+  Message generateMathdokuKillerTypes (BoardContents puzzle,
                                     BoardContents solution,
                                     List<int>     solutionMoves,
                                     Difficulty    difficultyRequired)
   {
+    Message response = Message('', '');
+
+    // TODO - Look for more ways to assess Difficulty, e.g. sizes and stats of
+    //        possibilities lists, innies and outies (esp. in square blocks)...
+
     // Cage sizes must be no more than the number of cells in a column or row.
     int  maxSize   = 2 + difficultyRequired.index;
     if (maxSize > _puzzleMap.nSymbols) maxSize = _puzzleMap.nSymbols;
@@ -66,31 +74,34 @@ class MathdokuGenerator
     int  numMultis = 0;
     int  n = 0;
     while ((n <= 0) && (numTries < maxTries)) {
-	numTries++;
 	n = cageGen.makeCages (solutionMoves,
                                maxSize, maxVal, hideOps, maxCombos);
-        print('CageGen return = $n, numTries $numTries, numMultis $numMultis');
-        // return true;	// TODO - DROP this FORCED EXIT.....................
 	if (n < 0) {
 	    numMultis++;
 	}
+	numTries++;
+        print('CageGen return = $n, numTries $numTries, numMultis $numMultis');
     }
     if (numTries >= maxTries) {
 	print('makeCages() FAILED after $numTries tries $numMultis multis');
-        return false;		// Try another set of Sudoku cell-values.
+        return response;	// Try another set of Sudoku cell-values.
     }
 
     print('makeCages() required $numTries tries $numMultis multi-solutions');
-    puzzle = [..._puzzleMap.emptyBoard];	// Deep copy: modifiable later.
-    for (int n = 0; n < _puzzleMap.cageCount(); n++) {
-         if (_puzzleMap.cage(n).length == 1) {	// Single-cell cage => GIVEN.
-             int index = _puzzleMap.cage(n)[0];
-             puzzle[index] = solution[index];
-         }
-    }
-    return true;
-  }
+    print('MathdokuGen: Solution moves $solutionMoves');
 
+    // Insert the values of the single-cell cages as clues in the empty Puzzle.
+    for (int n = 0; n < _puzzleMap.cageCount(); n++) {
+      if (_puzzleMap.cage(n).length == 1) {	// Single-cell cage => GIVEN.
+        int index = _puzzleMap.cage(n)[0];
+        puzzle[index] = solution[index];
+        print('Cage $n cell $index value ${solution[index]}');
+      }
+    }
+    response.messageType = 'I';
+    response.messageText = 'TESTING: MathdokuKiller generator = TRUE';
+    return response;
+  }
 
   /**
    * Solve a Mathdoku or Killer Sudoku and check how many solutions there are.
@@ -114,23 +125,3 @@ class MathdokuGenerator
     return result;
   }
 }
-
-/*
-// TODO - Will be in the cage_generator.dart file.
-class CageGenerator
-{
-  const CageGenerator(BoardContents solution);
-
-  int checkPuzzle(PuzzleMap m, BoardContents solution, List<int> solutionMoves,
-                  bool hideOps)
-  {
-    return 0;	// Found no set of cages to fit the solution.
-  }
-
-  int makeCages(PuzzleMap puzzleMap, BoardContents solution,
-                int maxSize, int maxValue, bool hideOperators, int maxCombos)
-  {
-    return 0;
-  }
-}
-*/
