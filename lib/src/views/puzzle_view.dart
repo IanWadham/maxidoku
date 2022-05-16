@@ -13,6 +13,7 @@ import '../models/puzzle.dart';
 import '../models/puzzle_map.dart';
 import '../models/puzzle_types.dart';
 import 'painting_specs_2d.dart';
+import 'painting_specs_3d.dart';
 import 'messages.dart';
 
 /* ************************************************************************** **
@@ -375,9 +376,9 @@ class _PuzzleView extends StatelessWidget
     if (puzzleHit && (D == '2D')) {
       // Hit is on puzzle-area: get integer co-ordinates of cell.
       Offset point = hitPos - Offset(topLeftX, topLeftY);
-      double cellSize = puzzleRect.width / puzzle.puzzleMap.sizeX;
-      int x = (point.dx / cellSize).floor();
-      int y = (point.dy / cellSize).floor();
+      double cellSide = puzzleRect.width / puzzle.puzzleMap.sizeX;
+      int x = (point.dx / cellSide).floor();
+      int y = (point.dy / cellSide).floor();
       print('Hit is at puzzle-cell ($x, $y)');
       // If hitting this cell is a valid move, the Puzzle model will be updated.
       modelChanged = puzzle.hitPuzzleArea(x, y);
@@ -394,11 +395,11 @@ class _PuzzleView extends StatelessWidget
                      (puzzle.puzzlePlay == Play.BeingEntered) ?
                      nSymbols + 1 : nSymbols + 2;
         bool portrait = controlRect.width > controlRect.height;
-        double cellSize = portrait ? controlRect.width / nCells
+        double cellSide = portrait ? controlRect.width / nCells
                                    : controlRect.height / nCells;
         Offset point = hitPos - Offset(topLeftXc, topLeftYc);
-        int x = (point.dx / cellSize).floor();
-        int y = (point.dy / cellSize).floor();
+        int x = (point.dx / cellSide).floor();
+        int y = (point.dy / cellSide).floor();
         print('Hit is at control-cell ($x, $y)');
         int selection = portrait ? x : y;	// Get the selected control num.
         modelChanged = puzzle.hitControlArea(selection);
@@ -434,7 +435,7 @@ class _PuzzleView extends StatelessWidget
       // If true, the 3D Puzzle View is to be rotated and re-painted,
       // but the Puzzle Model's contents are actually unchanged.
       puzzle.triggerRepaint();	// No Model change, but View must be repainted.
-      modelChanged = true;
+      modelChanged = true;	// Force a repaint.
     }
     else if (_possibleHit('3D', paintingSpecs.puzzleRect,
                                 paintingSpecs.controlRect)) {
@@ -500,14 +501,13 @@ class PuzzlePainter2D extends CustomPainter
     bool hideNotes     = (puzzle.puzzlePlay == Play.NotStarted) ||
                          (puzzle.puzzlePlay == Play.BeingEntered);
     int  nControls     = hideNotes ? nSymbols + 1 : nSymbols + 2;
-    // List<double> xy    = paintingSpecs.calculatePuzzleLayout(size, hideNotes);
+
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
 
     topLeftX   = paintingSpecs.puzzleRect.left;
     topLeftY   = paintingSpecs.puzzleRect.top;
     topLeft    = paintingSpecs.puzzleRect.topLeft;
     cellSide   = paintingSpecs.cellSide;
-    cellSize   = cellSide;
 
     topLeftXc  = paintingSpecs.controlRect.left;
     topLeftYc  = paintingSpecs.controlRect.top;
@@ -562,13 +562,12 @@ class PuzzlePainter2D extends CustomPainter
     // TODO - Paint Notes a little higher: bottom row clear of cage-lines.
     //        Make circles a bit smaller on Givens and Error cells (gradient?).
     //        Paint Symbols a little higher within the circles.
-    //        Complete the "knees" on corners of some cages.
 
     // Calculated widths of lines, depending on canvas size and puzzle size.
-    thinLinePaint.strokeWidth  = cellSize / 30.0;
-    cageLinePaint.strokeWidth  = cellSize / 20.0;
-    thickLinePaint.strokeWidth = cellSize / 15.0;
-    highlight.strokeWidth      = cellSize * paintingSpecs.highlightInset;
+    thinLinePaint.strokeWidth  = cellSide / 30.0;
+    cageLinePaint.strokeWidth  = cellSide / 20.0;
+    thickLinePaint.strokeWidth = cellSide / 15.0;
+    highlight.strokeWidth      = cellSide * paintingSpecs.highlightInset;
 
     // Now paint the background of the canvas.
     canvas.drawRect(Offset(0, 0) & size, paint1);
@@ -579,8 +578,8 @@ class PuzzlePainter2D extends CustomPainter
     double o1, o2;
     // TODO - Think about using a gradient in cell-painting, as opposed to gaps.
     for (int i = 0; i < nCells; i++) {
-      o1 = topLeftX + gap/2.0 + (i~/sizeY) * cellSize;
-      o2 = topLeftY + gap/2.0 + (i %sizeY) * cellSize;
+      o1 = topLeftX + gap/2.0 + (i~/sizeY) * cellSide;
+      o2 = topLeftY + gap/2.0 + (i %sizeY) * cellSide;
       Paint cellPaint;
       switch (paintingSpecs.cellBackG[i]) {
         case GIVEN:
@@ -595,7 +594,7 @@ class PuzzlePainter2D extends CustomPainter
       }
       if (paintingSpecs.cellBackG[i] != UNUSABLE) {	// Skip unused areas.
         // Paint the cells that are within the puzzle-area (note Samurai type).
-        canvas.drawRect(Offset(o1,o2) & Size(cellSize - gap, cellSize - gap),
+        canvas.drawRect(Offset(o1,o2) & Size(cellSide - gap, cellSide - gap),
                         cellPaint);
       }
     }
@@ -603,19 +602,19 @@ class PuzzlePainter2D extends CustomPainter
     // Draw light and dark edges of puzzle-area, as required by the puzzle type.
     int nEdges   = sizeY * (sizeX + 1);
     for (int i = 0; i < nEdges; i++) {
-      double o1 = topLeftX + (i~/(sizeY + 1)) * cellSize;
-      double o2 = topLeftY + (i%(sizeY + 1))  * cellSize;
+      double o1 = topLeftX + (i~/(sizeY + 1)) * cellSide;
+      double o2 = topLeftY + (i%(sizeY + 1))  * cellSide;
       int paintType = paintingSpecs.edgesEW[i];
       if (paintType > 0) {
         Paint p = (paintType == 1) ? thinLinePaint : thickLinePaint;
-        canvas.drawLine(Offset(o1, o2), Offset(o1 + cellSize, o2), p);
+        canvas.drawLine(Offset(o1, o2), Offset(o1 + cellSide, o2), p);
       }
-      o1 = topLeftX + (i~/sizeY) * cellSize;
-      o2 = topLeftY + (i%sizeY)  * cellSize;
+      o1 = topLeftX + (i~/sizeY) * cellSide;
+      o2 = topLeftY + (i%sizeY)  * cellSide;
       paintType = paintingSpecs.edgesNS[i];
       if (paintType > 0) {
         Paint p = (paintType == 1) ? thinLinePaint : thickLinePaint;
-        canvas.drawLine(Offset(o1, o2), Offset(o1, o2 + cellSize), p);
+        canvas.drawLine(Offset(o1, o2), Offset(o1, o2 + cellSide), p);
       }
     }
 
@@ -635,12 +634,12 @@ class PuzzlePainter2D extends CustomPainter
       int status = puzzle.cellStatus[pos];
       if ((status == GIVEN) || (status == ERROR)) {
         Paint cellPaint = (status == GIVEN) ? paint3 : paintError;
-        gap = cellSize / 8.0;		// TODO - Set this in a better place.
-        o1 = topLeftX + gap/2.0 + (pos~/sizeY) * cellSize;
-        o2 = topLeftY + gap/2.0 + (pos %sizeY) * cellSize;
+        gap = cellSide / 8.0;		// TODO - Set this in a better place.
+        o1 = topLeftX + gap/2.0 + (pos~/sizeY) * cellSide;
+        o2 = topLeftY + gap/2.0 + (pos %sizeY) * cellSide;
         List<Color> shaderColors = [cellPaint.color, Color(0x00FFFFFF)];
         RadialGradient rg = RadialGradient(radius: 1.1, colors: shaderColors);
-        Rect r = Offset(o1, o2) & Size(cellSize - gap, cellSize - gap);
+        Rect r = Offset(o1, o2) & Size(cellSide - gap, cellSide - gap);
         Shader shader = rg.createShader(r);
         Paint p = Paint();
         p.shader = shader;
@@ -649,9 +648,9 @@ class PuzzlePainter2D extends CustomPainter
       }
       int i = puzzle.puzzleMap.cellPosX(pos);
       int j = puzzle.puzzleMap.cellPosY(pos);
-      cellPos = Offset(topLeftX, topLeftY) + Offset(i * cellSize, j * cellSize);
+      cellPos = Offset(topLeftX, topLeftY) + Offset(i * cellSide, j * cellSide);
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
-                cellSize, isNote: (ns > 1024), isCell: true);
+                cellSide, isNote: (ns > 1024), isCell: true);
       if (pos == puzzle.lastCellHit) {
         hilitePos = cellPos;		// Paint hilite last, on top of cages.
       }
@@ -664,10 +663,10 @@ class PuzzlePainter2D extends CustomPainter
     }
 
     // Paint the highlight of the last puzzle-cell hit.
-    double shrinkBy = cellSize / 10.0;
+    double shrinkBy = cellSide / 10.0;
     double inset = shrinkBy / 2.0;
     canvas.drawRect(hilitePos + Offset(inset, inset) &
-               Size(cellSize - shrinkBy, cellSize - shrinkBy), highlight);
+               Size(cellSide - shrinkBy, cellSide - shrinkBy), highlight);
 
   } // End void paint(Canvas canvas, Size size)
 
@@ -753,8 +752,8 @@ class PuzzlePainter2D extends CustomPainter
 } // End class PuzzlePainter2D extends CustomPainter
 
 
-// TODO - Phase these OUT. ALSO change cellSize to cellSide everywhere.
-double cellSize    = 10.0;
+// TODO - Phase these OUT.
+double cellSide    = 10.0;
 double controlSize = 10.0;
 double topLeftX    = 10.0;
 double topLeftY    = 10.0;

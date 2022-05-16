@@ -5,6 +5,7 @@ import '../globals.dart';
 import 'puzzle_map.dart';
 import 'puzzle_types.dart';
 import '../views/painting_specs_2d.dart';
+import '../views/painting_specs_3d.dart';
 import '../engines/sudoku_generator.dart';
 import '../engines/sudoku_solver.dart';
 import '../engines/mathdoku_generator.dart';
