@@ -56,14 +56,12 @@ abstract class PaintingSpecs
   // This group of properties defines details for the background of the puzzle.
   // They are fixed in overall appearance while the selected puzzle is in play,
   // but can be repainted or resized many times between moves.
-  bool      _portrait       = true;	// Orientation.
+  bool      portrait        = true;	// Orientation.
   int       nSymbols        = 9;	// Number of symbols (4, 9, 16 or 25).
   int       sizeX           = 9;	// X size of board-area (# of cells).
   int       sizeY           = 9;	// Y size of board-area (# of cells).
   int       sizeZ           = 1;	// Z size of board-area (# of cells).
   List<int> cellBackG       = [];	// Backgrounds of cells.
-
-  bool      get portrait       => _portrait;
 
   // These properties may change size during puzzle play. Can happen if a
   // desktop window changes size or a device flips landscape/portrait view.
@@ -76,8 +74,6 @@ abstract class PaintingSpecs
   Rect      get controlRect => _controlRect;	// Space for controls.
   double    get cellSide    => _cellSide;	// Dimension of puzzle square.
   double    get controlSide => _controlSide;	// Dimension of control square.
-
-  void set portrait(bool b)           => _portrait = b;
 
   void set controlRect(Rect r)        => _controlRect = r;
 

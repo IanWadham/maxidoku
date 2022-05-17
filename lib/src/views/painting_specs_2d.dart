@@ -22,7 +22,6 @@ class PaintingSpecs2D extends PaintingSpecs
     :
     super(_puzzleMap);
 
-  bool      _portrait       = true;	// Orientation.
   List<int> edgesEW         = [];	// East-West edges of cells.
   List<int> edgesNS         = [];	// North-South edges of cells.
 

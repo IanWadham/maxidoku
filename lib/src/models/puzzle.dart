@@ -90,7 +90,7 @@ class Puzzle with ChangeNotifier
 
   bool createState(int index)
   {
-    // Create the state for the puzzle type the user selected.
+    // Create the layout, clues and model for the puzzle type the user selected.
     print('Create Puzzle: index $index hash ${hashCode}');
 
     // Get a list of puzzle specifications in textual form.
