@@ -134,13 +134,10 @@ class PuzzleView extends StatelessWidget
 
     if (orientation == Orientation.landscape) {
       // Landscape orientation.
-      // Paint the puzzle with the action icons in a column on the right.
+      // Paint the puzzle with the action icons in a column on the left.
       return Scaffold(			// Omit AppBar, to maximize real-estate.
         body: Row(
           children: <Widget>[
-            // Expanded(
-              // child: _PuzzleView(),
-            // ),
             Ink(   // Give puzzle-background colour to column of IconButtons.
               color: Colors.amber.shade100,
               child: Column(
@@ -150,7 +147,7 @@ class PuzzleView extends StatelessWidget
               ),
             ),
             Expanded(
-              child: _PuzzleView(),
+              child: PuzzleBoardView(),
             ),
           ], // End Row children: [
         ), // End body: Row(
@@ -169,7 +166,7 @@ class PuzzleView extends StatelessWidget
               ),
             ),
             Expanded(
-              child: _PuzzleView(),
+              child: PuzzleBoardView(),
             ),
           ],
         ), // End body: Column(
@@ -288,7 +285,7 @@ class PuzzleView extends StatelessWidget
 } // End class PuzzleView
 
 
-class _PuzzleView extends StatelessWidget
+class PuzzleBoardView extends StatelessWidget
 {
   Offset hitPos    = Offset(-1.0, -1.0);
   late Puzzle        puzzle;	// Located by Provider's watch<Puzzle> function.
@@ -461,4 +458,4 @@ class _PuzzleView extends StatelessWidget
     //       invalid, there is no model-change and no repaint.
   }
 
-} // End class _PuzzleView extends StatelessWidget
+} // End class PuzzleBoardView extends StatelessWidget
