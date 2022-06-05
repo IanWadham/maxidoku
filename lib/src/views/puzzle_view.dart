@@ -48,8 +48,6 @@ class PuzzleView extends StatelessWidget
     // A setter in Puzzle saves "portrait" in either 2D or 3D PaintingSpecs.
     puzzle.portrait = (orientation == Orientation.portrait);
 
-    // TODO - CRASH!!!  generatePuzzle(puzzle, context);
-
     // Create the list of action-icons.
     List<Widget> actionIcons = [
       IconButton(
@@ -285,7 +283,7 @@ class PuzzleView extends StatelessWidget
 } // End class PuzzleView
 
 
-class PuzzleBoardView extends StatelessWidget
+class PuzzleBoardView extends StatelessWidget with ChangeNotifier
 {
   Offset hitPos    = Offset(-1.0, -1.0);
   late Puzzle        puzzle;	// Located by Provider's watch<Puzzle> function.
@@ -337,6 +335,33 @@ class PuzzleBoardView extends StatelessWidget
   {
     // TODO - Not seeing the HasError message. Seems to happen when last move
     //        is an error, but seems OK if an earlier move is incorrect.
+
+    if (puzzle.delayedMessage.messageType != '') {
+      // We arrive here if the user selected a puzzle from the menu-screen or
+      // asked for a retry, to get a more difficult puzzle (see below). The
+      // delayed message is stored until after the puzzle area is repainted.
+      Message m = puzzle.delayedMessage;
+      bool retrying = false;
+      if (m.messageType == 'Q') {
+        retrying = await questionMessage(
+                         context, 'Generate Puzzle', m.messageText,
+                         okText: 'Try Again', cancelText: 'Accept');
+      }
+      else if (m.messageType != '') {
+        // Inform the user about the puzzle that was generated, then return.
+        await infoMessage(context, 'Generate Puzzle', m.messageText);
+      }
+      if (retrying) {
+        // Keep re-generating and repainting to try for the required Difficulty.
+        m = puzzle.generatePuzzle();
+        puzzle.delayedMessage = m;
+        notifyListeners();		// Trigger repaint of puzzle + message.
+      }
+      else {
+        puzzle.delayedMessage = Message('', '');
+      }
+      return;
+    }
 
     // Check to see if there was any major change during the last repaint of
     // the Puzzle. If so, issue appropriate messages. Flutter does not allow
