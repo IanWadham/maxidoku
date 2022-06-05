@@ -45,7 +45,11 @@ class PaintingSpecs3D extends PaintingSpecs
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round
     ..strokeJoin  = StrokeJoin.round
-    ..strokeWidth = 1.5;
+    ..strokeWidth = 2.0;
+
+  var thickLineFill = Paint()
+    ..color = Colors.brown.shade300
+    ..style = PaintingStyle.fill;
 
   PaintingSpecs3D(PuzzleMap this._map)
     :
@@ -168,7 +172,7 @@ class PaintingSpecs3D extends PaintingSpecs
     // print('rangeX $rangeX rangeY $rangeY height ${puzzleRect.height}');
     double maxRange = (rangeX > rangeY) ? rangeX : rangeY;
     // Spheres started with diameter 2: now inflated by ~1.75.
-    _scale  = puzzleRect.height / (maxRange + _diameter);
+    _scale  = 0.95 * puzzleRect.height / (maxRange + _diameter);
     _origin = puzzleRect.center;
   }
 
