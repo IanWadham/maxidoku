@@ -127,10 +127,6 @@ abstract class PaintingSpecs
 
 double cellSize    = 10.0;
 double controlSize = 10.0;
-double topLeftX    = 10.0;
-double topLeftY    = 10.0;
-double topLeftXc   = 10.0;
-double topLeftYc   = 10.0;
 
 void paintPuzzleControls(Canvas canvas, int nControls, Paint thinLinePaint,
                 Paint thickLinePaint, bool notesMode, int selectedControl)
@@ -240,7 +236,6 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
     // print('Long side $longSide, short side $shortSide');
   }
   // Set the offsets and sizes to be used for co-ordinates within the puzzle.
-  // Order is topLeftX, topLeftY, topLeftXc, topLeftYc, cellSize, controlSize.
   List<double> result;
   if (portrait) {
     _puzzleRect = Rect.fromLTWH(

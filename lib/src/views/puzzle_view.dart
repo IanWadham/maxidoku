@@ -424,10 +424,9 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         bool horizontal = controlRect.width > controlRect.height;
         double cellSide = horizontal ? controlRect.width / nCells
                                      : controlRect.height / nCells;
-        Offset point = hitPos - Offset(topLeftXc, topLeftYc);
+        Offset point = hitPos - controlRect.topLeft;
         int x = (point.dx / cellSide).floor();
         int y = (point.dy / cellSide).floor();
-        print('Hit is at control-cell ($x, $y)');
         int selection = horizontal ? x : y;	// Get the selected control num.
         modelChanged = puzzle.hitControlArea(selection);
       }

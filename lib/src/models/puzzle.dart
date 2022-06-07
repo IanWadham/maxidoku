@@ -84,9 +84,8 @@ class Puzzle with ChangeNotifier
   int  _indexUndoRedo  = 0;
 
   int  selectedControl = 1;
+  int  selectedCell    = 0;
   bool notesMode       = false;
-  int  lastCellHit     = 0;
-  bool multiNotes      = false;
 
   bool createState(int index)
   {
@@ -153,10 +152,9 @@ class Puzzle with ChangeNotifier
 
     int  _indexUndoRedo  = 0;
 
+    selectedCell    = 0;
     selectedControl = 1;
     notesMode       = false;
-    lastCellHit     = 0;
-    multiNotes      = false;
 
     _puzzlePlay = Play.NotStarted;
   }
@@ -290,78 +288,51 @@ class Puzzle with ChangeNotifier
     return true;
   }
 
-  bool hitControlArea(int selection)
+  bool hitPuzzleCellN(int n)
   {
-    // User has tapped on the control area, to choose a symbol (1-9, A-Y)
-    // to enter, to switch Notes mode or to set Delete (or Erase) mode.
-    bool hideNotes = (puzzlePlay == Play.NotStarted) ||
-                     (puzzlePlay == Play.BeingEntered);
-    print('hitControlArea: selection $selection, hideNotes $hideNotes');
-    if (! hideNotes && (selection == 0)) {
-      notesMode = !notesMode;	// Switch Notes mode, but only when solving.
-      print('Switched Notes to $notesMode');
+    // Step 1 in making a move: highlight a cell that is to receive a new value.
+
+    if (! validCellSelection(n)) {
+      return false;
     }
-    else {
-      // The value selected is treated as a cell-value, a note or an erase.
-      selectedControl = selection - (hideNotes ? 0 : 1);
-      print('hitControlArea: Selected control $selectedControl');
-      // Conditionally allow multiple entry of Notes in current Puzzle cell.
-      print('NotesMode $notesMode lastCellHit $lastCellHit');
-      if (notesMode && (_cellStatus[lastCellHit] == NOTES)) {
-        // Cell already has a note, so OK to add more or clear existing.
-        print('Call hitPuzzleCell for lastCellHit $lastCellHit');
-        move(lastCellHit, selectedControl);
-        multiNotes = true;
-      }
-    }
+    selectedCell = n;
     notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
   }
 
   bool hitPuzzleArea(int x, int y)
   {
-    // User has tapped on a puzzle-cell in 2D: use a generic handler.
+    // User has tapped on a puzzle-cell in 2D: use the generic handler (above).
     return hitPuzzleCellN(_puzzleMap.cellIndex(x, y));
   }
 
-  bool hitPuzzleCellN(int n)
+////// TODO - Toggling notesMode should change colour of highlight in View.
+  bool hitControlArea(int selection)
   {
-    // User has tapped on a puzzle-cell in 2D or 3D: apply the rules of play.
-    if (_puzzlePlay == Play.Solved) {
-      // The Puzzle has been solved: only undo/redo  moves are allowed.
-      // The user can also generate a new Puzzle or Quit/Save, etc.
+    // Step 2 in making a move: tap on the control area to choose a value
+    // (1-9, A-Y) to enter into a puzzle cell, to switch Notes mode on/off
+    // or to clear a puzzle cell. In Notes mode, multiple values can be
+    // entered into one selected cell. In either mode, a value can be
+    // deleted by tapping on the same value again.
+
+    bool hideNotes = (puzzlePlay == Play.NotStarted) ||
+                     (puzzlePlay == Play.BeingEntered);
+    print('hitControlArea: selection $selection, hideNotes $hideNotes');
+    if ((! hideNotes) && (selection == 0)) {
+      // Toggle notesMode and return. View should change colour of highlight.
+      notesMode = !notesMode;	// Switch Notes mode, but only when solving.
+      print('Switched Notes to $notesMode');
+      notifyListeners();	// Trigger a repaint of the Puzzle View.
+      return true;
+    }
+    // The value selected is treated as a cell-value, a note or an erase.
+    selectedControl = selection - (hideNotes ? 0 : 1);
+    print('hitControlArea: Selected control $selectedControl');
+    if (! validMove(selectedCell, selectedControl)) {
       return false;
     }
-    else if (_puzzlePlay == Play.HasError) {
-      // Allow moves to correct the error(s) in a potential solution.
-      _puzzlePlay = Play.InProgress;
-    }
 
-    CellValue  symbol = selectedControl;
-    CellStatus status = _cellStatus[n];
-
-    // Check that the user has selected a symbol and that the cell is usable.
-    if (symbol == UNUSABLE || status == UNUSABLE || status == GIVEN) {
-      return false;
-    }
-
-    if ((symbol == VACANT) && (_stateOfPlay[n] == VACANT)) {
-      // Don't clear a cell that is already empty.
-      return false;
-    }
-
-    if (n != lastCellHit) {
-      lastCellHit = n;
-      if (multiNotes) {
-         multiNotes = false;
-         if (notesMode) {
-           // Avoid automatically repeating the last note in the previous cell,
-           // but do a repaint to capture the highlight  on the new cell.
-           notifyListeners();
-           return false;
-         }
-      }
-    }
+    CellValue symbol = selectedControl;
 
     _previousPuzzlePlay = _puzzlePlay;	// In case the move changes the Play.
 
@@ -379,7 +350,7 @@ class Puzzle with ChangeNotifier
     }
 
     // Attempt to make the move. Return the status and value of the cell.
-    CellState c =  move(n, symbol);
+    CellState c =  move(selectedCell, symbol);
 
     if ((_puzzlePlay == Play.InProgress) && (c.status == CORRECT)) {
       // If all cells are now filled, change the Puzzle Play status to Solved or      // HasError: otherwise leave it at InProgress. If Solved, no more moves
@@ -388,14 +359,61 @@ class Puzzle with ChangeNotifier
 
       // TODO - Stop the clock when changing to Solved status.
     }
+
     // The move has been accepted and made.
     notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
   }
 
+  bool validCellSelection(int n)
+  {
+    // The user has tapped on a puzzle-cell in 2D/3D: apply the rules of play.
+    if ((n < 0) || (n > _puzzleMap.size)) {
+      print('puzzle.dart:validCellSelection() - INVALID CELL-INDEX $n');
+      return false;
+    }
+    if (_puzzlePlay == Play.Solved) {
+      // The Puzzle has been solved: only undo/redo  moves are allowed.
+      // The user can also generate a new Puzzle or Quit/Save, etc.
+      return false;
+    }
+    else if (_puzzlePlay == Play.HasError) {
+      // Allow moves to correct the error(s) in a potential solution.
+      _puzzlePlay = Play.InProgress;
+    }
+
+    CellStatus status = _cellStatus[n];
+    print('Cell status $n = $status');
+
+    // Check that the user has selected a symbol and that the cell is usable.
+    if (status == UNUSABLE || status == GIVEN) {
+      print('Invalid: Status is UNUSABLE or GIVEN');
+      return false;
+    }
+    return true;
+  }
+
+  bool validMove(int n, CellValue symbol)
+  {
+    // The user has tapped on a control-cell: if OK, allow a move to be made.
+    if ((n < 0) || (n > _puzzleMap.size)) {
+      print('puzzle.dart:validMove() - INVALID CELL-INDEX $n');
+      return false;
+    }
+    if ((symbol < 0) || (symbol > _puzzleMap.nSymbols)) {
+      print('puzzle.dart:validMove() - INVALID SYMBOL $symbol');
+      return false;
+    }
+    if ((symbol == VACANT) && (_stateOfPlay[n] == VACANT)) {
+      // Don't clear a cell that is already empty.
+      return false;
+    }
+    return true;
+  }
+
   CellState move(int n, CellValue symbol)
   { 
-    // Make a move and update the state of the Puzzle cell.
+    // Register a move in the Model data and update the Puzzle cell's state.
     CellStatus currentStatus = _cellStatus[n];
     CellValue  currentValue  = _stateOfPlay[n];
     CellStatus newStatus;
@@ -420,7 +438,6 @@ class Puzzle with ChangeNotifier
       if (newValue == NotesBit) {
         newValue   = VACANT;
         newStatus  = VACANT;
-        multiNotes = false;
       }
       print('Puzzle: cell $n: new val $newV status $newStatus');
       print('Puzzle: cell $n: old val $currV status $currentStatus');

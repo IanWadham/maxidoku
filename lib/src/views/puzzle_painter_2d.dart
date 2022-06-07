@@ -47,6 +47,7 @@ class PuzzlePainter2D extends CustomPainter
     bool hideNotes     = (puzzle.puzzlePlay == Play.NotStarted) ||
                          (puzzle.puzzlePlay == Play.BeingEntered);
     int  nControls     = hideNotes ? nSymbols + 1 : nSymbols + 2;
+    print('2D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
 
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
 
@@ -55,8 +56,6 @@ class PuzzlePainter2D extends CustomPainter
     topLeft    = paintingSpecs.puzzleRect.topLeft;
     cellSide   = paintingSpecs.cellSide;
 
-    topLeftXc  = paintingSpecs.controlRect.left;
-    topLeftYc  = paintingSpecs.controlRect.top;
     double controlSize = paintingSpecs.controlSide;
 
     var lightScheme = ColorScheme.fromSeed(seedColor: Colors.amber.shade200);
@@ -197,7 +196,7 @@ class PuzzlePainter2D extends CustomPainter
       cellPos = Offset(topLeftX, topLeftY) + Offset(i * cellSide, j * cellSide);
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
                 cellSide, isNote: (ns > 1024), isCell: true);
-      if (pos == puzzle.lastCellHit) {
+      if (pos == puzzle.selectedCell) {
         hilitePos = cellPos;		// Paint hilite last, on top of cages.
       }
     }
@@ -302,5 +301,3 @@ double cellSide    = 10.0;
 double controlSize = 10.0;
 double topLeftX    = 10.0;
 double topLeftY    = 10.0;
-double topLeftXc   = 10.0;
-double topLeftYc   = 10.0;
