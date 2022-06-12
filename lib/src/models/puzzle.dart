@@ -306,7 +306,6 @@ class Puzzle with ChangeNotifier
     return hitPuzzleCellN(_puzzleMap.cellIndex(x, y));
   }
 
-////// TODO - Toggling notesMode should change colour of highlight in View.
   bool hitControlArea(int selection)
   {
     // Step 2 in making a move: tap on the control area to choose a value
@@ -319,8 +318,8 @@ class Puzzle with ChangeNotifier
                      (puzzlePlay == Play.BeingEntered);
     print('hitControlArea: selection $selection, hideNotes $hideNotes');
     if ((! hideNotes) && (selection == 0)) {
-      // Toggle notesMode and return. View should change colour of highlight.
-      notesMode = !notesMode;	// Switch Notes mode, but only when solving.
+      // If solving, switch Notes mode and change colour of highlight.
+      notesMode = !notesMode;
       print('Switched Notes to $notesMode');
       notifyListeners();	// Trigger a repaint of the Puzzle View.
       return true;

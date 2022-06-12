@@ -43,7 +43,7 @@ class PuzzlePainter3D extends CustomPainter
     bool hideNotes     = (puzzle.puzzlePlay == Play.NotStarted) ||
                          (puzzle.puzzlePlay == Play.BeingEntered);
     int  nControls     = hideNotes ? nSymbols + 1 : nSymbols + 2;
-    print('3D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
+    // print('3D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
 
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
 
@@ -75,11 +75,6 @@ class PuzzlePainter3D extends CustomPainter
     var paintSpecial = Paint()		// Colour of Special cells.
       ..color = Colors.lime.shade400	// amberAccent.shade400
       ..style = PaintingStyle.fill;
-    var highlight      = Paint()	// Style for highlights.
-      ..color = Colors.red.shade400
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin  = StrokeJoin.round;
 
     // Now paint the background of the canvas.
     canvas.drawRect(Offset(0, 0) & size, paint1);
@@ -94,10 +89,6 @@ class PuzzlePainter3D extends CustomPainter
     double sc     = paintingSpecs.scale;
     double diam   = paintingSpecs.diameter * sc;
     Offset origin = paintingSpecs.origin;
-
-    // highlight.strokeWidth = cellSide * paintingSpecs.highlightInset;
-    // TODO - Use Shrinkage ... as in 2D cell-highlights.
-    highlight.strokeWidth = 3.0;
 
     int nCircles  = paintingSpecs.rotated.length;
     for (int n = 0; n < nCircles; n++) {
@@ -135,7 +126,7 @@ class PuzzlePainter3D extends CustomPainter
       canvas.drawOval(r, thickLinePaint);
       // Highlight the selected sphere.
       if (ID == puzzle.selectedCell) {
-        canvas.drawOval(r, highlight);
+        canvas.drawOval(r, paintingSpecs.highlight);
       }
 
       // Scale and paint the symbols on this sphere, if any.

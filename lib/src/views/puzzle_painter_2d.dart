@@ -47,7 +47,7 @@ class PuzzlePainter2D extends CustomPainter
     bool hideNotes     = (puzzle.puzzlePlay == Play.NotStarted) ||
                          (puzzle.puzzlePlay == Play.BeingEntered);
     int  nControls     = hideNotes ? nSymbols + 1 : nSymbols + 2;
-    print('2D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
+    // print('2D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
 
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
 
@@ -93,11 +93,6 @@ class PuzzlePainter2D extends CustomPainter
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin  = StrokeJoin.round;
-    var highlight      = Paint()	// Style for highlights.
-      ..color = Colors.red.shade400
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin  = StrokeJoin.round;
     var cageLinePaint = Paint()		// Style for lines around cages.
       ..color = Colors.green.shade600
       ..style = PaintingStyle.stroke
@@ -112,7 +107,8 @@ class PuzzlePainter2D extends CustomPainter
     thinLinePaint.strokeWidth  = cellSide / 30.0;
     cageLinePaint.strokeWidth  = cellSide / 20.0;
     thickLinePaint.strokeWidth = cellSide / 15.0;
-    highlight.strokeWidth      = cellSide * paintingSpecs.highlightInset;
+    paintingSpecs.highlight.strokeWidth =
+                                 cellSide * paintingSpecs.highlightInset;
 
     // Now paint the background of the canvas.
     canvas.drawRect(Offset(0, 0) & size, paint1);
@@ -211,7 +207,8 @@ class PuzzlePainter2D extends CustomPainter
     double shrinkBy = cellSide / 10.0;
     double inset = shrinkBy / 2.0;
     canvas.drawRect(hilitePos + Offset(inset, inset) &
-               Size(cellSide - shrinkBy, cellSide - shrinkBy), highlight);
+                    Size(cellSide - shrinkBy, cellSide - shrinkBy),
+                    paintingSpecs.highlight);
 
   } // End void paint(Canvas canvas, Size size)
 

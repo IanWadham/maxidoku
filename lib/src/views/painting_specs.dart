@@ -77,6 +77,9 @@ abstract class PaintingSpecs
 
   void set controlRect(Rect r)        => _controlRect = r;
 
+  Color moveHighlight  = Colors.red.shade400;
+  Color notesHighlight = Colors.blue.shade400;
+
   var paint2 = Paint()		// Background colour of cells.
     ..color = Colors.amber.shade200
     ..style = PaintingStyle.fill;
@@ -86,12 +89,16 @@ abstract class PaintingSpecs
     ..strokeCap = StrokeCap.round
     ..strokeJoin  = StrokeJoin.round;
 
+  // TODO - Need constants for the shrinkage and similar cell fractions.
   final double highlightInset = 0.05;
 
   void calculatePainting();		// VIRTUAL.
 
   void calculatePaintAreas()
   {
+    // Initialise the colours used on the puzzle-board.
+    highlight.color = moveHighlight;
+
     // Some cells may have type UNUSABLE. The rest will have type VACANT (zero).
     // Some may be changed to GIVEN, ERROR or SPECIAL background types and
     // colours, so the PaintingSpecs class makes a DEEP copy of the empty
@@ -131,6 +138,8 @@ double controlSize = 10.0;
 void paintPuzzleControls(Canvas canvas, int nControls, Paint thinLinePaint,
                 Paint thickLinePaint, bool notesMode, int selectedControl)
 {
+  highlight.color = notesMode ? notesHighlight : moveHighlight;
+
   // Paint backgrounds of control_cells (symbols), including Erase and Notes.
   canvas.drawRect(_controlRect, paint2);
 
@@ -174,7 +183,6 @@ void paintPuzzleControls(Canvas canvas, int nControls, Paint thinLinePaint,
     }
     // Highlight the Notes control, if required.
     if (notesMode) {
-      // TODO - Need constants for the shrinkage and similar cell fractions.
       Rect r = cellPos & Size(controlSide, controlSide);
       canvas.drawRect(r.deflate(controlSide * highlightInset), highlight);
     }
