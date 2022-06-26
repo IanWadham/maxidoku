@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../globals.dart';
 import '../models/puzzle_map.dart';
+import '../settings/settings_controller.dart';
 
 // This is the shared part of the interfaces between the 2D and 3D views and
 // the Multidoku models, control and engines, which are written in Dart, with
@@ -34,20 +35,16 @@ abstract class PaintingSpecs
   // identifiers do not have leading underscores. They are visible to inheritors
   // of this class, such as PaintingSpecs2D and PaintingSpecs3D.
 
-  PuzzleMap _puzzleMap;
+  PuzzleMap          _puzzleMap;
+  SettingsController _settings;
 
-  PaintingSpecs(PuzzleMap this._puzzleMap);
+  PaintingSpecs(PuzzleMap this._puzzleMap, SettingsController this._settings);
 
-  // A fixed text-painter and style for painting Sudoku symbols on a Canvas.
+  // A fixed text-painter for painting Sudoku symbols on a Canvas.
   final TextPainter textPainter = TextPainter(
           textAlign: TextAlign.center,
           maxLines: 1,
           textDirection: TextDirection.ltr);
-
-  final TextStyle symbolStyle = TextStyle(
-      color:      Colors.brown.shade400,
-      fontSize:   baseSize,
-      fontWeight: FontWeight.bold);
 
   // A set of symbols, one per TextSpan, that has been type-set. A symbol only
   // has to be positioned, scaled and laid out before being painted on a canvas.
@@ -77,27 +74,107 @@ abstract class PaintingSpecs
 
   void set controlRect(Rect r)        => _controlRect = r;
 
-  Color moveHighlight  = Colors.red.shade400;
-  Color notesHighlight = Colors.blue.shade400;
+  // Control-values for switching between light and dark Puzzle themes.
+  var _lightThemeMask = 0x00000000;
+  var _darkThemeMask  = 0x00ffffff;
+  var _themeMask      = 0x00000000;		// Default is light.
 
-  var paint2 = Paint()		// Background colour of cells.
-    ..color = Colors.amber.shade200
-    ..style = PaintingStyle.fill;
-  var highlight      = Paint()	// Style for highlights.
-    ..color = Colors.red.shade400
-    ..style = PaintingStyle.stroke
-    ..strokeCap = StrokeCap.round
-    ..strokeJoin  = StrokeJoin.round;
+  Color moveHighlight  = Colors.red.shade400;	// Used when making moves.
+  Color notesHighlight = Colors.blue.shade400;	// Used when entering notes.
+
+  Paint highlight      = Paint()		// Style for highlights.
+    ..color            = Colors.red.shade400
+    ..style            = PaintingStyle.stroke
+    ..strokeCap        = StrokeCap.round
+    ..strokeJoin       = StrokeJoin.round;
+
+  // Default theme for Puzzle Canvas contents.
+  List<int> _theme = [
+    Colors.amber.shade100.value,	// Background colour of puzzle.
+    Colors.amber.shade200.value,	// Colour of unfilled 2D cells.
+    Colors.amber.shade300.value,	// Main colour of unfilled 3D spheres.
+    0xfffff0be,				// Colour of rims of 3D spheres.
+    0xffffb000,				// Colour of Given cells or clues.
+    Colors.lime.shade400.value,		// Colour of Special cells.
+    Colors.red.value,			// Colour of Error cells.
+    Colors.brown.shade400.value,	// Style for lines between cells.
+    Colors.brown.shade600.value,	// Style for symbols and group outlines.
+    Colors.lime.shade700.value,		// Style for cage outlines.
+  ];
+
+  // Paints (and brushes/pens) for areas and lines.
+  Paint backgroundPaint = Paint()	// Background colour of puzzle.
+      // ..color = Color(_theme[0])
+      ..style = PaintingStyle.fill;
+  Paint emptyCellPaint = Paint()	// Colour of unfilled 2D cells.
+      // ..color = Color(_theme[1])
+      ..style = PaintingStyle.fill;
+  Paint outerSpherePaint = Paint()	// Main colour of unfilled 3D spheres.
+      // ..color = Color(_theme[2])
+      ..style = PaintingStyle.fill;
+  Paint innerSpherePaint = Paint()	// Colour of rims of 3D spheres.
+      // ..color = Color(_theme[3])
+      ..style = PaintingStyle.fill;
+  Paint givenCellPaint = Paint()	// Colour of Given cells or clues.
+      // ..color = Color(_theme[4])
+      ..style = PaintingStyle.fill;
+  Paint specialCellPaint = Paint()	// Colour of Special cells.
+      // ..color = Color(_theme[5])
+      ..style = PaintingStyle.fill;
+  Paint errorCellPaint = Paint()	// Colour of Error cells.
+      // ..color = Color(_theme[6])
+      ..style = PaintingStyle.fill;
+  Paint thinLinePaint = Paint()		// Style for lines between cells.
+      // ..color = Color(_theme[7])
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin  = StrokeJoin.round;
+  Paint boldLinePaint = Paint()		// Style for symbols and group outlines.
+      // ..color = Color(_theme[8])
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin  = StrokeJoin.round;
+  Paint cageLinePaint = Paint()		// Style for cage outlines.
+      // ..color = Color(_theme[9])
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin  = StrokeJoin.round;
 
   // TODO - Need constants for the shrinkage and similar cell fractions.
   final double highlightInset = 0.05;
 
   void calculatePainting();		// VIRTUAL.
 
+  void setPuzzleThemeMode(bool darkMode)
+  {
+    // print('ENTERED setPuzzleThemeMode: darkMode $darkMode themeMask ${_themeMask.toRadixString(16)}');
+    _themeMask = darkMode ? _darkThemeMask : _lightThemeMask;
+    // print('DID setPuzzleThemeMode: darkMode $darkMode themeMask ${_themeMask.toRadixString(16)}');
+    _setTheme();
+  }
+
+  _setTheme()
+  {
+    highlight.color        = moveHighlight;
+
+    backgroundPaint.color  = Color(_theme[0] ^ _themeMask);
+    emptyCellPaint.color   = Color(_theme[1] ^ _themeMask);
+    outerSpherePaint.color = Color(_theme[2] ^ _themeMask);
+    innerSpherePaint.color = Color(_theme[3] ^ _themeMask);
+    givenCellPaint.color   = Color(_theme[4] ^ _themeMask);
+    specialCellPaint.color = Color(_theme[5] ^ _themeMask);
+    errorCellPaint.color   = Colors.red;	// Same in dark and light modes.
+    thinLinePaint.color    = Color(_theme[7] ^ _themeMask);
+    boldLinePaint.color    = Color(_theme[8] ^ _themeMask);
+    cageLinePaint.color    = Color(_theme[9] ^ _themeMask);
+
+    calculateTextProperties();
+  }
+
   void calculatePaintAreas()
   {
     // Initialise the colours used on the puzzle-board.
-    highlight.color = moveHighlight;
+    _setTheme();
 
     // Some cells may have type UNUSABLE. The rest will have type VACANT (zero).
     // Some may be changed to GIVEN, ERROR or SPECIAL background types and
@@ -124,8 +201,14 @@ abstract class PaintingSpecs
     //        abstract symbols.
 
     String symbols = (nSymbols <= 9) ? digits : letters;
-    print('$nSymbols symbols $symbols');
 
+    Color textColor = boldLinePaint.color;
+    TextStyle symbolStyle = TextStyle(
+      color:      textColor,
+      fontSize:   baseSize,
+      fontWeight: FontWeight.bold);
+
+    symbolTexts.clear();
     for (int n = 0; n < nSymbols; n++) {
       // The text-scale will be decided at painting time, dep. on canvas size.
       symbolTexts.add(TextSpan(style: symbolStyle, text: symbols[n + 1]));
@@ -141,7 +224,7 @@ void paintPuzzleControls(Canvas canvas, int nControls, Paint thinLinePaint,
   highlight.color = notesMode ? notesHighlight : moveHighlight;
 
   // Paint backgrounds of control_cells (symbols), including Erase and Notes.
-  canvas.drawRect(_controlRect, paint2);
+  canvas.drawRect(_controlRect, emptyCellPaint);
 
   // Draw the control-area framework, thick lines last, to cover thin ends.
   // Draw dividing-lines between cells horizontal or vertical, as required.
@@ -281,8 +364,11 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
     }
     if (n == 0) return;		// Skip empty cell.
 
-    double topMargin     = 0.17;
-    double bottomMargin  = 0.17;
+    //////// double topMargin     = 0.17;
+    //////// double bottomMargin  = 0.17;
+    double topMargin          = 0.2;
+    double bottomMargin       = 0.2;
+    double bottomNotesMargin  = 0.15;
     if ((_puzzleMap.specificType == SudokuType.KillerSudoku) ||
         (_puzzleMap.specificType == SudokuType.Mathdoku)) {
       if (isCell) {
@@ -296,7 +382,8 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
     if (isNote) {
       // Lay out and paint one or more notes in this cell.
       int gridWidth  = (nSymbols <= 9) ? 3 : (nSymbols <= 16) ? 4 : 5;
-      symbolSize = ((1 - topMargin - 0.05) / gridWidth) * cellSize;
+      //////// symbolSize = ((1 - topMargin - 0.05) / gridWidth) * cellSize;
+      symbolSize = ((1 - topMargin - bottomNotesMargin) / gridWidth) * cellSize;
 
       int notes = n;
       if ((notes & NotesBit) > 0) {	// Bitmap of one or more notes.
@@ -341,6 +428,8 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
   {
     double scale = symbolSize / baseSize;
     textPainter.text = symbolTexts[n-1];
+    // TODO - How to vary the color of the text? Properties are read-only?
+    //////// textPainter.text.style.color = boldLinePaint.color;
     textPainter.textScaleFactor = scale;
     textPainter.layout();
     double centering = (symbolSize - textPainter.width) / 2.0;

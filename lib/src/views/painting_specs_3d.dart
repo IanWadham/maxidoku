@@ -13,6 +13,7 @@ import 'package:vector_math/vector_math_64.dart' hide Colors;
 
 import '../globals.dart';
 import '../models/puzzle_map.dart';
+import '../settings/settings_controller.dart';
 import 'painting_specs.dart';
 
 // This is the interface between the 3D view and the Multidoku models, control
@@ -40,20 +41,9 @@ class PaintingSpecs3D extends PaintingSpecs
 {
   PuzzleMap _map;
 
-  var thickLinePaint = Paint()	// Style for edges of groups of cells.
-    ..color = Colors.brown.shade300
-    ..style = PaintingStyle.stroke
-    ..strokeCap = StrokeCap.round
-    ..strokeJoin  = StrokeJoin.round
-    ..strokeWidth = 2.0;
-
-  var thickLineFill = Paint()
-    ..color = Colors.brown.shade300
-    ..style = PaintingStyle.fill;
-
-  PaintingSpecs3D(PuzzleMap this._map)
+  PaintingSpecs3D(PuzzleMap this._map, SettingsController settings)
     :
-    super(_map);
+    super(_map, settings);
 
   final int spacing = 6;
   final int radius  = 1;
@@ -97,10 +87,13 @@ class PaintingSpecs3D extends PaintingSpecs
     newOrigin[0] = ((_map.sizeX - 1) * spacing) / 2;
     newOrigin[1] = ((_map.sizeY - 1) * spacing) / 2;
     newOrigin[2] = ((_map.sizeZ - 1) * spacing) / 2;
-    print('New Origin: $newOrigin');
+    // print('New Origin: $newOrigin');
 
+    // Create a set of circles and assign 3D co-ordinates to their centres, as
+    // required by the puzzle type and map. They are later coloured so as to
+    // represent spheres in 3D arrays.
     int nPoints = _map.size;
-    print('Size: $nPoints spheres');
+    // print('Size: $nPoints spheres');
     BoardContents board = _map.emptyBoard;
     for (int n = 0; n < nPoints; n++) {
       bool used = (board[n] == UNUSABLE) ? false : true;
@@ -111,10 +104,12 @@ class PaintingSpecs3D extends PaintingSpecs
       sphereN[1] = -_map.cellPosY(n) * spacing + newOrigin[1];
       sphereN[2] = -_map.cellPosZ(n) * spacing + newOrigin[2];
       spheres.add(Sphere(n, used, sphereN));
-      print('Sphere $n: $sphereN');
+      // print('Sphere $n: $sphereN');
     }
 
     // TODO - Roxdoku Windmill - 5 3 x 3 cubes locked together.
+
+    // Rotate all the pseudo-spheres so as to give the user a better view.
     print('\nROTATIONS: _rotateX $_rotateX _rotateY $_rotateY\n');
     rotationM = Matrix.rotationX(_rotateX*deg).
                 multiplied(Matrix.rotationY(_rotateY*deg));
@@ -126,29 +121,21 @@ class PaintingSpecs3D extends PaintingSpecs
   {
     rotated.clear();
 
+    // Apply the matrix-rotation to the centre of each pseudo-sphere.
     for (int n = 0; n < spheres.length; n++) {
       Coords sphereN = rotationM.rotated3(spheres[n].xyz);
       Coords XYZ = sphereN.clone();
-      String s = '[';
-      s = s + XYZ[0].toStringAsFixed(2) + ', ';
-      s = s + XYZ[1].toStringAsFixed(2) + ', ';
-      s = s + XYZ[2].toStringAsFixed(2) + ']';
+      // String s = '[';
+      // s = s + XYZ[0].toStringAsFixed(2) + ', ';
+      // s = s + XYZ[1].toStringAsFixed(2) + ', ';
+      // s = s + XYZ[2].toStringAsFixed(2) + ']';
       // print('Sphere $n: from ${spheres[n].xyz} to $s');
       rotated.add(Sphere(n, spheres[n].used, sphereN));
     }
+
     // Sort the centres of the spheres into Z order, so that, when painting the
     // Canvas, the furthest-away spheres are painted first and the nearest last.
     rotated.sort((s1, s2) => s1.xyz[2].compareTo(s2.xyz[2]));
-
-    // print('\nSPHERES IN Z ORDER');
-    for (int n = 0; n < spheres.length; n++) {
-      Coords XYZ = rotated[n].xyz;
-      String s = '[';
-      s = s + XYZ[0].toStringAsFixed(2) + ', ';
-      s = s + XYZ[1].toStringAsFixed(2) + ', ';
-      s = s + XYZ[2].toStringAsFixed(2) + ']';
-      // print('Sphere ${rotated[n].ID}: $s');
-    }
   }
 
   void calculateScale()
@@ -257,7 +244,7 @@ class PaintingSpecs3D extends PaintingSpecs
     Path arrow = Path();
     bool close = true;
     arrow.addPolygon(points, close);
-    canvas.drawPath(arrow, thickLinePaint);
+    canvas.drawPath(arrow, boldLinePaint);
     _arrowList.add(arrow);
   }
 

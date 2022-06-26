@@ -67,8 +67,16 @@ class MyApp extends StatelessWidget {
           // Define a light and dark color theme. Then, read the user's
           // preferred ThemeMode (light, dark, or system default) from the
           // SettingsController to display the required theme.
-          theme: ThemeData(),
-          darkTheme: ThemeData.dark(),
+          theme: ThemeData(
+            colorSchemeSeed: Colors.teal,
+            brightness:      Brightness.light,
+            useMaterial3:    true,
+          ),
+          darkTheme: ThemeData(
+            colorSchemeSeed: Colors.teal,
+            brightness:      Brightness.dark,
+            useMaterial3:    true,
+          ),
           themeMode: settingsController.themeMode,
 
           // Define a function to handle named routes in order to support
@@ -83,9 +91,9 @@ class MyApp extends StatelessWidget {
                     return SettingsView(controller: settingsController);
 
                   case PuzzleView.routeName:
-                    // Show empty layout of selected puzzle board.
+                    // Show selected puzzle board.
                     String puzzleSpecID = settingsController.puzzleSpecID;
-                    int index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
+                    int    index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
 
                     // Use Provider to monitor the state of the Puzzle model
                     // and then repaint the Puzzle View after any change of any
@@ -95,10 +103,12 @@ class MyApp extends StatelessWidget {
                     // several places in the Puzzle Class code where it calls
                     // notifyListeners() and these are watched for by Provider.
 
+                    bool darkMode =
+                         (Theme.of(context).brightness == Brightness.dark);
                     return ChangeNotifierProvider(
                       create: (context) =>		// The Model to watch.
-                              Puzzle(index, settingsController),
-                      child:  PuzzleView(),		// Top widget of screen.
+                              Puzzle(index, settingsController, darkMode),
+                      child:  PuzzleView(darkMode),	// Top widget of screen.
                       lazy:   false,			// Create Puzzle NOW, to
                                                         // avoid startup crash.
                     );

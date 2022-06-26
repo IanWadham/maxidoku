@@ -1,11 +1,15 @@
 import 'package:flutter/foundation.dart';
 
 import '../settings/settings_controller.dart';
+
 import '../globals.dart';
 import 'puzzle_map.dart';
 import 'puzzle_types.dart';
+
+import '../views/painting_specs.dart';
 import '../views/painting_specs_2d.dart';
 import '../views/painting_specs_3d.dart';
+
 import '../engines/sudoku_generator.dart';
 import '../engines/sudoku_solver.dart';
 import '../engines/mathdoku_generator.dart';
@@ -22,9 +26,9 @@ class CellChange
 class Puzzle with ChangeNotifier
 {
   // Constructor.
-  Puzzle(int index, this.settings)
+  Puzzle(int index, this.settings, bool darkMode)
   {
-    createState(index);
+    createState(index, darkMode);
   }
 
   final SettingsController settings;
@@ -87,7 +91,7 @@ class Puzzle with ChangeNotifier
   int  selectedCell    = 0;
   bool notesMode       = false;
 
-  bool createState(int index)
+  bool createState(int index, bool darkMode)
   {
     // Create the layout, clues and model for the puzzle type the user selected.
     print('Create Puzzle: index $index hash ${hashCode}');
@@ -104,28 +108,23 @@ class Puzzle with ChangeNotifier
     // Precalculate and save the operations for paint(Canvas canvas, Size size).
     // These are held in unit form and scaled up when the canvas-size is known.
     if (_puzzleMap.sizeZ == 1) {
-      _paintingSpecs2D = PaintingSpecs2D(_puzzleMap);
+      _paintingSpecs2D = PaintingSpecs2D(_puzzleMap, settings);
+      _paintingSpecs2D.setPuzzleThemeMode(darkMode); // Init light/dark theme.
       _paintingSpecs2D.calculatePainting();
     }
     else {
-      _paintingSpecs3D = PaintingSpecs3D(_puzzleMap);
+      _paintingSpecs3D = PaintingSpecs3D(_puzzleMap, settings);
+      _paintingSpecs3D.setPuzzleThemeMode(darkMode); // Init light/dark theme.
       _paintingSpecs3D.calculatePainting();
     }
-
-    // Set up data structures and PuzzleMap for an empty Puzzle Board.
-    // _init();
-
-    // TODO - Issuing a message right now causes a crash. Can it be issued by
-    //        the executeAfterBuild() and isPlayUnchanged() logic?
-    // TODO - YES: _puzzlePlay status changes from PlayNotStarted to ReadyToPlay
-    //        and this could be picked up in executeAfterBuild(), which would
-    //        have to retrieve/delete the delayed message (if any) from Puzzle.
 
     // Start by generating a puzzle and a delayed message immediately. The users
     // can tap an icon button or message reply if they wish to tap in a puzzle.
     delayedMessage = generatePuzzle();
 
-    // Already painting. Do NOT call notifyListeners(): it would cause a crash.
+    // NOTE - Flutter is already painting. Issuing a message right now causes
+    //        a crash and calling notifyListeners() also causes a crash. The
+    //        delayed message will be handled in PuzzleView.executeAfterBuild().
     return true;
   }
 
@@ -157,6 +156,18 @@ class Puzzle with ChangeNotifier
     notesMode       = false;
 
     _puzzlePlay = Play.NotStarted;
+  }
+
+  int setTheme(bool darkMode)
+  {
+    if (_puzzleMap.sizeZ == 1) {
+      _paintingSpecs2D.setPuzzleThemeMode(darkMode); // Switch light/dark theme.
+      return _paintingSpecs2D.backgroundPaint.color.value;
+    }
+    else {
+      _paintingSpecs3D.setPuzzleThemeMode(darkMode); // Switch light/dark theme.
+      return _paintingSpecs3D.backgroundPaint.color.value;
+    }
   }
 
   Message generatePuzzle()
@@ -351,7 +362,8 @@ class Puzzle with ChangeNotifier
     // Attempt to make the move. Return the status and value of the cell.
     CellState c =  move(selectedCell, symbol);
 
-    if ((_puzzlePlay == Play.InProgress) && (c.status == CORRECT)) {
+    //////// if ((_puzzlePlay == Play.InProgress) && (c.status == CORRECT)) {
+    if ((_puzzlePlay == Play.InProgress) || (_puzzlePlay == Play.HasError)) {
       // If all cells are now filled, change the Puzzle Play status to Solved or      // HasError: otherwise leave it at InProgress. If Solved, no more moves
       // are allowed: only undo/redo (to review the moves).
       _puzzlePlay = _isPuzzleSolved();
@@ -459,13 +471,9 @@ class Puzzle with ChangeNotifier
                      ERROR : CORRECT;
         if (newStatus == CORRECT) {
           autoClearNotes(n, newValue);
-          autoDimControls(n);
         }
       }
     }
-
-    // TODO - TEST various combinations of move, erase, prune & undo/redo.
-    // TODO - New move: prune _cellChanges list, unless new move == undone???
 
     CellState newState = CellState(newStatus, newValue);
     CellState oldState = CellState(currentStatus, currentValue);
@@ -474,7 +482,7 @@ class Puzzle with ChangeNotifier
     if (_indexUndoRedo < nCellChanges) {
       // Prune the list of cell changes (i.e. list of undo/redo possibilities).
       print('PRUNE _indexUndoRedo $_indexUndoRedo nCellChanges $nCellChanges');
-      _cellChanges.removeRange(_indexUndoRedo, nCellChanges - 1);
+      _cellChanges.removeRange(_indexUndoRedo, nCellChanges);
     }
 
     // Update the undo/redo list and record the move.
@@ -493,14 +501,11 @@ class Puzzle with ChangeNotifier
     // Check whether all playable cells are filled, with or without error(s).
     bool hasError = false;
     for (int n = 0; n < _solution.length; n++) {
-      if (_cellStatus[n] == ERROR) {
-        hasError = true;
-      }
       if ((_cellStatus[n] == VACANT) || (_cellStatus[n] == NOTES)) {
         // Not finished yet: found Notes or an empty cell.
         return _puzzlePlay;
       }
-      if (_stateOfPlay[n] != _solution[n]) {
+      if (_stateOfPlay[n] != _solution[n]) {	// Items are equal if UNUSABLE.
         hasError = true;
         _cellStatus[n] = ERROR;
       }
@@ -605,20 +610,4 @@ class Puzzle with ChangeNotifier
     }
   }
 
-  void autoDimControls(int n)
-  {
-    // Not implemented yet.
-  }
-
-  void testPuzzle() {
-    SudokuGenerator generator = SudokuGenerator(_puzzleMap);
-    BoardContents puzzle = [];
-    BoardContents solution = [];
-    generator.generateSudokuRoxdoku(puzzle,
-                                    solution,
-                                    _SudokuMoves,
-                                    Difficulty.Easy,
-                                    Symmetry.SPIRAL);
-    return;
-  }
-}
+} // End puzzle class.

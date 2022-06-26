@@ -13,6 +13,8 @@ import '../settings/settings_view.dart';
 import '../globals.dart';
 import '../models/puzzle.dart';
 
+import 'painting_specs.dart';
+
 import 'painting_specs_2d.dart';
 import 'puzzle_painter_2d.dart';
 
@@ -33,7 +35,9 @@ class PuzzleView extends StatelessWidget
 {
 // Displays a Sudoku puzzle of a selected type and size. It may be 2D or 3D.
 
-  const PuzzleView({Key? key,}) : super(key: key);
+  bool  darkMode;
+
+  PuzzleView(bool this.darkMode, {Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +51,10 @@ class PuzzleView extends StatelessWidget
     // Save the orientation, for later use by PuzzlePainters and paint().
     // A setter in Puzzle saves "portrait" in either 2D or 3D PaintingSpecs.
     puzzle.portrait = (orientation == Orientation.portrait);
+
+    // Find out what background colour, dark or light, to put under the icons.
+    // Set up Puzzle's theme in dark/light mode and get the background colour.
+    Color puzzleBackgroundColor = Color(puzzle.setTheme(darkMode));
 
     // Create the list of action-icons.
     List<Widget> actionIcons = [
@@ -137,7 +145,7 @@ class PuzzleView extends StatelessWidget
         body: Row(
           children: <Widget>[
             Ink(   // Give puzzle-background colour to column of IconButtons.
-              color: Colors.amber.shade100,
+              color: puzzleBackgroundColor,
               child: Column(
                 // Contents of Column are vertically centred.
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -158,7 +166,7 @@ class PuzzleView extends StatelessWidget
         body: Column(
           children: <Widget> [
             Ink( // Give puzzle-background colour to row of IconButtons.
-              color: Colors.amber.shade100,
+              color: puzzleBackgroundColor,
               child: Row(
                 children: actionIcons,
               ),
@@ -226,7 +234,6 @@ class PuzzleView extends StatelessWidget
         if (finished) {
           // Convert the entered data into a Puzzle and re-display it.
           puzzle.convertDataToPuzzle();
-          // TODO - Need to trigger a repaint here.
           // TODO - Suggest saving the puzzle to a file before playing it.
         }
         return;
@@ -299,9 +306,12 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
 
     puzzle = context.watch<Puzzle>();
 
-    // Enable the issuing of messages to the user after major changes.
+    // Enable messages to the user after major changes of puzzle-status.
     WidgetsBinding.instance?.addPostFrameCallback((_)
                              {executeAfterBuild(context);});
+
+    // Find out if the System (O/S) or Flutter colour Theme is dark or light.
+    bool darkMode = (Theme.of(context).brightness == Brightness.dark);
 
     if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {
       return Container(
@@ -311,7 +321,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         child:  Listener(
           onPointerDown: _possibleHit3D,
           child: CustomPaint(
-            painter: PuzzlePainter3D(puzzle),
+            painter: PuzzlePainter3D(puzzle, darkMode),
           ),
         ),
       );
@@ -324,7 +334,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         child:  Listener(
           onPointerDown: _possibleHit2D,
           child: CustomPaint(
-            painter: PuzzlePainter2D(puzzle),
+            painter: PuzzlePainter2D(puzzle, darkMode),
           ),
         ),
       );
@@ -333,12 +343,9 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
 
   Future<void> executeAfterBuild(BuildContext context) async
   {
-    // TODO - Not seeing the HasError message. Seems to happen when last move
-    //        is an error, but seems OK if an earlier move is incorrect.
-
     if (puzzle.delayedMessage.messageType != '') {
       // We arrive here if the user selected a puzzle from the menu-screen or
-      // asked for a retry, to get a more difficult puzzle (see below). The
+      // asked for a retry to get a more difficult puzzle (see below). The
       // delayed message is stored until after the puzzle area is repainted.
       Message m = puzzle.delayedMessage;
       bool retrying = false;

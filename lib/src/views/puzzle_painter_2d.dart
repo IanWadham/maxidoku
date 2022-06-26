@@ -9,8 +9,9 @@ import 'painting_specs_2d.dart';
 class PuzzlePainter2D extends CustomPainter
 {
   final Puzzle puzzle;
+  final bool   darkMode;
 
-  PuzzlePainter2D(this.puzzle);
+  PuzzlePainter2D(this.puzzle, this.darkMode);
 
   // NOTE: PuzzlePainter2D does not use the Listenable? repaint parameter of
   //       CustomerPainter, nor does it re-implement CustomPainter with
@@ -50,6 +51,7 @@ class PuzzlePainter2D extends CustomPainter
     // print('2D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
 
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
+    paintingSpecs.setPuzzleThemeMode(darkMode);
 
     topLeftX   = paintingSpecs.puzzleRect.left;
     topLeftY   = paintingSpecs.puzzleRect.top;
@@ -58,84 +60,47 @@ class PuzzlePainter2D extends CustomPainter
 
     double controlSize = paintingSpecs.controlSide;
 
-    var lightScheme = ColorScheme.fromSeed(seedColor: Colors.amber.shade200);
-    var darkScheme  = ColorScheme.fromSeed(seedColor: Colors.amber.shade200,
-                                           brightness: Brightness.dark);
-
     // Paints (and brushes/pens) for areas and lines.
-    var fill   = Paint()
-      ..style = PaintingStyle.fill;
-    var paint1 = fill
-      ..color = Colors.amber.shade100;
-    // var paint1 = Paint()		// Background colour of canvas.
-      // ..color = Colors.amber.shade100
-      // ..style = PaintingStyle.fill;
-    var paint2 = Paint()		// Background colour of cells.
-      ..color = Colors.amber.shade200
-      ..style = PaintingStyle.fill;
-    var paint3 = Paint()		// Colour of Given cells.
-      // ..color = Colors.amberAccent.shade700
-      ..color = Color(0xffffd600)	// yellow.shade700
-      ..style = PaintingStyle.fill;
-    var paintSpecial = Paint()		// Colour of Special cells.
-      ..color = Colors.lime.shade400	// amberAccent.shade400
-      ..style = PaintingStyle.fill;
-    var paintError = Paint()		// Colour of Error cells.
-      ..color = Colors.red.shade300
-      ..style = PaintingStyle.fill;
-    var thinLinePaint = Paint()		// Style for lines between cells.
-      ..color = Colors.brown.shade400
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin  = StrokeJoin.round;
-    var thickLinePaint = Paint()	// Style for edges of groups of cells.
-      ..color = Colors.brown.shade600
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin  = StrokeJoin.round;
-    var cageLinePaint = Paint()		// Style for lines around cages.
-      ..color = Colors.green.shade600
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin  = StrokeJoin.round;
-
-    // TODO - Paint Notes a little higher: bottom row clear of cage-lines.
-    //        Make circles a bit smaller on Givens and Error cells (gradient?).
-    //        Paint Symbols a little higher within the circles.
+    var backgroundPaint  = paintingSpecs.backgroundPaint;
+    var emptyCellPaint   = paintingSpecs.emptyCellPaint;
+    var givenCellPaint   = paintingSpecs.givenCellPaint;
+    var specialCellPaint = paintingSpecs.specialCellPaint;
+    var errorCellPaint   = paintingSpecs.errorCellPaint;
+    var thinLinePaint    = paintingSpecs.thinLinePaint;
+    var boldLinePaint    = paintingSpecs.boldLinePaint;
+    var cageLinePaint    = paintingSpecs.cageLinePaint;
+    var highlight        = paintingSpecs.highlight;
 
     // Calculated widths of lines, depending on canvas size and puzzle size.
     thinLinePaint.strokeWidth  = cellSide / 30.0;
     cageLinePaint.strokeWidth  = cellSide / 20.0;
-    thickLinePaint.strokeWidth = cellSide / 15.0;
-    paintingSpecs.highlight.strokeWidth =
-                                 cellSide * paintingSpecs.highlightInset;
+    boldLinePaint.strokeWidth  = cellSide / 15.0;
+    highlight.strokeWidth      = cellSide * paintingSpecs.highlightInset;
 
     // Now paint the background of the canvas.
-    canvas.drawRect(Offset(0, 0) & size, paint1);
+    canvas.drawRect(Offset(0, 0) & size, backgroundPaint);
 
     // Paint the backgrounds of puzzle-cells, as required by the puzzle-type.
     int nCells   = sizeX * sizeY;
-    double gap = 0.0;
     double o1, o2;
-    // TODO - Think about using a gradient in cell-painting, as opposed to gaps.
     for (int i = 0; i < nCells; i++) {
-      o1 = topLeftX + gap/2.0 + (i~/sizeY) * cellSide;
-      o2 = topLeftY + gap/2.0 + (i %sizeY) * cellSide;
+      o1 = topLeftX + (i~/sizeY) * cellSide;
+      o2 = topLeftY + (i %sizeY) * cellSide;
       Paint cellPaint;
       switch (paintingSpecs.cellBackG[i]) {
         case GIVEN:
-          cellPaint = paint3;
+          cellPaint = givenCellPaint;
           break;
         case SPECIAL:
-          cellPaint = paintSpecial;
+          cellPaint = specialCellPaint;
           break;
         case VACANT:
         default:
-          cellPaint = paint2;
+          cellPaint = emptyCellPaint;
       }
       if (paintingSpecs.cellBackG[i] != UNUSABLE) {	// Skip unused areas.
         // Paint the cells that are within the puzzle-area (note Samurai type).
-        canvas.drawRect(Offset(o1,o2) & Size(cellSide - gap, cellSide - gap),
+        canvas.drawRect(Offset(o1,o2) & Size(cellSide, cellSide),
                         cellPaint);
       }
     }
@@ -147,21 +112,21 @@ class PuzzlePainter2D extends CustomPainter
       double o2 = topLeftY + (i%(sizeY + 1))  * cellSide;
       int paintType = paintingSpecs.edgesEW[i];
       if (paintType > 0) {
-        Paint p = (paintType == 1) ? thinLinePaint : thickLinePaint;
+        Paint p = (paintType == 1) ? thinLinePaint : boldLinePaint;
         canvas.drawLine(Offset(o1, o2), Offset(o1 + cellSide, o2), p);
       }
       o1 = topLeftX + (i~/sizeY) * cellSide;
       o2 = topLeftY + (i%sizeY)  * cellSide;
       paintType = paintingSpecs.edgesNS[i];
       if (paintType > 0) {
-        Paint p = (paintType == 1) ? thinLinePaint : thickLinePaint;
+        Paint p = (paintType == 1) ? thinLinePaint : boldLinePaint;
         canvas.drawLine(Offset(o1, o2), Offset(o1, o2 + cellSide), p);
       }
     }
 
     // Paint the control-area.
     paintingSpecs.paintPuzzleControls(canvas, nControls, thinLinePaint,
-                  thickLinePaint, puzzle.notesMode, puzzle.selectedControl);
+                  boldLinePaint, puzzle.notesMode, puzzle.selectedControl);
 
     // Paint/repaint the graphics for all the symbols in the puzzle area.
     int puzzleSize = paintingSpecs.sizeX * paintingSpecs.sizeY;
@@ -173,13 +138,17 @@ class PuzzlePainter2D extends CustomPainter
         continue;
       }
       int status = puzzle.cellStatus[pos];
+      // TODO - To fill the cell with the gradient, we can use a rect that is
+      //        LARGER than the cell and offset above and left of the cell. But
+      //        then we get smudging in adjoining cells... Can we clip shading?
       if ((status == GIVEN) || (status == ERROR)) {
-        Paint cellPaint = (status == GIVEN) ? paint3 : paintError;
-        gap = cellSide / 8.0;		// TODO - Set this in a better place.
+        Paint cellPaint = (status == GIVEN) ? givenCellPaint : errorCellPaint;
+        double gap = cellSide / 8.0;	// TODO - Set this in a better place.
         o1 = topLeftX + gap/2.0 + (pos~/sizeY) * cellSide;
         o2 = topLeftY + gap/2.0 + (pos %sizeY) * cellSide;
+        // TODO - Shading is not easy to see if givenCellColor is in Dark mode.
         List<Color> shaderColors = [cellPaint.color, Color(0x00FFFFFF)];
-        RadialGradient rg = RadialGradient(radius: 1.1, colors: shaderColors);
+        RadialGradient rg = RadialGradient(radius: 1.0, colors: shaderColors);
         Rect r = Offset(o1, o2) & Size(cellSide - gap, cellSide - gap);
         Shader shader = rg.createShader(r);
         Paint p = Paint();
@@ -200,7 +169,7 @@ class PuzzlePainter2D extends CustomPainter
     // In Mathdoku or Killer Sudoku, paint the outlines and labels of the cages.
     if (puzzle.puzzleMap.cageCount() > 0) {
       paintCages(canvas, puzzle.puzzleMap.cageCount(),
-                paint3, paint2, cageLinePaint);
+                 boldLinePaint, emptyCellPaint, cageLinePaint);
     }
 
     // Paint the highlight of the last puzzle-cell hit.

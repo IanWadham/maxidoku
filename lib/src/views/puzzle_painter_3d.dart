@@ -9,8 +9,9 @@ import 'painting_specs_3d.dart';
 class PuzzlePainter3D extends CustomPainter
 {
   final Puzzle puzzle;
+  final bool   darkMode;
 
-  PuzzlePainter3D(this.puzzle);
+  PuzzlePainter3D(this.puzzle, this.darkMode);
 
   // NOTE: PuzzlePainter3D does not use the Listenable? repaint parameter of
   //       CustomerPainter, nor does it re-implement CustomPainter with
@@ -46,43 +47,27 @@ class PuzzlePainter3D extends CustomPainter
     // print('3D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
 
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
+    paintingSpecs.setPuzzleThemeMode(darkMode);
 
     // Paints (and brushes/pens) for areas and lines.
-    var paint1 = Paint()		// Background colour of canvas.
-      ..color = Colors.amber.shade100
-      ..style = PaintingStyle.fill;
-    var thinLinePaint = Paint()		// Style for lines between cells.
-      ..color = Colors.brown.shade400
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin  = StrokeJoin.round;
-    var thickLinePaint = Paint()	// Style for edges of groups of cells.
-      ..color = Colors.brown.shade300
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin  = StrokeJoin.round
-      ..strokeWidth = 1.5;
-    var paintError = Paint()		// Colour of Error cells.
-      ..color = Colors.amber.shade700
-      ..style = PaintingStyle.fill;
-    var paint3 = Paint()		// Colour of Given cells.
-      // ..color = Colors.amberAccent.shade700
-      ..color = Color(0xffffd600)	// yellow.shade700
-      ..style = PaintingStyle.fill;
-    var paint2 = Paint()		// Background colour of cells.
-      ..color = Colors.amber.shade200
-      ..style = PaintingStyle.fill;
-    var paintSpecial = Paint()		// Colour of Special cells.
-      ..color = Colors.lime.shade400	// amberAccent.shade400
-      ..style = PaintingStyle.fill;
+    var backgroundPaint  = paintingSpecs.backgroundPaint;
+    var innerSpherePaint = paintingSpecs.innerSpherePaint;
+    var outerSpherePaint = paintingSpecs.outerSpherePaint;
+    var givenCellPaint   = paintingSpecs.givenCellPaint;
+    var specialCellPaint = paintingSpecs.specialCellPaint;
+    var errorCellPaint   = paintingSpecs.errorCellPaint;
+    var thinLinePaint    = paintingSpecs.thinLinePaint;
+    var boldLinePaint    = paintingSpecs.boldLinePaint;
+    var cageLinePaint    = paintingSpecs.cageLinePaint;
+    var highlight        = paintingSpecs.highlight;
 
-    // Now paint the background of the canvas.
-    canvas.drawRect(Offset(0, 0) & size, paint1);
+    // Paint the background of the canvas.
+    canvas.drawRect(Offset(0, 0) & size, backgroundPaint);
 
     paintingSpecs.add3DViewControls(canvas);
 
     paintingSpecs.paintPuzzleControls(canvas, nControls, thinLinePaint,
-                  thickLinePaint, puzzle.notesMode, puzzle.selectedControl);
+                  boldLinePaint, puzzle.notesMode, puzzle.selectedControl);
 
     paintingSpecs.calculateScale();
 
@@ -99,34 +84,34 @@ class PuzzlePainter3D extends CustomPainter
       // Scale the XY co-ordinates and reverse the Y-axis for 2D display.
       Offset centre = paintingSpecs.rotatedXY(n).scale(sc, -sc) + origin;
 
-      // Set the colour for this cell. The order of priority
+      // Set the main colour for this sphere. The order of priority
       // is ERROR, SPECIAL, GIVEN and then Normal.
       int ID = paintingSpecs.rotated[n].ID;
       int status = puzzle.cellStatus[ID];
-      Paint cellPaint = paint2;			// Normal colour.
+
+      Paint cellPaint = innerSpherePaint;	// Normal colour.
       if (status == ERROR) {
-        cellPaint = paintError;			// ERROR colour.
+        cellPaint = errorCellPaint;		// ERROR colour.
       }
       else if (paintingSpecs.cellBackG[ID] == SPECIAL) {
-        cellPaint = paintSpecial;		// Enhanced visibility colour.
+        cellPaint = specialCellPaint;		// Enhanced visibility colour.
       }
       else if (status == GIVEN) {
-        cellPaint = paint3;			// Colour for GIVEN cells.
+        cellPaint = givenCellPaint;		// Colour for GIVEN cells.
       }
 
       Rect r = Rect.fromCenter(center: centre, width: diam, height: diam);
-      // List<Color> shaderColors = [paintError.color, Colors.white];
-      List<Color> shaderColors = [cellPaint.color, Colors.white];
-      RadialGradient rg = RadialGradient(radius: 1.1, colors: shaderColors);
+      List<Color> shaderColors = [cellPaint.color, outerSpherePaint.color];
+      RadialGradient rg = RadialGradient(radius: 0.6, colors: shaderColors);
       Shader shader = rg.createShader(r);
       Paint circleGradient = Paint();
       circleGradient.shader = shader;
       // TODO - Rethink this. Use Canvas.drawCircle(centre, radius, paint).
       canvas.drawOval(r, circleGradient);
-      canvas.drawOval(r, thickLinePaint);
+      canvas.drawOval(r, boldLinePaint);
       // Highlight the selected sphere.
       if (ID == puzzle.selectedCell) {
-        canvas.drawOval(r, paintingSpecs.highlight);
+        canvas.drawOval(r, highlight);
       }
 
       // Scale and paint the symbols on this sphere, if any.
@@ -136,6 +121,8 @@ class PuzzlePainter3D extends CustomPainter
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
                 diam * 0.8, isNote: (ns > 1024), isCell: true);
     } // End list of circles.
+
+    return;
 
   } // End void paint(Canvas canvas, Size size)
 

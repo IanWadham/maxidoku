@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../globals.dart';
 import '../models/puzzle_map.dart';
+import '../settings/settings_controller.dart';
 import 'painting_specs.dart';
 
 // This is the interface between the 2D view and the Multidoku models, control
@@ -18,9 +19,9 @@ class PaintingSpecs2D extends PaintingSpecs
 
   PuzzleMap _puzzleMap;
 
-  PaintingSpecs2D(PuzzleMap this._puzzleMap)
+  PaintingSpecs2D(PuzzleMap this._puzzleMap, SettingsController settings)
     :
-    super(_puzzleMap);
+    super(_puzzleMap, settings);
 
   List<int> edgesEW         = [];	// East-West edges of cells.
   List<int> edgesNS         = [];	// North-South edges of cells.
@@ -92,9 +93,17 @@ class PaintingSpecs2D extends PaintingSpecs
                           Offset offset, Paint cageLabel_fg, Paint cageLabel_bg)
   {
     double padding = 0.25 * textSize;
-    textPainter.text = TextSpan(style: symbolStyle, text: cageLabel);
+/*
+    // TODO - Make sure the label picks up the text color on light/dark change.
+*/
+    TextStyle labelStyle = TextStyle(
+      color:      cageLabel_fg.color,
+      fontSize:   baseSize,
+      fontWeight: FontWeight.bold);
+    textPainter.text = TextSpan(style: labelStyle, text: cageLabel);
     textPainter.textScaleFactor = textSize / baseSize;
     textPainter.layout();
+
     Rect labelRect = Rect.fromPoints(offset, offset +
                      Offset(padding + textPainter.width, textSize * 5.0 / 4.0));
     // print('LABEL RECT $labelRect, point 1 = $offset,'
