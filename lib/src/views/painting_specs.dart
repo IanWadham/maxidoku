@@ -219,7 +219,7 @@ double cellSize    = 10.0;
 double controlSize = 10.0;
 
 void paintPuzzleControls(Canvas canvas, int nControls, Paint thinLinePaint,
-                Paint thickLinePaint, bool notesMode, int selectedControl)
+                Paint boldLinePaint, bool notesMode, int selectedControl)
 {
   highlight.color = notesMode ? notesHighlight : moveHighlight;
 
@@ -238,7 +238,7 @@ void paintPuzzleControls(Canvas canvas, int nControls, Paint thinLinePaint,
                             : start + Offset(controlSide, 0.0);
     canvas.drawLine(start, end, thinLinePaint);
   }
-  canvas.drawRect(_controlRect, thickLinePaint);
+  canvas.drawRect(_controlRect, boldLinePaint);
 
   // Add the graphics for the control symbols.
   Offset cellPos;
@@ -251,7 +251,7 @@ void paintPuzzleControls(Canvas canvas, int nControls, Paint thinLinePaint,
   }
 
   // Highlight the user's latest control-selection.
-  highlight.strokeWidth      = cellSide * highlightInset;
+  highlight.strokeWidth      = controlSide * highlightInset;
   displacement = (selectedControl + nHide) * controlSide;
   cellPos = portrait ? topLeftControl + Offset(displacement, 0)
                      : topLeftControl + Offset(0, displacement);

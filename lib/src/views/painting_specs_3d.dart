@@ -76,6 +76,13 @@ class PaintingSpecs3D extends PaintingSpecs
     // Pre-calculate puzzle background details (fixed when puzzle-play starts).
     // NOTE: This class gets size* values from PuzzleMap via the _map variable.
 
+    nSymbols = _map.nSymbols;
+    sizeX    = _map.sizeX;
+    sizeY    = _map.sizeY;
+    sizeZ    = _map.sizeZ;
+    print('nSymbols = ${nSymbols},'
+          ' sizeX = ${sizeX}, sizeY = ${sizeY}, sizeZ = ${sizeZ}');
+
     calculatePaintAreas();
 
     calculateTextProperties();

@@ -61,15 +61,15 @@ class PuzzlePainter2D extends CustomPainter
     double controlSize = paintingSpecs.controlSide;
 
     // Paints (and brushes/pens) for areas and lines.
-    var backgroundPaint  = paintingSpecs.backgroundPaint;
-    var emptyCellPaint   = paintingSpecs.emptyCellPaint;
-    var givenCellPaint   = paintingSpecs.givenCellPaint;
-    var specialCellPaint = paintingSpecs.specialCellPaint;
-    var errorCellPaint   = paintingSpecs.errorCellPaint;
-    var thinLinePaint    = paintingSpecs.thinLinePaint;
-    var boldLinePaint    = paintingSpecs.boldLinePaint;
-    var cageLinePaint    = paintingSpecs.cageLinePaint;
-    var highlight        = paintingSpecs.highlight;
+    Paint backgroundPaint  = paintingSpecs.backgroundPaint;
+    Paint emptyCellPaint   = paintingSpecs.emptyCellPaint;
+    Paint givenCellPaint   = paintingSpecs.givenCellPaint;
+    Paint specialCellPaint = paintingSpecs.specialCellPaint;
+    Paint errorCellPaint   = paintingSpecs.errorCellPaint;
+    Paint thinLinePaint    = paintingSpecs.thinLinePaint;
+    Paint boldLinePaint    = paintingSpecs.boldLinePaint;
+    Paint cageLinePaint    = paintingSpecs.cageLinePaint;
+    Paint highlight        = paintingSpecs.highlight;
 
     // Calculated widths of lines, depending on canvas size and puzzle size.
     thinLinePaint.strokeWidth  = cellSide / 30.0;

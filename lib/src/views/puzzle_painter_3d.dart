@@ -50,30 +50,32 @@ class PuzzlePainter3D extends CustomPainter
     paintingSpecs.setPuzzleThemeMode(darkMode);
 
     // Paints (and brushes/pens) for areas and lines.
-    var backgroundPaint  = paintingSpecs.backgroundPaint;
-    var innerSpherePaint = paintingSpecs.innerSpherePaint;
-    var outerSpherePaint = paintingSpecs.outerSpherePaint;
-    var givenCellPaint   = paintingSpecs.givenCellPaint;
-    var specialCellPaint = paintingSpecs.specialCellPaint;
-    var errorCellPaint   = paintingSpecs.errorCellPaint;
-    var thinLinePaint    = paintingSpecs.thinLinePaint;
-    var boldLinePaint    = paintingSpecs.boldLinePaint;
-    var cageLinePaint    = paintingSpecs.cageLinePaint;
-    var highlight        = paintingSpecs.highlight;
+    Paint backgroundPaint  = paintingSpecs.backgroundPaint;
+    Paint innerSpherePaint = paintingSpecs.innerSpherePaint;
+    Paint outerSpherePaint = paintingSpecs.outerSpherePaint;
+    Paint givenCellPaint   = paintingSpecs.givenCellPaint;
+    Paint specialCellPaint = paintingSpecs.specialCellPaint;
+    Paint errorCellPaint   = paintingSpecs.errorCellPaint;
+    Paint thinLinePaint    = paintingSpecs.thinLinePaint;
+    Paint boldLinePaint    = paintingSpecs.boldLinePaint;
+    Paint cageLinePaint    = paintingSpecs.cageLinePaint;
+    Paint highlight        = paintingSpecs.highlight;
 
     // Paint the background of the canvas.
     canvas.drawRect(Offset(0, 0) & size, backgroundPaint);
-
-    paintingSpecs.add3DViewControls(canvas);
-
-    paintingSpecs.paintPuzzleControls(canvas, nControls, thinLinePaint,
-                  boldLinePaint, puzzle.notesMode, puzzle.selectedControl);
 
     paintingSpecs.calculateScale();
 
     double sc     = paintingSpecs.scale;
     double diam   = paintingSpecs.diameter * sc;
     Offset origin = paintingSpecs.origin;
+
+    paintingSpecs.add3DViewControls(canvas);
+
+    paintingSpecs.paintPuzzleControls(canvas, nControls, thinLinePaint,
+                  boldLinePaint, puzzle.notesMode, puzzle.selectedControl);
+
+    highlight.strokeWidth = diam * paintingSpecs.highlightInset;
 
     int nCircles  = paintingSpecs.rotated.length;
     for (int n = 0; n < nCircles; n++) {
