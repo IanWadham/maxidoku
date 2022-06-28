@@ -538,5 +538,27 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     PuzzleMap
     RoxdokuGroups 0 ''' 
 ,
+''' Name Windmill Roxdoku
+    Description Windmill three-dimensional puzzle with five 3x3x3 cubes
+    Author Ian Wadham
+    FileName SamuraiRoxdoku.xml
+    Icon ksudoku-roxdoku_3x3x3
+    SizeX 7
+    SizeY 7
+    SizeZ 3
+    NGroups 45
+    NSymbols 9
+    SpecificType Roxdoku
+    Diameter 350
+    RotateX 15
+    RotateY -27
+    SpecialCells 12 48 49 50 54 55 56 90 91 92 96 97 98
+    PuzzleMap
+    RoxdokuGroups 0  
+    RoxdokuGroups 12
+    RoxdokuGroups 48
+    RoxdokuGroups 84
+    RoxdokuGroups 96 '''
+,
   ];
 }

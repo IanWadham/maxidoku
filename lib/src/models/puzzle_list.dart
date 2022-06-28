@@ -161,7 +161,13 @@ class PuzzleList
   'Three-dimensional puzzle with one 5x5x5 cube',
   // Author Francesco Rossi
   'ksudoku-roxdoku_3x3x3' // Icon ID
-  ]
+  ],
+  ['25', // Puzzle ID
+  'Windmill Roxdoku',
+  'Windmill three-dimensional puzzle with five 3x3x3 cubes',
+  // Author Ian Wadham
+  'ksudoku-roxdoku_3x3x3' // Icon ID
+  ],
   ];
 }
 
