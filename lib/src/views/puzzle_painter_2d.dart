@@ -172,6 +172,11 @@ class PuzzlePainter2D extends CustomPainter
                  boldLinePaint, emptyCellPaint, cageLinePaint);
     }
 
+    // Display the time taken so far for solving the puzzle.
+    double tSize = topLeftX < topLeftY ? topLeftX : topLeftY;
+    paintingSpecs.paintTextString(canvas, puzzle.solutionTimeDisplay,
+                  0.75 * tSize, Offset(0, 0), boldLinePaint, backgroundPaint);
+
     // Paint the highlight of the last puzzle-cell hit.
     double shrinkBy = cellSide / 10.0;
     double inset = shrinkBy / 2.0;
@@ -238,9 +243,9 @@ class PuzzlePainter2D extends CustomPainter
       double textSize   = cellSide / 6.0;
       Offset cellOrigin = topLeft + Offset(cellX * cellSide, cellY * cellSide);
       Offset inset      = Offset(cellSide/20.0, cellSide/20.0);
-      paintingSpecs.paintCageLabelText(canvas, cageLabel,
-                                       textSize, cellOrigin + inset,
-                                       labelPaint_fg, labelPaint_bg);
+      paintingSpecs.paintTextString(canvas, cageLabel,
+                                    textSize, cellOrigin + inset,
+                                    labelPaint_fg, labelPaint_bg);
     }
   }
 

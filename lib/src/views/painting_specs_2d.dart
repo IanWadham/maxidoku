@@ -28,7 +28,7 @@ class PaintingSpecs2D extends PaintingSpecs
 
   @override
   void calculatePainting()
-  // Pre-calculate details of puzzle background (fixed at start of puzzle-play).
+  // Pre-calculate details of puzzle background.
   {
     nSymbols = _puzzleMap.nSymbols;
     sizeX    = _puzzleMap.sizeX;
@@ -87,30 +87,6 @@ class PaintingSpecs2D extends PaintingSpecs
     // print('${edgesEWtemp}');
     edgesEW = edgesEWtemp;
     edgesNS = edgesNStemp;
-  }
-
-  void paintCageLabelText(Canvas canvas, String cageLabel, double textSize,
-                          Offset offset, Paint cageLabel_fg, Paint cageLabel_bg)
-  {
-    double padding = 0.25 * textSize;
-/*
-    // TODO - Make sure the label picks up the text color on light/dark change.
-*/
-    TextStyle labelStyle = TextStyle(
-      color:      cageLabel_fg.color,
-      fontSize:   baseSize,
-      fontWeight: FontWeight.bold);
-    textPainter.text = TextSpan(style: labelStyle, text: cageLabel);
-    textPainter.textScaleFactor = textSize / baseSize;
-    textPainter.layout();
-
-    Rect labelRect = Rect.fromPoints(offset, offset +
-                     Offset(padding + textPainter.width, textSize * 5.0 / 4.0));
-    // print('LABEL RECT $labelRect, point 1 = $offset,'
-          // ' W ${padding + textPainter.width}, H ${textSize * 5.0 / 4.0}');
-    canvas.drawRect(labelRect, cageLabel_bg);
-    // Need padding at both ends of Label, so inset by padding / 2.0;
-    textPainter.paint(canvas, offset + Offset(padding / 2.0, 0.0));
   }
 
   void _markEdges (List<int> cells,

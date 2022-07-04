@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 
 import '../settings/settings_controller.dart';
 
@@ -91,6 +92,12 @@ class Puzzle with ChangeNotifier
   int  selectedCell    = 0;
   bool notesMode       = false;
 
+  // Clock starts whenever the user decides to start solving a Puzzle.
+  // Clock stops whenever he/she finishes solving the Puzzle or abandons it.
+  Stopwatch  _solutionTime = Stopwatch();
+  Timer?     _ticker = null;		// Null when there is no Timer running.
+  String     solutionTimeDisplay = '';	// Updated by Timer, once per second.
+
   bool createState(int index, bool darkMode)
   {
     // Create the layout, clues and model for the puzzle type the user selected.
@@ -156,6 +163,8 @@ class Puzzle with ChangeNotifier
     notesMode       = false;
 
     _puzzlePlay = Play.NotStarted;
+    _ticker?.cancel();
+    _ticker     = null;
   }
 
   int setTheme(bool darkMode)
@@ -235,7 +244,39 @@ class Puzzle with ChangeNotifier
 
     // Change the Puzzle Play status to receive solving moves.
     _puzzlePlay = Play.ReadyToStart;
-    // TODO - Start clock, but only AFTER user has replied to message.
+  }
+
+  void startClock()
+  {
+    assert(_ticker == null, 'ASSERT ERROR startClock(): _ticker is NOT null.');
+    print('START THE CLOCK!!!');
+    _solutionTime.reset();
+    _solutionTime.start();
+    _ticker ??= Timer.periodic(const Duration(seconds: 1), (_ticker)
+      {
+        // One tick per second.
+        Duration t = _solutionTime.elapsed;
+        solutionTimeDisplay = '${t.toString().split('.').first}'; // (h)h:mm:ss
+        if (t < Duration(hours: 1)) {
+          // Remove leading zero(s) and colon.
+          int xxx = solutionTimeDisplay.indexOf(':') + 1;
+          if (t < Duration(minutes: 10)) {
+            xxx++;
+          }
+          solutionTimeDisplay = solutionTimeDisplay.substring(xxx /* to end */);
+        }
+        notifyListeners();			// Display the time (if reqd).
+      }
+    );
+  }
+
+  void stopClock()
+  {
+    assert(_ticker != null, 'ASSERT ERROR stopClock(): _ticker IS NULL.');
+    _solutionTime.stop();
+    _ticker?.cancel();
+    _ticker = null;
+    print('STOP THE CLOCK!!!');
   }
 
   BoardContents _fillBoard()
@@ -368,7 +409,10 @@ class Puzzle with ChangeNotifier
       // are allowed: only undo/redo (to review the moves).
       _puzzlePlay = _isPuzzleSolved();
 
-      // TODO - Stop the clock when changing to Solved status.
+      // Stop the clock when changing to Solved status.
+      if (_puzzlePlay == Play.Solved) {
+        stopClock();
+      }
     }
 
     // The move has been accepted and made.
@@ -608,6 +652,16 @@ class Puzzle with ChangeNotifier
         }
       }
     }
+  }
+
+  @override
+  void dispose()
+  {
+    // This is needed if the Puzzle is terminated before it is solved. It avoids
+    // an error when the Timer runs on and the Puzzle object no longer exists.
+    stopClock();
+    solutionTimeDisplay = '';
+    super.dispose();
   }
 
 } // End puzzle class.

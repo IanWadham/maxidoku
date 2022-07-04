@@ -80,8 +80,6 @@ class PaintingSpecs3D extends PaintingSpecs
     sizeX    = _map.sizeX;
     sizeY    = _map.sizeY;
     sizeZ    = _map.sizeZ;
-    print('nSymbols = ${nSymbols},'
-          ' sizeX = ${sizeX}, sizeY = ${sizeY}, sizeZ = ${sizeZ}');
 
     calculatePaintAreas();
 
@@ -94,27 +92,21 @@ class PaintingSpecs3D extends PaintingSpecs
     newOrigin[0] = ((_map.sizeX - 1) * spacing) / 2;
     newOrigin[1] = ((_map.sizeY - 1) * spacing) / 2;
     newOrigin[2] = ((_map.sizeZ - 1) * spacing) / 2;
-    // print('New Origin: $newOrigin');
 
     // Create a set of circles and assign 3D co-ordinates to their centres, as
     // required by the puzzle type and map. They are later coloured so as to
     // represent spheres in 3D arrays.
+
     int nPoints = _map.size;
-    // print('Size: $nPoints spheres');
     BoardContents board = _map.emptyBoard;
     for (int n = 0; n < nPoints; n++) {
       bool used = (board[n] == UNUSABLE) ? false : true;
-      // print('Sphere: $n, X = ${_map.cellPosX(n)}, Y = ${_map.cellPosY(n)},'
-	               // ' Z = ${_map.cellPosZ(n)} used $used');
       Coords sphereN = Coords(0.0, 0.0, 0.0);
       sphereN[0] =  _map.cellPosX(n) * spacing - newOrigin[0];
       sphereN[1] = -_map.cellPosY(n) * spacing + newOrigin[1];
       sphereN[2] = -_map.cellPosZ(n) * spacing + newOrigin[2];
       spheres.add(Sphere(n, used, sphereN));
-      // print('Sphere $n: $sphereN');
     }
-
-    // TODO - Roxdoku Windmill - 5 3 x 3 cubes locked together.
 
     // Rotate all the pseudo-spheres so as to give the user a better view.
     print('\nROTATIONS: _rotateX $_rotateX _rotateY $_rotateY\n');
@@ -161,10 +153,11 @@ class PaintingSpecs3D extends PaintingSpecs
       if (centre.dx > maxX) maxX = centre.dx;
       if (centre.dy > maxY) maxY = centre.dy;
     }
-    // print('minX $minX minY $minY, maxX $maxX maxY $maxY');
-    double rangeX = maxX - minX; double rangeY = maxY - minY;
-    // print('rangeX $rangeX rangeY $rangeY height ${puzzleRect.height}');
+
+    double rangeX = maxX - minX;
+    double rangeY = maxY - minY;
     double maxRange = (rangeX > rangeY) ? rangeX : rangeY;
+
     // Spheres started with diameter 2: now inflated by ~1.75.
     _scale  = 0.95 * puzzleRect.height / (maxRange + _diameter);
     _origin = puzzleRect.center;
@@ -260,9 +253,9 @@ class PaintingSpecs3D extends PaintingSpecs
     // Find out if the user has hit one of the outward-pointing arrows and, if
     // so, rotate the puzzle by +90 or -90 deg in the corresponding direction
     // and signal the Puzzle model to trigger a repaint (via Provider).
+
     for (int n = 0; n < _arrowList.length; n++) {
       if (_arrowList[n].contains(hitPos)) {
-        print('Zinnngggg! $n');
         switch(n) {
           case 0:
             rotationM.rotateX(-pi/2.0);

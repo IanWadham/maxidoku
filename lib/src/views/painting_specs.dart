@@ -428,12 +428,29 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
   {
     double scale = symbolSize / baseSize;
     textPainter.text = symbolTexts[n-1];
-    // TODO - How to vary the color of the text? Properties are read-only?
-    //////// textPainter.text.style.color = boldLinePaint.color;
     textPainter.textScaleFactor = scale;
     textPainter.layout();
     double centering = (symbolSize - textPainter.width) / 2.0;
     textPainter.paint(canvas, Offset(o.dx + centering, o.dy));
+  }
+
+  void paintTextString(Canvas canvas, String textString, double textSize,
+                       Offset offset, Paint foreground, Paint background)
+  {
+    double padding = 0.25 * textSize;
+    TextStyle stringStyle = TextStyle(	// Make sure the string picks up the
+      color:      foreground.color,	// text color on light/dark change.
+      fontSize:   baseSize,
+      fontWeight: FontWeight.bold);
+    textPainter.text = TextSpan(style: stringStyle, text: textString);
+    textPainter.textScaleFactor = textSize / baseSize;
+    textPainter.layout();
+
+    Rect textRect  = Rect.fromPoints(offset, offset +
+                     Offset(padding + textPainter.width, textSize * 5.0 / 4.0));
+    canvas.drawRect(textRect, background);
+    // Need padding at both ends of string, so inset by padding / 2.0;
+    textPainter.paint(canvas, offset + Offset(padding / 2.0, 0.0));
   }
 
 } // End class PaintingSpecs

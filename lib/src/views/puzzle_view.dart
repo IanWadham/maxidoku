@@ -209,9 +209,11 @@ class PuzzleView extends StatelessWidget
       else if (m.messageType != '') {
         // Inform the user about the puzzle that was generated, then return.
         await infoMessage(context, 'Generate Puzzle', m.messageText);
-        break;
+        print('User hit OK');
+        trying = false;	// break;
       }
     }
+    puzzle.startClock();
   }
 
   void checkPuzzle(Puzzle puzzle, BuildContext context)
@@ -367,6 +369,8 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
       else {
         puzzle.delayedMessage = Message('', '');
       }
+      // A puzzle has been selected, generated and accepted, so start the clock!
+      puzzle.startClock();
       return;
     }
 
