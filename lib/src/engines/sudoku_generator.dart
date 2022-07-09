@@ -270,9 +270,11 @@ class SudokuGenerator
       // dbo1 "Time to do insertValues: %d msec\n", t.elapsed());
 
       if (difficultyRequired.index > _stats.difficulty.index) {
-        // If the the Puzzle is not as difficult as required, keep removing clues
-        // at random until the required level of difficulty is reached or the
-        // attempt fails.
+        // If the the Puzzle is not as difficult as required, keep removing
+        // clues at random until the required level of difficulty is reached
+        // or the attempt fails.
+        // TODO - Samurai with Unlimited difficulty and No Symmetry LOOPED...
+        //        Diabolical seems to be OK every time. No failures yet...
         currPuzzle = removeValues (currSolution, currPuzzle,
                                    difficultyRequired, symmetry);
           print('RETURN FROM removeValues()\n');
@@ -476,41 +478,36 @@ class SudokuGenerator
     // Make a shuffled list of all the cell-indices on the board.
     List<int> sequence = _puzzleMap.randomSequence(_boardArea);
 
-    int cell  = 0;
-    int value = 0;
-
     // Add clues at random, but skip cells that can be deduced from them.
-    // dbo1 "Start INSERTING: %d solution values\n", solution.count());
-
-    int index = 0;
+    int cell  = 0;
     for (int n = 0; n < _boardArea; n++) {
-      cell  = sequence[n];		// Pick a cell-index at random.
-      value = filled[cell];		// Find what value is in there.
+      // Pick a cell-index at random. Use it, if it is not UNUSABLE
+      // and not already used or deduced in an earlier iteration.
+      cell  = sequence[n];
 
-      // Use it, if it has not already been used or deduced.
       if (filled[cell] == 0) {
-        index = n;
+        // Copy this cell's value from the solution, to become a clue
+        // in the Puzzle, along with its symmetry partners (if any).
         changeClues (puzzle, cell, symmetry, solution);
         changeClues (filled, cell, symmetry, solution);
 
-        // Fill in any further cells that can now be easily deduced.
+        // Use up any further cells that can now be easily deduced.
         _solver.deduceValues (filled, GuessingMode.Random);
-        if (dbgLevel >= 3) {
-          print (puzzle);
-          print (filled);
-        }
       }
     }
-    // We should now have a puzzle-list board that is partially filled with clues
+    // We should now have a puzzle-list board that is partly filled with clues
     // and a filled-list board that is completely filled. The puzzle should be
-    // solvable by deduction alone, using deduceValues().
-    print('INSERTIONS COMPLETED - PUZZLE\n');
-    print('BoardArea $_boardArea, examined $index');
+    // solvable by deduction alone, after one or more cycles in deduceValues().
+    print('INITIAL (RANDOM) INSERTIONS COMPLETED - PUZZLE\n');
     if (dbgLevel > 0) print (puzzle);
 
+    // Set the random sequence to restart if the puzzle needs to be easier.
+    int index  = 0;
     int result = 0;
+    int limit  = _boardArea - 1;
+
     while (true) {
-      // Check the difficulty of the puzzle.
+      // Check the solution and the difficulty of the puzzle.
       result = _solver.checkSolutionIsValid(puzzle, solution);
       countClues(puzzle, _stats);
       if (result >= 0) {
@@ -518,11 +515,11 @@ class SudokuGenerator
         result = _solver.checkSolutionIsUnique(puzzle, solution);
         if (result >= 0) {
           _stats.difficulty = calculateDifficulty (_stats.rating);
-          print('REQUIRED $required, CALCULATED ${_stats.difficulty}, '
-                'RATING ${_stats.ratingF}');
+          // print('REQUIRED $required, CALCULATED ${_stats.difficulty},'
+                // ' RATING ${_stats.ratingF}');
         }
       }
-      if (result < 0) {
+      if (result < 0) {		// The solution is no good.
         // This is extremely unlikely to happen. All we are doing is adding
         // clues (givens or hints) to a puzzle whose solution has been deduced
         // by applying Sudoku rules. The solution should be valid, unique and
@@ -533,30 +530,27 @@ class SudokuGenerator
         break;
       }
 
+      // Stop inserting if the difficulty is as required or not high enough yet.
       if (_stats.difficulty.index <= required.index) {
-        break;	// The difficulty is as required or not enough yet.
+        break;
       }
 
-      // The puzzle needs to be made easier.  Add randomly-selected clues.
+      // The puzzle needs to be made easier.  Add more randomly-selected clues.
       for (int n = index; n < _boardArea; n++) {
         cell  = sequence[n];
-        // print('Examining sequence $n, puzzle cell $cell'
-        //       ' with value ${puzzle[cell]}');
+
         if (puzzle[cell] == 0) {
-          // print('Change clues: cell $cell to value ${solution[cell]}');
           changeClues (puzzle, cell, symmetry, solution);
-          index = n;
-          print('INSERTING: ADDED CLUES at $cell, INSERTION INDEX = $index');
+          index = n + 1;	// Skip cells in sequence[0..n] next time.
           break;
         }
       }
 
-      // if ((index + 1) >= _boardArea) {
-      if ((_stats.nCells - _stats.nClues) <= 4) {
-        // Avoid an endless loop or a trivial puzzle with too few empty cells.
+      if (index >= limit) {	// Avoid any chance of an endless loop.
+        print('LIMIT REACHED: nCells ${_stats.nCells} nClues ${_stats.nClues}');
         break;
       }
-    }
+    } // End while
 
     if (dbgLevel > 0) print (puzzle);
     return puzzle;
