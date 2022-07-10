@@ -91,15 +91,20 @@ class MathdokuGenerator
     print('MathdokuGen: Solution moves $solutionMoves');
 
     // Insert the values of the single-cell cages as clues in the empty Puzzle.
+    int nClues = 0;
     for (int n = 0; n < _puzzleMap.cageCount(); n++) {
       if (_puzzleMap.cage(n).length == 1) {	// Single-cell cage => GIVEN.
+        nClues++;
         int index = _puzzleMap.cage(n)[0];
         puzzle[index] = solution[index];
         print('Cage $n cell $index value ${solution[index]}');
       }
     }
+    int movesToGo = solution.length - nClues;
     response.messageType = 'I';
-    response.messageText = 'TESTING: MathdokuKiller generator = TRUE';
+    response.messageText = 'The difficulty level of this puzzle is'
+                           ' ${difficultyTexts[difficultyRequired.index]}. It'
+                           ' has $nClues clues and $movesToGo moves to go.';
     return response;
   }
 
