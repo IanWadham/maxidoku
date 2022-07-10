@@ -78,6 +78,7 @@ class PuzzlePainter3D extends CustomPainter
     highlight.strokeWidth = diam * paintingSpecs.highlightInset;
 
     int nCircles  = paintingSpecs.rotated.length;
+    int highlightedCell = puzzle.selectedCell ?? -1;
     for (int n = 0; n < nCircles; n++) {
       if (! paintingSpecs.rotated[n].used) {
         continue;			// Don't paint UNUSED cells.
@@ -112,7 +113,7 @@ class PuzzlePainter3D extends CustomPainter
       canvas.drawOval(r, circleGradient);
       canvas.drawOval(r, boldLinePaint);
       // Highlight the selected sphere.
-      if (ID == puzzle.selectedCell) {
+      if (ID == highlightedCell) {
         canvas.drawOval(r, highlight);
       }
 

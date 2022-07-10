@@ -89,7 +89,7 @@ class Puzzle with ChangeNotifier
   int  _indexUndoRedo  = 0;
 
   int  selectedControl = 1;
-  int  selectedCell    = 0;
+  int? selectedCell    = null;		// Null means no valid cell to play.
   bool notesMode       = false;
 
   // Clock starts whenever the user decides to start solving a Puzzle.
@@ -158,7 +158,7 @@ class Puzzle with ChangeNotifier
 
     int  _indexUndoRedo  = 0;
 
-    selectedCell    = 0;
+    selectedCell    = null;
     selectedControl = 1;
     notesMode       = false;
 
@@ -234,13 +234,29 @@ class Puzzle with ChangeNotifier
 
   void makeReadyToPlay()
   {
+    // TODO - First move deletes a Given if cell 0 is GIVEN and you hit that
+    //        digit --- in both 2D and 3D Puzzles. Cell 0 becomes non-Given,
+
+    selectedCell = null;	// Set invalid index for first selected cell.
     _stateOfPlay = [..._puzzleGiven];
+
+    // Set the first VACANT cell to be highlighted. If all cells are Given
+    // or unusable, the selectedCell stays null and is not highlighted, so no
+    // moves are possible then. This could arise if a fully-solved Puzzle is
+    // loaded from a file or entered manually.
     for (int n = 0; n < _puzzleGiven.length; n++) {
-      if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
-        _cellStatus[n] = GIVEN;
+      if (_puzzleGiven[n] != UNUSABLE) {
+        if (_puzzleGiven[n] > 0) {
+          _cellStatus[n] = GIVEN;
+        }
+        else if (selectedCell == null) {
+          selectedCell = n;	// The first selected cell ought to be VACANT.
+          break;
+        }
       }
     }
-    _cellChanges.clear();			// No moves made yet.
+
+    _cellChanges.clear();	// No moves made yet.
 
     // Change the Puzzle Play status to receive solving moves.
     _puzzlePlay = Play.ReadyToStart;
@@ -248,10 +264,12 @@ class Puzzle with ChangeNotifier
 
   void startClock()
   {
+    // TODO - Test to make sure that this assert does not trigger.
     assert(_ticker == null, 'ASSERT ERROR startClock(): _ticker is NOT null.');
     print('START THE CLOCK!!!');
     _solutionTime.reset();
     _solutionTime.start();
+    // Start a 1-second ticker, but only if it is null (not already running).
     _ticker ??= Timer.periodic(const Duration(seconds: 1), (_ticker)
       {
         // One tick per second.
@@ -272,6 +290,7 @@ class Puzzle with ChangeNotifier
 
   void stopClock()
   {
+    // TODO - Test to make sure that this assert does not trigger.
     assert(_ticker != null, 'ASSERT ERROR stopClock(): _ticker IS NULL.');
     _solutionTime.stop();
     _ticker?.cancel();
@@ -379,7 +398,12 @@ class Puzzle with ChangeNotifier
     // The value selected is treated as a cell-value, a note or an erase.
     selectedControl = selection - (hideNotes ? 0 : 1);
     print('hitControlArea: Selected control $selectedControl');
-    if (! validMove(selectedCell, selectedControl)) {
+
+    int cellToChange = selectedCell ?? -1;
+    if (cellToChange < 0) {
+      return false;		// No cell selected: cannot make a move.
+    }
+    if (! validMove(cellToChange, selectedControl)) {
       return false;
     }
 
@@ -401,11 +425,11 @@ class Puzzle with ChangeNotifier
     }
 
     // Attempt to make the move. Return the status and value of the cell.
-    CellState c =  move(selectedCell, symbol);
+    CellState c =  move(cellToChange, symbol);
 
-    //////// if ((_puzzlePlay == Play.InProgress) && (c.status == CORRECT)) {
     if ((_puzzlePlay == Play.InProgress) || (_puzzlePlay == Play.HasError)) {
-      // If all cells are now filled, change the Puzzle Play status to Solved or      // HasError: otherwise leave it at InProgress. If Solved, no more moves
+      // If all cells are now filled, change the Puzzle Play status to Solved or
+      // HasError: otherwise leave it at InProgress. If Solved, no more moves
       // are allowed: only undo/redo (to review the moves).
       _puzzlePlay = _isPuzzleSolved();
 
@@ -659,7 +683,10 @@ class Puzzle with ChangeNotifier
   {
     // This is needed if the Puzzle is terminated before it is solved. It avoids
     // an error when the Timer runs on and the Puzzle object no longer exists.
-    stopClock();
+    print('Puzzle DISPOSED');
+    if (_ticker != null) {
+      stopClock();
+    }
     solutionTimeDisplay = '';
     super.dispose();
   }

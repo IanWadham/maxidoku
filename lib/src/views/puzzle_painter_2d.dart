@@ -130,6 +130,7 @@ class PuzzlePainter2D extends CustomPainter
 
     // Paint/repaint the graphics for all the symbols in the puzzle area.
     int puzzleSize = paintingSpecs.sizeX * paintingSpecs.sizeY;
+    int highlightedCell = puzzle.selectedCell ?? -1;
     Offset cellPos;
     Offset hilitePos = Offset(topLeftX, topLeftY);
     for (int pos = 0; pos < puzzleSize; pos++) {
@@ -161,7 +162,7 @@ class PuzzlePainter2D extends CustomPainter
       cellPos = Offset(topLeftX, topLeftY) + Offset(i * cellSide, j * cellSide);
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
                 cellSide, isNote: (ns > 1024), isCell: true);
-      if (pos == puzzle.selectedCell) {
+      if (pos == highlightedCell) {
         hilitePos = cellPos;		// Paint hilite last, on top of cages.
       }
     }
@@ -178,11 +179,13 @@ class PuzzlePainter2D extends CustomPainter
                   0.75 * tSize, Offset(0, 0), boldLinePaint, backgroundPaint);
 
     // Paint the highlight of the last puzzle-cell hit.
-    double shrinkBy = cellSide / 10.0;
-    double inset = shrinkBy / 2.0;
-    canvas.drawRect(hilitePos + Offset(inset, inset) &
-                    Size(cellSide - shrinkBy, cellSide - shrinkBy),
-                    paintingSpecs.highlight);
+    if (highlightedCell >= 0) {
+      double shrinkBy = cellSide / 10.0;
+      double inset = shrinkBy / 2.0;
+      canvas.drawRect(hilitePos + Offset(inset, inset) &
+                      Size(cellSide - shrinkBy, cellSide - shrinkBy),
+                      paintingSpecs.highlight);
+    }
 
   } // End void paint(Canvas canvas, Size size)
 
