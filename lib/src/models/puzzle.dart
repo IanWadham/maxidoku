@@ -251,7 +251,6 @@ class Puzzle with ChangeNotifier
         }
         else if (selectedCell == null) {
           selectedCell = n;	// The first selected cell ought to be VACANT.
-          break;
         }
       }
     }
