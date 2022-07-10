@@ -271,14 +271,15 @@ class SudokuGenerator
 
       if (difficultyRequired.index > _stats.difficulty.index) {
         // If the the Puzzle is not as difficult as required, keep removing
-        // clues at random until the required level of difficulty is reached
-        // or the attempt fails.
-        // TODO - Samurai with Unlimited difficulty and No Symmetry LOOPED...
-        //        Diabolical seems to be OK every time. No failures yet...
+        // clues at random until the required level of difficulty is found
+        // or the attempt fails. In the case of Unlimited difficulty, the
+        // computation continues until all cells have been examined or the
+        // internal rating of 50.0 is exceeded. Without this limit, large
+        // puzzles such as Samurai take a very long time to compute.
         currPuzzle = removeValues (currSolution, currPuzzle,
                                    difficultyRequired, symmetry);
-          print('RETURN FROM removeValues()\n');
-          // dbo1 "Time to do removeValues: %d msec\n", t.elapsed());
+        print('RETURN FROM removeValues()\n');
+        // dbo1 "Time to do removeValues: %d msec\n", t.elapsed());
       }
 
       Difficulty d = calculateRating (currPuzzle, 5);
@@ -606,17 +607,18 @@ class SudokuGenerator
     // dbo1 "Guess limit = %.2f, nCells = %d, nClues = %d, noGuesses = %d\n",
             // guessLimit, _stats.nCells, _stats.nClues, noGuesses);
 
-    // dbo1 "Start REMOVING:\n");
+    print('Start REMOVING:\n');
 
     for (int n = 0; n < _boardArea; n++) {
         cell  = sequence[n];		// Pick a cell-index at random.
         value = puzzle[cell];		// Find what value is in there.
         if ((value == _vacant) || (value == _unusable)) {
-            continue;			// Skip empty or unusable cells.
+          // print('ITERATION $n: Cell $cell vacant/unusable $value');
+          continue;			// Skip empty or unusable cells.
         }
         // Try removing this clue and its symmetry partners (if any).
         changeClues (puzzle, cell, symmetry, vacant);
-        // dbo1 "ITERATION %d: Removed %d from cell %d\n", n, value, cell);
+        // print('ITERATION $n: Removed $value from cell $cell');
 
         // Check the solution is still OK and calculate the difficulty roughly.
         int result = _solver.checkSolutionIsValid (puzzle, solution);
@@ -642,21 +644,27 @@ class SudokuGenerator
 
         // If the solution is not OK, replace the removed value(s).
         if (result < 0) {
-            // dbo1 "ITERATION %d: Replaced %d at cell %d, check returned %d\n",
-                    // n, value, cell, result);
+            // print('ITERATION $n: Replaced $value at cell $cell,'
+            //       ' check returned $result');
             changeClues (puzzle, cell, symmetry, solution);
         }
 
         // If the solution is OK, check the difficulty (roughly).
         else {
             _stats.difficulty = difficultyLevel;
-            // dbo1 "CURRENT DIFFICULTY %d\n", _stats.difficulty);
+            // print('ITER $n: ${_stats.difficulty},'
+                  // ' reqd $required RATING ${_stats.ratingF}');
 
             if (_stats.difficulty == required) {
                 // Save removed positions while the difficulty is as required.
                 tailOfRemoved.add(cell);
                 // dbo1 "OVERSHOOT %d at sequence %d\n",
                         // tailOfRemoved.count(), n);
+                if ((required == Difficulty.Unlimited) &&
+                     (_stats.rating > 50.0)) {
+                  print('STOPPING when rating > 50.0');
+                  break;	// Set a limit on the amount of computation.
+                }
             }
 
             else if (_stats.difficulty.index > required.index) {
@@ -671,6 +679,7 @@ class SudokuGenerator
             }
         }
     }
+    // print('REMOVED: ${tailOfRemoved.length} values, cells $tailOfRemoved');
 
     // If the required difficulty was reached and was not Unlimited, replace
     // half the saved values.
