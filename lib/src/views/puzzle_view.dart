@@ -309,8 +309,8 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
     puzzle = context.watch<Puzzle>();
 
     // Enable messages to the user after major changes of puzzle-status.
-    WidgetsBinding.instance?.addPostFrameCallback((_)
-                             {executeAfterBuild(context);});
+    WidgetsBinding.instance.addPostFrameCallback((_)
+                            {executeAfterBuild(context);});
 
     // Find out if the System (O/S) or Flutter colour Theme is dark or light.
     bool darkMode = (Theme.of(context).brightness == Brightness.dark);
