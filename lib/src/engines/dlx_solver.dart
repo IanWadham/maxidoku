@@ -208,8 +208,6 @@ class DLXSolver
     if (DLX_LOG) print('CAGE $n of $nCages size $size nCombos $nCombos'
                        ' nVals $nVals index $index of ${possibilities.length}');
       for (int nCombo = 0; nCombo < nCombos; nCombo++) {
-        // TODO - Was this adding a null pointer to the _rows list???
-        // _rows.add(0);		// Start a row for each combo.
         _rows.add(_corner);		// Start a row for each combo.
         _addNode (rowNumDLX, n);	// Mark the cage's fill-in constraint.
         counter++;
@@ -615,16 +613,19 @@ class DLXSolver
     node.above.below = node;
   }
 
+/*
+  // In Dart, _deleteAll() is not used. The _nodes, _columns and _rows lists and
+  // their contents should be garbage-collected when the DLX solver is no longer
+  // referenced and used by the Cage Generator.
   void _deleteAll()
   {
-    // TODO _deleteAll() is NOT CALLED by anything...
     // Deallocate all nodes.
-    // TODO - Consider whether we need to delete in Dart... SEE State.dispose().
     if (DLX_LOG) print('DLX Solver _deleteAll() called');
     _nodes.clear();
     _columns.clear();		// Secondary pointers: no nodes to deallocate.
     _rows.clear();
   }
+*/
 
   void _printDLX ({bool forced = false})
   {
@@ -652,19 +653,23 @@ class DLXSolver
     int nNodes  = 0;
     int lastCol = -1;
     List<DLXNode> rowsRemaining = List<DLXNode>.filled (_rows.length, _corner);
+
+    // Examine each column and print it, if required. Count the non-empty rows.
     if (verbose) print('\n');
     while (colDLX != _corner) {
       String s = '';
       int col = _columns.indexOf(colDLX);
       if (verbose) s = 'Col $col, ${_columns[col].value} rows  ';
+      // Examine each filled cell ("1") in this column.
       DLXNode node = _columns[col].below;
       while (node != colDLX) {
         int rowNum = node.value;
         if (verbose) s = s + '$rowNum ';
+        // Found a non-empty cell ("1"). Count a non-empty row, if not yet done.
         if (rowsRemaining[rowNum] == _corner) {
           nRows++;
         }
-        // TODO - Semantics? _rows is List<DLXNode>, what is rowsRemaining?
+        // Mark the row as counted, in case it has other non-empty cells.
         rowsRemaining[rowNum] = _rows[rowNum];
         nNodes++;
         node = node.below;
