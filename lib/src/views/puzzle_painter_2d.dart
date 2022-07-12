@@ -53,10 +53,11 @@ class PuzzlePainter2D extends CustomPainter
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
     paintingSpecs.setPuzzleThemeMode(darkMode);
 
-    topLeftX   = paintingSpecs.puzzleRect.left;
-    topLeftY   = paintingSpecs.puzzleRect.top;
-    topLeft    = paintingSpecs.puzzleRect.topLeft;
-    cellSide   = paintingSpecs.cellSide;
+    topLeft  = paintingSpecs.puzzleRect.topLeft;
+    cellSide = paintingSpecs.cellSide;
+
+    double topLeftX    = topLeft.dx;
+    double topLeftY    = topLeft.dy;
 
     double controlSize = paintingSpecs.controlSide;
 
@@ -269,9 +270,3 @@ class PuzzlePainter2D extends CustomPainter
   }
 
 } // End class PuzzlePainter2D extends CustomPainter
-
-// TODO - Phase these OUT.
-double cellSide    = 10.0;
-double controlSize = 10.0;
-double topLeftX    = 10.0;
-double topLeftY    = 10.0;

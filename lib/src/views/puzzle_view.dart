@@ -413,7 +413,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
     bool puzzleHit = puzzleRect.contains(hitPos);
     if (puzzleHit && (D == '2D')) {
       // Hit is on puzzle-area: get integer co-ordinates of cell.
-      Offset point = hitPos - Offset(topLeftX, topLeftY);
+      Offset point = hitPos - puzzleRect.topLeft;
       double cellSide = puzzleRect.width / puzzle.puzzleMap.sizeX;
       int x = (point.dx / cellSide).floor();
       int y = (point.dy / cellSide).floor();
