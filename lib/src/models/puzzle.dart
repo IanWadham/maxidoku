@@ -234,9 +234,6 @@ class Puzzle with ChangeNotifier
 
   void makeReadyToPlay()
   {
-    // TODO - First move deletes a Given if cell 0 is GIVEN and you hit that
-    //        digit --- in both 2D and 3D Puzzles. Cell 0 becomes non-Given,
-
     selectedCell = null;	// Set invalid index for first selected cell.
     _stateOfPlay = [..._puzzleGiven];
 
@@ -250,7 +247,7 @@ class Puzzle with ChangeNotifier
           _cellStatus[n] = GIVEN;
         }
         else if (selectedCell == null) {
-          selectedCell = n;	// The first selected cell ought to be VACANT.
+          selectedCell = n;	// The default selected cell needs to be VACANT.
         }
       }
     }
@@ -302,7 +299,7 @@ class Puzzle with ChangeNotifier
     // This is in a function so that "solver" will release resources as soon
     // as possible, in cases when the Mathdoku/Killer-Sudoku generator runs.
     SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
-    return solver.createFilledBoard();
+    return solver.createFilledBoard();	// createFilledBoard() does cleanup().
   }
 
   /**
@@ -332,6 +329,7 @@ class Puzzle with ChangeNotifier
     }
     // TODO - It would be nice if we could return a Difficulty index >= 0.
     error = solver.checkSolutionIsUnique(_stateOfPlay, _solution);
+    solver.cleanUp();
     return error;
   }
 
@@ -346,6 +344,7 @@ class Puzzle with ChangeNotifier
     }
     SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
     _solution = solver.solveBoard (_puzzleGiven, GuessingMode.Random);
+    solver.cleanUp();
     _cellChanges.clear();			// No moves made yet.
     _puzzlePlay = Play.ReadyToStart;
     notifyListeners();

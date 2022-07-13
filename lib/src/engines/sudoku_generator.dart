@@ -432,6 +432,7 @@ class SudokuGenerator
                 // ' ${_stats.nSingles}P ${_stats.nSpots}S ${_stats.nGuesses}G'
                 // ' ${(_stats.nSingles + _stats.nSpots + _stats.nGuesses)}M'
                 // ' ${_stats.nDeduces}D ${_stats.ratingF}R\n');
+        _solver.cleanUp();
     }
 
     avGuesses = (_accum.nGuesses) / nSamples;
@@ -520,6 +521,7 @@ class SudokuGenerator
                 // ' RATING ${_stats.ratingF}');
         }
       }
+      _solver.cleanUp();
       if (result < 0) {		// The solution is no good.
         // This is extremely unlikely to happen. All we are doing is adding
         // clues (givens or hints) to a puzzle whose solution has been deduced
@@ -633,6 +635,7 @@ class SudokuGenerator
             difficultyLevel = calculateDifficulty (_stats.rating);
           }
         }
+        _solver.cleanUp();
 
         // Do not force the human solver to start guessing too soon.
         if ((result >= 0) && (required != Difficulty.Unlimited) &&
