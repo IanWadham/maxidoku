@@ -37,7 +37,7 @@ class PuzzleView extends StatelessWidget
 
   bool  darkMode;
 
-  PuzzleView(bool this.darkMode, {Key? key,}) : super(key: key);
+  PuzzleView(/*bool */this.darkMode, {Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -52,22 +52,31 @@ class PuzzleView extends StatelessWidget
     // A setter in Puzzle saves "portrait" in either 2D or 3D PaintingSpecs.
     puzzle.portrait = (orientation == Orientation.portrait);
 
-    // Find out what background colour, dark or light, to put under the icons.
-    // Set up Puzzle's theme in dark/light mode and get the background colour.
-    Color puzzleBackgroundColor = Color(puzzle.setTheme(darkMode));
+    // Set up Puzzle's theme in dark/light mode and get the icon button colours.
+    puzzle.setTheme(darkMode);
+    Color background = Color(puzzle.background);
+    Color foreground = Color(puzzle.foreground);
 
-    // Create the list of action-icons.
-    List<Widget> actionIcons = [
+    // Create the list of action-icons, making the icons resizeable.
+    double iconSize = MediaQuery.of(context).size.shortestSide;
+    double nIcons = 10.0;
+    iconSize = 0.5 * iconSize / nIcons;
+
+    List<IconButton> actionIcons = [
       IconButton(
         icon: const Icon(CommunityMaterialIcons.exit_run), // exit_to_app),
+        iconSize: iconSize,
         tooltip: 'Return to list of puzzles',
+        color:   foreground,
         onPressed: () {
           exitScreen(context, puzzle);
         },
       ),
       IconButton(
         icon: const Icon(Icons.settings_outlined),
+        iconSize: iconSize,
         tooltip: 'Settings',
+        color:   foreground,
         onPressed: () {
           // Navigate to the settings page.
           Navigator.restorablePushNamed(
@@ -76,7 +85,9 @@ class PuzzleView extends StatelessWidget
       ),
       IconButton(
         icon: const Icon(Icons.save_outlined),
+        iconSize: iconSize,
         tooltip: 'Save puzzle',
+        color:   foreground,
         onPressed: () {
           // Navigate to the settings page.
           Navigator.restorablePushNamed(
@@ -85,7 +96,9 @@ class PuzzleView extends StatelessWidget
       ),
       IconButton(
         icon: const Icon(Icons.file_download),
+        iconSize: iconSize,
         tooltip: 'Restore puzzle',
+        color:   foreground,
         onPressed: () {
           // Navigate to the settings page.
           Navigator.restorablePushNamed(
@@ -94,42 +107,54 @@ class PuzzleView extends StatelessWidget
       ),
       IconButton(
         icon: const Icon(CommunityMaterialIcons.lightbulb_on_outline),
+        iconSize: iconSize,
         tooltip: 'Get a hint',
+        color:   foreground,
         onPressed: () {
           puzzle.hint();
         },
       ),
       IconButton(
         icon: const Icon(Icons.undo_outlined),
+        iconSize: iconSize,
         tooltip: 'Undo a move',
+        color:   foreground,
         onPressed: () {
           puzzle.undo();
         },
       ),
       IconButton(
         icon: const Icon(Icons.redo_outlined),
+        iconSize: iconSize,
         tooltip: 'Redo a move',
+        color:   foreground,
         onPressed: () {
           puzzle.redo();
         },
       ),
       IconButton(
         icon: const Icon(Icons.devices_outlined),
+        iconSize: iconSize,
         tooltip: 'Generate a new puzzle',
+        color:   foreground,
         onPressed: () {
           generatePuzzle(puzzle, context);
         },
       ),
       IconButton(
         icon: const Icon(Icons.check_circle_outline_outlined),
+        iconSize: iconSize,
         tooltip: 'Check that the puzzle you have entered is valid',
+        color:   foreground,
         onPressed: () async {
           checkPuzzle(puzzle, context);
         },
       ),
       IconButton(
         icon: const Icon(Icons.restart_alt_outlined),
+        iconSize: iconSize,
         tooltip: 'Start solving this puzzle again',
+        color:   foreground,
         onPressed: () {
           // Navigate to the settings page.
           Navigator.restorablePushNamed(
@@ -138,46 +163,23 @@ class PuzzleView extends StatelessWidget
       ),
     ]; // End list of action icons
 
-    if (orientation == Orientation.landscape) {
-      // Landscape orientation.
-      // Paint the puzzle with the action icons in a column on the left.
-      return Scaffold(			// Omit AppBar, to maximize real-estate.
-        body: Row(
-          children: <Widget>[
-            Ink(   // Give puzzle-background colour to column of IconButtons.
-              color: puzzleBackgroundColor,
-              child: Column(
-                // Contents of Column are vertically centred.
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: actionIcons,
-              ),
+    // Paint the puzzle with the action icons in a row at the top.
+    return Scaffold(		// Omit AppBar, to maximize real-estate.
+      body: Column(
+        children: <Widget> [
+          Ink( // Give puzzle-background colour to row of IconButtons.
+            color: background,
+            child: Row(
+              children: actionIcons,
+              mainAxisAlignment: MainAxisAlignment.center,
             ),
-            Expanded(
-              child: PuzzleBoardView(),
-            ),
-          ], // End Row children: [
-        ), // End body: Row(
-      ); // End return Scaffold(
-    }
-    else {
-      // Portrait orientation.
-      // Paint the puzzle with the action icons in a row at the top.
-      return Scaffold(			// Omit AppBar, to maximize real-estate.
-        body: Column(
-          children: <Widget> [
-            Ink( // Give puzzle-background colour to row of IconButtons.
-              color: puzzleBackgroundColor,
-              child: Row(
-                children: actionIcons,
-              ),
-            ),
-            Expanded(
-              child: PuzzleBoardView(),
-            ),
-          ],
-        ), // End body: Column(
-      ); // End return Scaffold(
-    } // End if-then-else
+          ),
+          Expanded(
+            child: PuzzleBoardView(),
+          ),
+        ],
+      ), // End body: Column(
+    ); // End return Scaffold(
   } // End Widget build
 
   // Procedures for icon actions and user messages.

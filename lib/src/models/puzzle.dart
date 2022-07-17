@@ -41,6 +41,8 @@ class Puzzle with ChangeNotifier
 
   late PaintingSpecs2D _paintingSpecs2D;
   late PaintingSpecs3D _paintingSpecs3D;
+  late int background;
+  late int foreground;
 
   PaintingSpecs2D get paintingSpecs2D => _paintingSpecs2D;
   PaintingSpecs3D get paintingSpecs3D => _paintingSpecs3D;
@@ -167,15 +169,19 @@ class Puzzle with ChangeNotifier
     _ticker     = null;
   }
 
-  int setTheme(bool darkMode)
+  void setTheme(bool darkMode)
   {
     if (_puzzleMap.sizeZ == 1) {
       _paintingSpecs2D.setPuzzleThemeMode(darkMode); // Switch light/dark theme.
-      return _paintingSpecs2D.backgroundPaint.color.value;
+      background = _paintingSpecs2D.backgroundPaint.color.value;
+      foreground = _paintingSpecs2D.boldLinePaint.color.value;
+      return;
     }
     else {
       _paintingSpecs3D.setPuzzleThemeMode(darkMode); // Switch light/dark theme.
-      return _paintingSpecs3D.backgroundPaint.color.value;
+      background = _paintingSpecs3D.backgroundPaint.color.value;
+      foreground = _paintingSpecs3D.boldLinePaint.color.value;
+      return;
     }
   }
 
