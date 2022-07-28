@@ -70,6 +70,18 @@ class CageTarget		// Used as a composite return-value for a cage.
   CageTarget(this.cageOperator, this.cageValue);
 }
 
+class CagesLevel		// Parameters for the level of Difficulty.
+{
+  final Difficulty difficulty;
+  final int        minSingles;
+  final int        maxSingles;
+  final int        maxSize;
+  final int        maxCombos;
+
+  const CagesLevel(this.difficulty, this.minSingles, this.maxSingles,
+                   this.maxSize, this.maxCombos);
+}
+
 // Bit-values used to show what neighbours of a cell are already in other cages.
 
 const int ALONE = 0;	// There are no neighbours in other cages yet.
@@ -78,6 +90,16 @@ const int E     = 2;	// The Eastern neighbour is in another cage.
 const int S     = 4;	// The Southern neighbour is in another cage.
 const int W     = 8;	// The Western neighbour is in another cage.
 const int TAKEN = 15;	// Isolated cell => cage-size 1 (Given/clue).
+
+    List<int> comboLimits = [50, 50, 100, 360, 720, 2000];
+const List<CagesLevel> levelParams = [
+    CagesLevel(Difficulty.VeryEasy,   2, 4, 2, 50,),
+    CagesLevel(Difficulty.Easy,       2, 4, 3, 50,),
+    CagesLevel(Difficulty.Medium,     2, 4, 4, 300,),
+    CagesLevel(Difficulty.Hard,       2, 4, 5, 1500,),
+    CagesLevel(Difficulty.Diabolical, 2, 4, 6, 6000,),
+    CagesLevel(Difficulty.Unlimited,  2, 4, 7, 16000,),
+  ];
 
 class CageGenerator
 {
@@ -110,8 +132,9 @@ class CageGenerator
   List<int>     _neighbourFlags = [];	// The assigned neighbours cells have.
 
   int           _singles    = 0;	// The number of 1-cell cages (clues).
-  int           _minSingles = 2;	// The minimum number required.
-  int           _maxSingles = 4;	// The maximum number required.
+  int           _minSingles = 2;	// The minimum number of clues.
+  int           _maxSingles = 4;	// The maximum number of clues.
+  int           _maxSize    = 2;	// The maximum cage-size required.
   int           _maxCombos  = 2000;	// The maximum combos a cage can have.
 
   // The _possibilities list contains possible combinations and values all
@@ -146,9 +169,8 @@ class CageGenerator
 
   // PUBLIC METHODS.
 
-  int  makeCages (List<int> solutionMoves,
-                  int maxSize, int maxValue,
-                  bool hideOperators, int maxCombos)
+  int makeCages (List<int> solutionMoves, bool hideOperators, Difficulty d)
+
   /**
    * Fill the puzzle area with Mathdoku or Killer Sudoku cages. The _puzzleMap
    * property of the class gives the size and type of puzzle. The parameters
@@ -157,13 +179,10 @@ class CageGenerator
    *
    * solutionMoves   An ordered list of "move" cells found by the solver
    *                 when it reached a solution: used to provide Hints.
-   * maxSize         The maximum number of cells a cage can have.
-   * maxValue        The maximum total value a cage's cells can have.
    * hideOperators   Whether operators are to be hidden in a Mathdoku
    *                 puzzle. In a Killer Sudoku the operators are all +
    *                 and are always hidden.
-   * maxCombos       The maximum number of possible solutions any cage
-   *                 can have.
+   * d               The level of difficulty required in this Puzzle.
    *
    * return          The number of cages generated, or 0 = too many
    *                 failures to make an acceptable cage, or -1 = no
@@ -171,17 +190,23 @@ class CageGenerator
    *                 generated (the caller may need to try again).
    */
   {
-    // TODO - Use maxValue when OK'ing cages(?).
     // TODO - Experiment with _minSingles and _maxSingles. Make them parameters?
+
+    bool myDebug = true;
+
+    // Get the parameters for the required level of Difficulty.
+    CagesLevel level = levelParams[d.index];
+    _minSingles      = level.minSingles;
+    _maxSingles      = level.maxSingles;
+    _maxSize         = level.maxSize;
+    _maxCombos       = level.maxCombos;
 
     List<int> saveUnusedCells;
     List<int> saveNeighbourFlags;
     String usedCells = '';	// For DEBUG messages.
 
-    _maxCombos = maxCombos;
     _init (hideOperators);
     _puzzleMap.clearCages();
-
     _possibilities.clear();
     _possibilitiesIndex.clear();
     _possibilitiesIndex.add(0);
@@ -205,7 +230,7 @@ class CageGenerator
 
        Top priority for a starting point is a cell that is surrounded on three
        or four sides, otherwise the cell is chosen at random from the list of
-       unused cells.s
+       unused cells.
 
        A cell surrounded on four sides must become a single-cell cage, with a
        pre-determined value and no operator. Choosing a cell surrounded on three
@@ -246,68 +271,21 @@ class CageGenerator
     int maxFailures = 20;
 
     while (_unusedCells.length > 0) {
-      List<int> cage;
+      List<int>    cage         = [];
       CageOperator cageOperator = CageOperator.NoOperator;
       int          cageValue    = 1;
       int          chosenSize   = 1;
       int          index        = -1;
 
-      // First choose a minimum number of singles (clues), in random positions.
-      if (_singles >= _minSingles) {
-        for (int k in _unusedCells) {
-          // Next choose cul-de-sacs as starting cells (neighbours on 3 sides).
-          switch (_neighbourFlags[k]) {
-          case 7:
-          case 11:
-          case 13:
-          case 14:
-            index = k;		// Enclosed on three sides: start here.
-            chosenSize = _puzzleMap.randomInt(maxSize - 1) + 2;
-            if (myDebug) print("CHOSE CUL-DE-SAC flags ${_neighbourFlags[k]}"
-                               " at cell $index, cage-size $chosenSize");
-            break;
-          // Or choose cells that are surrounded on four sides.
-          case 15:
-            index = k;		// Isolated cell: size 1 is forced.
-            chosenSize = 1;
-            if (myDebug) print("CHOSE ISOLATED flags ${_neighbourFlags[k]}"
-                               " at cell $index, cage-size $chosenSize");
-            break;
-          default:
-            index = -1;		// Cannot get an ideal start.
-            break;
-          }
-          if (index >= 0) {
-            break;
-          }
-        }
-      }
-
-      // Pick a starting cell at random.
-      if (index < 0) {
-        int n = _puzzleMap.randomInt(_unusedCells.length);
-        index = _unusedCells[n];
-        if (_singles < _minSingles) {
-          // Choose size 1 (clues) first, until the minimum number is provided.
-          chosenSize = 1;
-          _singles++;
-          if (myDebug) print("CHOSE INITIAL SINGLE $_singles at cell $index");
-        }
-        else {
-          // Then avoid size 1. Isolated cells left over => size 1 (see above).
-          chosenSize = _puzzleMap.randomInt(maxSize - 1) + 2;
-          if (myDebug) print("CHOSE RANDOM START flags"
-                             " ${_neighbourFlags[index]}"
-                             " at cell $index, cage-size $chosenSize");
-        }
-      }
-      // if (myDebug) print("chosenSize $chosenSize cell $index");
+      myDebug = true;
+      chosenSize = _startACage(cage, _maxSize);
 
       saveUnusedCells    = [..._unusedCells];
       saveNeighbourFlags = [..._neighbourFlags];
 
-      if (myDebug) print("CALL _makeOneCage at cell $index size $chosenSize");
-      cage         = _makeOneCage (index, chosenSize);
+      if (myDebug) print("CALL _makeOneCage with seed $cage size $chosenSize");
+      _makeOneCage (cage, chosenSize);
+
       CageTarget t = _setCageTarget (cage);
       cageOperator = t.cageOperator;
       cageValue    = t.cageValue;
@@ -329,7 +307,9 @@ class CageGenerator
 
       if (myDebug) print("ADDED CAGE ${_puzzleMap.cageCount()}"
                          " $cage val $cageValue op $cageOperator");
-      if (myDebug) {
+      myDebug = (_unusedCells.length == 0);
+      // ////// if (myDebug) {
+      if (true) {
         // Print the layout so far, with tags a, b, c... for the caged-cells.
         String tags = 'abcdefghijklmnopqrstuvwxyz0123456789=+*&^%#@!~:;.<>?/';
         int ch = _puzzleMap.cageCount() - 1;
@@ -338,16 +318,16 @@ class CageGenerator
         for (int cell in cage) {
           usedCells = usedCells.replaceRange(cell, cell + 1, tag);
         }
-        print('LAYOUT $tag $usedCells\n');
+        if (myDebug) print('LAYOUT $tag $usedCells\n');
         for (int row = 0; row < _nSymbols; row++) {
           String chars = '';
           for (int col = 0; col < _nSymbols; col++) {
             int ch = col * _nSymbols + row;
             chars  = chars + usedCells.substring(ch, ch + 1);
           }
-          print('$chars');
+          if (myDebug) print('$chars');
         }
-        print('\n');
+        if (myDebug) print('\n');
       }
       List<int> flagsList = [];
       for (int cell in _unusedCells) {
@@ -364,9 +344,7 @@ class CageGenerator
         int nVals = _possibilitiesIndex[n+1] - _possibilitiesIndex[n];
         int size = _puzzleMap.cage (n).length;
         int nCombos =  nVals ~/ size;
-        // /* #ifdef MATHDOKU_LOG
-        if (myDebug) print('Cage $n values $nVals size $size combos $nCombos target ${_puzzleMap.cageValue(n)} op ${_puzzleMap.cageOperator(n)} topleft ${_puzzleMap.cageTopLeft(n)}');
-        // #endif */
+        if (myDebug) print('Cage $n size $size combos $nCombos target ${_puzzleMap.cageValue(n)} op ${_puzzleMap.cageOperator(n)} topleft ${_puzzleMap.cageTopLeft(n)}');
         totCombos += nCombos;
       }
       if (myDebug) print("TOTAL COMBOS $totCombos\n");
@@ -485,16 +463,76 @@ class CageGenerator
 
   // PRIVATE METHODS.
 
-  List<int> _makeOneCage (int seedCell, int requiredSize)
+  int _startACage(List<int> cage, int maxSize)
+  {
+    bool myDebug = true;
+    int n;
+    int cellIndex = -1;
+    int chosenSize = 1;
+
+    // Choose size 1 (clues) first, until the minimum number is provided.
+    if (_singles < _minSingles) {
+      n = _puzzleMap.randomInt(_unusedCells.length);
+      cellIndex = _unusedCells[n];
+      cage.add(cellIndex);
+      _singles++;
+      if (myDebug) print("CHOSE CLUE $_singles of $_minSingles at $cellIndex");
+      return chosenSize;
+    }
+
+    // Next choose cul-de-sacs as starting cells (neighbours on 3 sides).
+    for (int k in _unusedCells) {
+      switch (_neighbourFlags[k]) {
+      case 7:
+      case 11:
+      case 13:
+      case 14:
+        cellIndex = k;		// Enclosed on three sides: start here.
+        chosenSize = _puzzleMap.randomInt(maxSize - 1) + 2;	//>=2 <=maxSize.
+        if (myDebug) print("CHOSE CUL-DE-SAC flags ${_neighbourFlags[k]}"
+                           " at cell $cellIndex, cage-size $chosenSize");
+        break;
+      // Or choose cells that are surrounded on four sides.
+      case 15:
+        cellIndex = k;		// Isolated cell: size 1 is forced.
+        chosenSize = 1;
+        if (myDebug) print("CHOSE ISOLATED flags ${_neighbourFlags[k]}"
+                           " at cell $cellIndex, cage-size $chosenSize");
+        break;
+      default:
+        cellIndex = -1;		// Cannot get an ideal start yet.
+        break;
+      }
+      if (cellIndex >= 0) {
+        break;
+      }
+    }
+
+    // If there is no ideal starting cell, pick one at random.
+    if (cellIndex < 0) {
+      int n = _puzzleMap.randomInt(_unusedCells.length);
+      cellIndex = _unusedCells[n];
+      // Then avoid size 1. Isolated cells left over => size 1 (see above).
+      chosenSize = _puzzleMap.randomInt(maxSize - 1) + 2;	//>=2 <=maxSize.
+      if (myDebug) print("CHOSE RANDOM START flags"
+                         " ${_neighbourFlags[cellIndex]}"
+                         " at cell $cellIndex, cage-size $chosenSize");
+    }
+
+    cage.add(cellIndex);
+    return chosenSize;
+  }
+
+  void _makeOneCage (List<int> cage, int requiredSize)
   // Form a group of cells that makes up a cage of a chosen size (or less).
   {
-    List<int> cage             = [];
+    bool myDebug = false;
     List<int> unusedNeighbours = [];
     const List<int> direction  = [E, S, W, N];
     const List<int> opposite   = [W, N, E, S];
           List<int> increment  = [_nSymbols, 1, -_nSymbols, -1];
 
-    int index = seedCell;
+    int index = cage[0];
 
     unusedNeighbours.add(index);
  
@@ -518,7 +556,7 @@ class CageGenerator
         if (myDebug) print('indexOf(index) $index in unused ${_unusedCells.indexOf (index)}');
         _unusedCells.removeAt (_unusedCells.indexOf (index));
         _neighbourFlags[index] = TAKEN;
-        cage.add(index);
+        if (myDebug) print("CURRENT CAGE CONTENTS $cage");
         if (cage.length >= requiredSize) {
             break;
         }
@@ -547,8 +585,9 @@ class CageGenerator
             unb = _puzzleMap.randomInt(unusedNeighbours.length);
             index = unusedNeighbours[unb];
         }
+        cage.add(index);
     }
-    return cage;
+    return;
   }
 
   CageTarget _setCageTarget (List<int> cage)
@@ -655,6 +694,7 @@ class CageGenerator
     //        different rows/columns/boxes).
 
     int nDigits = cage.length;
+    bool myDebug = true;
 
     // In Killer Sudoku, the cage's solution must not contain duplicate digits.
     if (_killerSudoku) {
@@ -664,10 +704,8 @@ class CageGenerator
             int k = cage[n];
             int digit = _solution[k];
             if (usedDigits[digit]) {
-    /* #ifdef MATHDOKU_LOG
-                if (myDebug) print("SOLUTION VALUES CONTAIN DUPLICATE" << digit;
-    #endif */
-                return false;			// Cannot use this cage.
+              if (myDebug) print('SOLUTION VALUES CONTAIN DUPLICATE $digit $usedDigits');
+              return false;			// Cannot use this cage.
             }
             usedDigits[digit] = true;
         }
@@ -684,14 +722,14 @@ class CageGenerator
 
     if (isOK) {
         // Save the possibilities, for use when testing the puzzle solution.
+        print('CAGE SIZE ${cage.length} VALUE $cageValue '
+              'nPOSS ${numPoss~/nDigits}');
         _possibilitiesIndex.add(_possibilities.length);
     }
     else {
         // Discard the possibilities: this cage is no good.
-    /* #ifdef MATHDOKU_LOG
-        if (myDebug) print("CAGE REJECTED: combos" << (numPoss / nDigits)
-                 << "max" << _maxCombos << cage << cageValue << cageOperator;
-    #endif */
+        if (myDebug) print('CAGE REJECTED: combos ${numPoss~/nDigits} '
+                           'max $_maxCombos cage $cageValue $cageOperator');
         while (numPoss > 0) {
             _possibilities.removeLast();
             numPoss--;

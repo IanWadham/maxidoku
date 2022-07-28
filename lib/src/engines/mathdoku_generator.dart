@@ -54,28 +54,18 @@ class MathdokuGenerator
                                     Difficulty    difficultyRequired)
   {
     Message response = Message('', '');
-
-    // TODO - Look for more ways to assess Difficulty, e.g. sizes and stats of
-    //        possibilities lists, innies and outies (esp. in square blocks)...
+    bool hideOps     = false;
+    int  maxTries    = 20;
 
     // Cage sizes must be no more than the number of cells in a column or row.
-    int  maxSize   = 2 + difficultyRequired.index;
-    if (maxSize > _puzzleMap.nSymbols) maxSize = _puzzleMap.nSymbols;
-    int  maxVal    = 1000;
-    bool hideOps   = false;
-    // int  maxCombos = 120;
-    int  maxCombos = 2000;
-
-    int  maxTries  = 20;
-
     CageGenerator cageGen = CageGenerator(_puzzleMap, solution);
 
     int  numTries = 0;
     int  numMultis = 0;
     int  n = 0;
     while ((n <= 0) && (numTries < maxTries)) {
-	n = cageGen.makeCages (solutionMoves,
-                               maxSize, maxVal, hideOps, maxCombos);
+	n = cageGen.makeCages (solutionMoves, hideOps, difficultyRequired);
+
 	if (n < 0) {
 	    numMultis++;
 	}
@@ -84,7 +74,8 @@ class MathdokuGenerator
     }
     if (numTries >= maxTries) {
 	print('makeCages() FAILED after $numTries tries $numMultis multis');
-        return response;	// Try another set of Sudoku cell-values.
+        // Failed, return empty Message (to try another set of solution values).
+        return response;
     }
 
     print('makeCages() required $numTries tries $numMultis multi-solutions');
@@ -97,7 +88,6 @@ class MathdokuGenerator
         nClues++;
         int index = _puzzleMap.cage(n)[0];
         puzzle[index] = solution[index];
-        print('Cage $n cell $index value ${solution[index]}');
       }
     }
     int movesToGo = solution.length - nClues;
