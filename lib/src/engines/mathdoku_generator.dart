@@ -70,7 +70,7 @@ class MathdokuGenerator
 	    numMultis++;
 	}
 	numTries++;
-        print('CageGen return = $n, numTries $numTries, numMultis $numMultis');
+        print('CageGen return = $n, numTries $numTries, numMultis $numMultis\n\n');
     }
     if (numTries >= maxTries) {
 	print('makeCages() FAILED after $numTries tries $numMultis multis');

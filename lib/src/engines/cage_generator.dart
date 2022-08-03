@@ -89,14 +89,18 @@ const int N     = 1;	// The Northern neighbour is in another cage.
 const int E     = 2;	// The Eastern neighbour is in another cage.
 const int S     = 4;	// The Southern neighbour is in another cage.
 const int W     = 8;	// The Western neighbour is in another cage.
-const int TAKEN = 15;	// Isolated cell => cage-size 1 (Given/clue).
+const int CUTOFF = 15;	// Isolated cell => cage-size 1 (Given/clue).
+const int TAKEN  = 31;	// Cell has been used in a cage.
 
     List<int> comboLimits = [50, 50, 100, 360, 720, 2000];
 const List<CagesLevel> levelParams = [
-    CagesLevel(Difficulty.VeryEasy,   2, 4, 2, 50,),
-    CagesLevel(Difficulty.Easy,       2, 4, 3, 50,),
-    CagesLevel(Difficulty.Medium,     2, 4, 4, 300,),
-    CagesLevel(Difficulty.Hard,       2, 4, 5, 1500,),
+    CagesLevel(Difficulty.VeryEasy,   4, 4, 2, 9,),
+    CagesLevel(Difficulty.Easy,       2, 4, 3, 28,),
+    // With maxCombos = 200, we cut off size 4 values 17-23 (9-12 digit-choices)
+    // where each set of 4-digits has 24 permutations (4 factorial).
+    CagesLevel(Difficulty.Medium,     2, 4, 4, 200, /*200,*/),	// WORKS.
+    // Could choose maxSize 4 and maxCombos 300 or maxSize 5 and maxCombos 300.
+    CagesLevel(Difficulty.Hard,       2, 4, 5, 300, /*1500,*/),	// WORKS.
     CagesLevel(Difficulty.Diabolical, 2, 4, 6, 6000,),
     CagesLevel(Difficulty.Unlimited,  2, 4, 7, 16000,),
   ];
@@ -120,7 +124,7 @@ class CageGenerator
   bool          myDebug = false;
   // bool          myDebug = true;
 
-  int           _nSymbols = 0;		// The height and width of the grid.
+  int           _nSymbols  = 0;		// The height and width of the grid.
   int           _boardArea = 0;		// The number of cells in the grid.
 
   bool          _killerSudoku = true;	// Killer Sudoku or Mathdoku rules?
@@ -278,17 +282,19 @@ class CageGenerator
       int          index        = -1;
 
       myDebug = true;
-      chosenSize = _startACage(cage, _maxSize);
+      chosenSize = _startACage(cage, _maxSize);	// Start a cage.
 
       saveUnusedCells    = [..._unusedCells];
       saveNeighbourFlags = [..._neighbourFlags];
 
       if (myDebug) print("CALL _makeOneCage with seed $cage size $chosenSize");
-      _makeOneCage (cage, chosenSize);
+      _makeOneCage (cage, chosenSize);		// Expand to chosen size.
 
-      CageTarget t = _setCageTarget (cage);
+      CageTarget t = _setCageTarget (cage);	// Choose operator and value.
       cageOperator = t.cageOperator;
       cageValue    = t.cageValue;
+
+      // Check thar the cage is valid.
       if (! _cageIsOK (cage, cageOperator, cageValue)) {
         _unusedCells    = [...saveUnusedCells];
         _neighbourFlags = [...saveNeighbourFlags];
@@ -304,31 +310,13 @@ class CageGenerator
 
       // The cage is OK: add it to the puzzle's layout.
       _puzzleMap.addCage (cage, cageOperator, cageValue);
-
       if (myDebug) print("ADDED CAGE ${_puzzleMap.cageCount()}"
                          " $cage val $cageValue op $cageOperator");
-      myDebug = (_unusedCells.length == 0);
-      // ////// if (myDebug) {
-      if (true) {
-        // Print the layout so far, with tags a, b, c... for the caged-cells.
-        String tags = 'abcdefghijklmnopqrstuvwxyz0123456789=+*&^%#@!~:;.<>?/';
-        int ch = _puzzleMap.cageCount() - 1;
-        // Avoid a crash. Just leave spaces if we run out of tag characters.
-        String tag = ch < tags.length ? tags.substring(ch, ch + 1) : ' ';
-        for (int cell in cage) {
-          usedCells = usedCells.replaceRange(cell, cell + 1, tag);
-        }
-        if (myDebug) print('LAYOUT $tag $usedCells\n');
-        for (int row = 0; row < _nSymbols; row++) {
-          String chars = '';
-          for (int col = 0; col < _nSymbols; col++) {
-            int ch = col * _nSymbols + row;
-            chars  = chars + usedCells.substring(ch, ch + 1);
-          }
-          if (myDebug) print('$chars');
-        }
-        if (myDebug) print('\n');
-      }
+
+      ////myDebug = (_unusedCells.length == 0);	// Print only the final layout.
+      myDebug = true;
+      usedCells = _printLayout(myDebug, cage, usedCells);
+
       List<int> flagsList = [];
       for (int cell in _unusedCells) {
         flagsList.add(_neighbourFlags[cell]);
@@ -470,6 +458,9 @@ class CageGenerator
     int cellIndex = -1;
     int chosenSize = 1;
 
+    // If necessary, adjust max size for Puzzles with dimensions less than 9.
+    int maxAvail = (maxSize <= _nSymbols) ? maxSize : _nSymbols;
+
     // Choose size 1 (clues) first, until the minimum number is provided.
     if (_singles < _minSingles) {
       n = _puzzleMap.randomInt(_unusedCells.length);
@@ -488,7 +479,7 @@ class CageGenerator
       case 13:
       case 14:
         cellIndex = k;		// Enclosed on three sides: start here.
-        chosenSize = _puzzleMap.randomInt(maxSize - 1) + 2;	//>=2 <=maxSize.
+        chosenSize = _puzzleMap.randomInt(maxAvail - 1) + 2; //>=2 <=maxAvail.
         if (myDebug) print("CHOSE CUL-DE-SAC flags ${_neighbourFlags[k]}"
                            " at cell $cellIndex, cage-size $chosenSize");
         break;
@@ -513,7 +504,7 @@ class CageGenerator
       int n = _puzzleMap.randomInt(_unusedCells.length);
       cellIndex = _unusedCells[n];
       // Then avoid size 1. Isolated cells left over => size 1 (see above).
-      chosenSize = _puzzleMap.randomInt(maxSize - 1) + 2;	//>=2 <=maxSize.
+      chosenSize = _puzzleMap.randomInt(maxAvail - 1) + 2; //>=2 <=maxAvail.
       if (myDebug) print("CHOSE RANDOM START flags"
                          " ${_neighbourFlags[cellIndex]}"
                          " at cell $cellIndex, cage-size $chosenSize");
@@ -526,18 +517,18 @@ class CageGenerator
   void _makeOneCage (List<int> cage, int requiredSize)
   // Form a group of cells that makes up a cage of a chosen size (or less).
   {
-    bool myDebug = false;
+    bool myDebug = true;
     List<int> unusedNeighbours = [];
     const List<int> direction  = [E, S, W, N];
     const List<int> opposite   = [W, N, E, S];
           List<int> increment  = [_nSymbols, 1, -_nSymbols, -1];
 
-    int index = cage[0];
+    int index       = cage[0];
+    int usedSymbols = 1 << _solution[index];;
 
-    unusedNeighbours.add(index);
- 
-    while (true) {
-        // Update the chosen cell's neighbours.
+    // Loop while the cage should grow and there are neighbours left to choose.
+    while (index >= 0) {
+        // If there is a chosen cell, update its neighbours.
         int flags = _neighbourFlags[index];
         if(myDebug) print('index $index flags $flags');
         for (int k = 0; k < 4; k++) {
@@ -549,43 +540,73 @@ class CageGenerator
             if (_unusedCells.indexOf (nb) >= 0) {
                 unusedNeighbours.add(nb);
             }
-            if (myDebug) print('k $k incr ${increment[k]} nb $nb opp ${opposite[k]} unusedNbrs $unusedNeighbours');
+            // if (myDebug) print('k $k incr ${increment[k]} nb $nb opp '
+                              // '${opposite[k]} unusedNbrs $unusedNeighbours');
         }
-        if (myDebug) print("index $index NEIGHBOURS $unusedNeighbours");
-        if (myDebug) print("index $index NEIGHBOURS $_unusedCells");
-        if (myDebug) print('indexOf(index) $index in unused ${_unusedCells.indexOf (index)}');
+
+        // Remove the selected cell from the unused-cell list.
         _unusedCells.removeAt (_unusedCells.indexOf (index));
         _neighbourFlags[index] = TAKEN;
         if (myDebug) print("CURRENT CAGE CONTENTS $cage");
         if (cage.length >= requiredSize) {
-            break;
+            break;	// The cage has reached the required size.
         }
 
+        // Remove the selected cell from the unused cage-neighbours list.
         int unb = unusedNeighbours.indexOf (index);
         while (unb >= 0) {
+            // print('Unused neighbours: Index of $index = $unb REMOVE $index');
             unusedNeighbours.removeAt (unb);
             unb = unusedNeighbours.indexOf (index);
+            // print('Unused neighbours: Index of $index = $unb');
         }
+        if (myDebug) print("Index $index NEIGHBOURS $unusedNeighbours");
+        if (myDebug) print("Index $index ALL UNUSED $_unusedCells");
         if (unusedNeighbours.isEmpty) {
-            break;
+            break;	// All the cage's possible neighbours are taken.
         }
 
-        // Pick a neighbour to be added to the cage.
+        // Pick a new neighbour to be added to the cage.
         index = -1;
+        int mask        = 0;
+        List<int> possibleNextCells = [];
+        print('UNUSED NEIGHBOURS $unusedNeighbours');
+
         for (unb in unusedNeighbours) {
-            flags = _neighbourFlags[unb];
-            if (flags == 15) {
-                // Choose a cell that has been surrounded and isolated.
-                index = unb;
-                break;
+          // Look for the next cell among unused neighbours of the cage.
+          if (_killerSudoku) {
+            mask = 1 << _solution[unb];
+            if ((usedSymbols & mask) > 0) {
+              // If Killer, don't allow a duplicate value to get into the cage.
+              print('SKIP DUPLICATE cell $unb value ${_solution[unb]}');
+              continue;
             }
+          }
+          flags = _neighbourFlags[unb];
+          if (flags == CUTOFF) {
+            // Choose a cell that has been surrounded and isolated. It happens
+            // when a cell has been added to the cage that is next to one or
+            // more cul-de-sacs. Each one goes from 3 sides enclosed to all 4.
+            index = unb;
+            print('ISOLATED CELL $index, unused nbours $unusedNeighbours');
+            break;
+          }
+          print('CONSIDER cell $unb value ${_solution[unb]}');
+          possibleNextCells.add(unb);
+        } // End for (unb in unusedNeighbours)
+
+        // Use an isolated cell as first priority.
+        if ((index < 0) && (! possibleNextCells.isEmpty)) {
+          // Otherwise choose a neighbouring cell at random, if there are any.
+          int r = _puzzleMap.randomInt(possibleNextCells.length);
+          index = possibleNextCells[r];
+          print('RANDOM CELL $index, unused nbours $r $possibleNextCells');
         }
-        if (index < 0) {
-            // Otherwise, choose a neighbouring cell at random.
-            unb = _puzzleMap.randomInt(unusedNeighbours.length);
-            index = unusedNeighbours[unb];
+        print('');
+        if (index >= 0) {
+          cage.add(index);
+          usedSymbols |= 1 << _solution[index];;
         }
-        cage.add(index);
     }
     return;
   }
@@ -696,6 +717,9 @@ class CageGenerator
     int nDigits = cage.length;
     bool myDebug = true;
 
+/*
+    // DO NOT NEED THIS CHECK - _makeOneCage() now avoids generating
+    //                          duplicates in Killer Sudoku cages. 
     // In Killer Sudoku, the cage's solution must not contain duplicate digits.
     if (_killerSudoku) {
         // Digits' range is 1->nSymbols.
@@ -710,25 +734,28 @@ class CageGenerator
             usedDigits[digit] = true;
         }
     }
+*/
 
     // Get all possibilities and keep checking, as we go, that the cage is OK.
     bool isOK = true;
     _setAllPossibilities (cage, nDigits, cageOperator, cageValue);
     int numPoss = (_possibilities.length - _possibilitiesIndex.last);
 
-    // There should be some possibilities and not too many (wrt difficulty).
+    // There should be some possibilities and not too many (re Difficulty).
     isOK &= (numPoss > 0);
-    isOK &= ((numPoss / nDigits) <= _maxCombos);
+    isOK &= ((numPoss ~/ nDigits) <= _maxCombos);
 
+    print('Max combos $_maxCombos numPoss $numPoss '
+          'nDigits $nDigits -> ${numPoss ~/ nDigits}');
     if (isOK) {
         // Save the possibilities, for use when testing the puzzle solution.
         print('CAGE SIZE ${cage.length} VALUE $cageValue '
-              'nPOSS ${numPoss~/nDigits}');
+              'nPOSS ${numPoss ~/ nDigits}');
         _possibilitiesIndex.add(_possibilities.length);
     }
     else {
-        // Discard the possibilities: this cage is no good.
-        if (myDebug) print('CAGE REJECTED: combos ${numPoss~/nDigits} '
+        // Discard the possibilities: this cage is rejected.
+        if (myDebug) print('CAGE REJECTED: combos ${numPoss ~/ nDigits} '
                            'max $_maxCombos cage $cageValue $cageOperator');
         while (numPoss > 0) {
             _possibilities.removeLast();
@@ -798,7 +825,7 @@ class CageGenerator
   }
 
   void _setPossibleAddsOrMultiplies (List<int> cage,
-                                    CageOperator cageOperator, int cageValue)
+                                     CageOperator cageOperator, int cageValue)
   // Set all possible values for a cage that has a multiply or add operator.
   {
     // Maximum nSymbols of maths-based puzzles == 9.
@@ -924,6 +951,29 @@ class CageGenerator
         }
     }
     return true;
+  }
+
+  String _printLayout(bool myDebug, List<int>cage, String usedCells)
+  {
+    // Print the layout so far, with tags a, b, c... for the caged-cells.
+    String tags = 'abcdefghijklmnopqrstuvwxyz0123456789=+*&^%#@!~:;.<>?/';
+    int ch = _puzzleMap.cageCount() - 1;
+    // Avoid a crash. Just leave spaces if we run out of tag characters.
+    String tag = ch < tags.length ? tags.substring(ch, ch + 1) : ' ';
+    for (int cell in cage) {
+      usedCells = usedCells.replaceRange(cell, cell + 1, tag);
+    }
+    if (myDebug) print('LAYOUT $tag $usedCells\n');
+    for (int row = 0; row < _nSymbols; row++) {
+      String chars = '';
+      for (int col = 0; col < _nSymbols; col++) {
+        int ch = col * _nSymbols + row;
+        chars  = chars + usedCells.substring(ch, ch + 1);
+      }
+      if (myDebug) print('$chars');
+    }
+    if (myDebug) print('\n');
+    return usedCells;
   }
 
   void _init (bool hiddenOperators)
