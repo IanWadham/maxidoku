@@ -419,7 +419,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
       double cellSide = puzzleRect.width / puzzle.puzzleMap.sizeX;
       int x = (point.dx / cellSide).floor();
       int y = (point.dy / cellSide).floor();
-      print('Hit is at puzzle-cell ($x, $y)');
+      // print('Hit is at puzzle-cell ($x, $y)');
       // If hitting this cell is a valid move, the Puzzle model will be updated.
       modelChanged = puzzle.hitPuzzleArea(x, y);
     }
@@ -448,7 +448,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         print('_possibleHit$D: NOT A HIT');
       }
     }
-    print('MODEL CHANGED $modelChanged');
+    // print('MODEL CHANGED $modelChanged');
     // NOTE: If the hit led to a valid change in the puzzle model,
     //       notifyListeners() has been called and a repaint will
     //       be scheduled by Provider. If the attempted move was
@@ -488,7 +488,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         print('_possibleHit3D: NO SPHERE HIT');
       }
     }
-    print('MODEL CHANGED $modelChanged');
+    // print('MODEL CHANGED $modelChanged');
     // NOTE: If the hit led to a valid change in the puzzle model,
     //       notifyListeners() has been called and a repaint will
     //       be scheduled by Provider. If the attempted move was

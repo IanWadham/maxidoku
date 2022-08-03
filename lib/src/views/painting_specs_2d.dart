@@ -207,13 +207,13 @@ class PaintingSpecs2D extends PaintingSpecs
       int cell       = topLeft;
 
       // *********** DEBUG ************ //
-      print('Cage $cageNum $cage topLeft $topLeft'
-            ' label ${puzzleMap.cageValue(cageNum)}');
-      List<int> temp = [];
-      for (int nCell in cage) {
-        temp.add(cagesEdges[nCell]);
-      }
-      print('Cage edges $temp');
+      // print('Cage $cageNum $cage topLeft $topLeft'
+            // ' label ${puzzleMap.cageValue(cageNum)}');
+      // List<int> temp = [];
+      // for (int nCell in cage) {
+        // temp.add(cagesEdges[nCell]);
+      // }
+      // print('Cage edges $temp');
       // ****************************** //
 
       int edgeBits   = cagesEdges[cell];
@@ -250,7 +250,7 @@ class PaintingSpecs2D extends PaintingSpecs
         }
       } while (! ((cell == topLeft) && (direction == E)));
 
-      print('Cage $cageNum $cage perimeter $perimeter');
+      // print('Cage $cageNum $cage perimeter $perimeter');
       cagePerimeters.add(perimeter);
 
     } // Mark out next cage.

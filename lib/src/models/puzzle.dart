@@ -391,17 +391,17 @@ class Puzzle with ChangeNotifier
 
     bool hideNotes = (puzzlePlay == Play.NotStarted) ||
                      (puzzlePlay == Play.BeingEntered);
-    print('hitControlArea: selection $selection, hideNotes $hideNotes');
+    // print('hitControlArea: selection $selection, hideNotes $hideNotes');
     if ((! hideNotes) && (selection == 0)) {
       // If solving, switch Notes mode and change colour of highlight.
       notesMode = !notesMode;
-      print('Switched Notes to $notesMode');
+      // print('Switched Notes to $notesMode');
       notifyListeners();	// Trigger a repaint of the Puzzle View.
       return true;
     }
     // The value selected is treated as a cell-value, a note or an erase.
     selectedControl = selection - (hideNotes ? 0 : 1);
-    print('hitControlArea: Selected control $selectedControl');
+    // print('hitControlArea: Selected control $selectedControl');
 
     int cellToChange = selectedCell ?? -1;
     if (cellToChange < 0) {
@@ -466,7 +466,7 @@ class Puzzle with ChangeNotifier
     }
 
     CellStatus status = _cellStatus[n];
-    print('Cell status $n = $status');
+    // print('Cell status $n = $status');
 
     // Check that the user has selected a symbol and that the cell is usable.
     if (status == UNUSABLE || status == GIVEN) {
@@ -522,8 +522,8 @@ class Puzzle with ChangeNotifier
         newValue   = VACANT;
         newStatus  = VACANT;
       }
-      print('Puzzle: cell $n: new val $newV status $newStatus');
-      print('Puzzle: cell $n: old val $currV status $currentStatus');
+      // print('Puzzle: cell $n: new val $newV status $newStatus');
+      // print('Puzzle: cell $n: old val $currV status $currentStatus');
     }
     else {
       // Normal entry of a possible solution-value or a delete.
@@ -563,8 +563,8 @@ class Puzzle with ChangeNotifier
     _cellStatus[n]     = newStatus;
     _stateOfPlay[n]    = newValue;
 
-    print('NEW MOVE: cell $n status $newStatus value $newValue changes'
-          ' ${_cellChanges.length} Undo/Redo $_indexUndoRedo');
+    // print('NEW MOVE: cell $n status $newStatus value $newValue changes'
+          // ' ${_cellChanges.length} Undo/Redo $_indexUndoRedo');
     return newState;
   }
 
