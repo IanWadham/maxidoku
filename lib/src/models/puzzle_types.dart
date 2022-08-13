@@ -560,5 +560,20 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     RoxdokuGroups 84
     RoxdokuGroups 96 '''
 ,
+''' Name Blindfold Mathdoku - Settable Size
+    Description Size 3x3 to 9x9 grid, with calculated cages, but operators +-/x are hidden
+    Author Ian Wadham
+    FileName Mathdoku_Settable.xml
+    Icon ksudoku-ksudoku_9x9
+    SizeX Mathdoku
+    SizeY Mathdoku
+    SizeZ 1
+    NGroups Mathdoku*2
+    NSymbols Mathdoku 
+    SpecificType Mathdoku
+    HideOperators
+    PuzzleMap
+    SudokuGroups 0 NoSquareBlocks '''
+,
   ];
 }

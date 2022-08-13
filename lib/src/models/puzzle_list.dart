@@ -168,6 +168,12 @@ class PuzzleList
   // Author Ian Wadham
   'ksudoku-roxdoku_3x3x3' // Icon ID
   ],
+  ['26', // Puzzle ID
+  'Blindfold Mathdoku - Settable Size',
+  'Size 3x3 to 9x9 grid, with calculated cages, but operators +-/x are hidden',
+  // Author Ian Wadham
+  'ksudoku-ksudoku_9x9' // Icon ID
+  ],
   ];
 }
 

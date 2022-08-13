@@ -27,11 +27,11 @@ import 'cage_generator.dart';
  * satisfies Sudoku-type constraints. It acts as a controller for makeCages().
  */
 
-class MathdokuGenerator
+class MathdokuKillerGenerator
 {
   final PuzzleMap _puzzleMap;	// The layout, rules and geometry of the puzzle.
 
-  const MathdokuGenerator (PuzzleMap this._puzzleMap);
+  const MathdokuKillerGenerator (PuzzleMap this._puzzleMap);
 
   /**
    * Generate a Mathdoku or Killer Sudoku puzzle.
@@ -49,13 +49,13 @@ class MathdokuGenerator
    *                    some information about the puzzle.
    */
   Message generateMathdokuKillerTypes (BoardContents puzzle,
-                                    BoardContents solution,
-                                    List<int>     solutionMoves,
-                                    Difficulty    difficultyRequired)
+                                       BoardContents solution,
+                                       List<int>     solutionMoves,
+                                       Difficulty    difficultyRequired)
   {
     Message response = Message('', '');
-    bool hideOps     = false;
-    int  maxTries    = 20;
+    bool hideOperators = _puzzleMap.hideOperators;;
+    int  maxTries      = 20;
 
     // Cage sizes must be no more than the number of cells in a column or row.
     CageGenerator cageGen = CageGenerator(_puzzleMap, solution);
@@ -64,18 +64,18 @@ class MathdokuGenerator
     int  numMultis = 0;
     int  n = 0;
     while ((n <= 0) && (numTries < maxTries)) {
-	n = cageGen.makeCages (solutionMoves, hideOps, difficultyRequired);
-
-	if (n < 0) {
-	    numMultis++;
-	}
-	numTries++;
-        print('CageGen return = $n, numTries $numTries, numMultis $numMultis\n\n');
+      n = cageGen.makeCages
+                 (solutionMoves, hideOperators, difficultyRequired);
+      if (n < 0) {
+        numMultis++;
+      }
+      numTries++;
+      print('CageGen return = $n, numTries $numTries, numMultis $numMultis\n\n');
     }
     if (numTries >= maxTries) {
-	print('makeCages() FAILED after $numTries tries $numMultis multis');
-        // Failed, return empty Message (to try another set of solution values).
-        return response;
+      print('makeCages() FAILED after $numTries tries $numMultis multis');
+      // Failed, return empty Message (to try another set of solution values).
+      return response;
     }
 
     print('makeCages() required $numTries tries $numMultis multi-solutions');
@@ -110,13 +110,20 @@ class MathdokuGenerator
    *                    1  = there is a unique solution,
    *                    >1 = there is more than one solution.
    */
-  int solveMathdokuTypes (BoardContents solution,
+
+  // TODO - Is this method really needed? Other methods are providing number
+  //        of solutions, solution and solution moves. Maybe this will be
+  //        when/if tapping-in of Mathdoku/Killer puzzles is implemented. There
+  //        are NO references to this method at present (13/08/22).
+
+  int solveMathdokuKillerTypes (BoardContents solution,
                           List<int>     solutionMoves)
   {
-    bool hideOps = false;
+    bool hideOperators = false;
     int result   = 0;
     CageGenerator cageGen = CageGenerator(_puzzleMap, solution);
-    result = cageGen.checkPuzzle (solution, solutionMoves, hideOps);
+    result = cageGen.checkPuzzle (solution, solutionMoves, hideOperators);
     return result;
   }
-}
+
+} // End MathdokuKillerGenerator class

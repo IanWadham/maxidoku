@@ -197,7 +197,7 @@ class Puzzle with ChangeNotifier
       case SudokuType.Mathdoku:
       case SudokuType.KillerSudoku:
 	// Generate variants of Killer Sudoku or Mathdoku (aka Kenken TM) types.
-        MathdokuGenerator mg = MathdokuGenerator(_puzzleMap);
+        MathdokuKillerGenerator mg = MathdokuKillerGenerator(_puzzleMap);
 	int maxTries = 10;
         print('GENERATE $puzzleType, $_difficulty');
         for (int numTries = 1; numTries <= maxTries; numTries++) {

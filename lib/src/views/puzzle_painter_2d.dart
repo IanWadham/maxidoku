@@ -253,17 +253,21 @@ class PuzzlePainter2D extends CustomPainter
     }
   }
 
-  String getCageLabel (PuzzleMap map, int cageNum) // bool killerStyle)
+  String getCageLabel (PuzzleMap map, int cageNum)
   {
     bool killerStyle = (map.specificType == SudokuType.KillerSudoku);
     if (map.cage(cageNum).length < 2) {
 	return '';		// 1-cell cages are displayed as Givens (clues).
     }
 
+    // TODO - Operators or cell-values should be randomly revealed in Hints.
+    // TODO - Operators should all be revealed when a solution is reached.
+
+    // No operator is shown in KillerSudoku, nor in Blindfold Mathdoku.
     String cLabel = map.cageValue(cageNum).toString();
-    if (! killerStyle) {	// No operator is shown in KillerSudoku.
-        int opNum = map.cageOperator(cageNum).index;
-	cLabel = cLabel + " /-x+".substring(opNum, opNum + 1);
+    if ((! killerStyle) && (! map.hideOperators)) {
+      int opNum = map.cageOperator(cageNum).index;
+      cLabel = cLabel + " /-x+".substring(opNum, opNum + 1);
     }
     // print('Cage Label $cLabel, cage $cageNum, cell $topLeft');
     return cLabel;

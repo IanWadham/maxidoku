@@ -77,9 +77,20 @@ class CagesLevel		// Parameters for the level of Difficulty.
   final int        maxSingles;
   final int        maxSize;
   final int        maxCombos;
+  final int        featureSize;
+  final int        maxFeatureSize;
+  final List<int>  sizeDistribution;
 
   const CagesLevel(this.difficulty, this.minSingles, this.maxSingles,
-                   this.maxSize, this.maxCombos);
+                   this.maxSize, this.maxCombos,
+                   {
+                   int featureSize = 0,
+                   int maxFeatureSize = 0,
+                   List<int> sizeDistribution = const <int>[]
+                   }) :
+                   featureSize      = featureSize,
+                   maxFeatureSize   = maxFeatureSize,
+                   sizeDistribution = sizeDistribution;
 }
 
 // Bit-values used to show what neighbours of a cell are already in other cages.
@@ -92,16 +103,26 @@ const int W     = 8;	// The Western neighbour is in another cage.
 const int CUTOFF = 15;	// Isolated cell => cage-size 1 (Given/clue).
 const int TAKEN  = 31;	// Cell has been used in a cage.
 
-    List<int> comboLimits = [50, 50, 100, 360, 720, 2000];
 const List<CagesLevel> levelParams = [
+
+    // Cage sizes for Very Easy are just 1 and 2, with all values allowed.
     CagesLevel(Difficulty.VeryEasy,   4, 4, 2, 9,),
+
+    // Cage sizes for Easy are from 1 to 3, with all values allowed.
     CagesLevel(Difficulty.Easy,       2, 4, 3, 28,),
-    // With maxCombos = 200, we cut off size 4 values 17-23 (9-12 digit-choices)
-    // where each set of 4-digits has 24 permutations (4 factorial).
-    CagesLevel(Difficulty.Medium,     2, 4, 4, 200, /*200,*/),	// WORKS.
-    // Could choose maxSize 4 and maxCombos 300 or maxSize 5 and maxCombos 300.
-    CagesLevel(Difficulty.Hard,       2, 4, 5, 300, /*1500,*/),	// WORKS.
+
+    // MaxCombos = 200 cuts off 4-cell values 17-23 (9-12 choices of digits)
+    // where each set of 4 digits has 24 permutations (4 factorial).
+    CagesLevel(Difficulty.Medium,     2, 4, 4, 200, featureSize: 4),
+
+    // MaxCombos = 400 allows all 4-cell values and 5-cell values 15-18 & 32-35,
+    // where each set of 5 digits has 120 permutations (5 factorial).
+    CagesLevel(Difficulty.Hard,       2, 4, 4 /*5*/, 400, featureSize: 4 /*5*/),
+
+    // All combinations are allowed for cages up to size 6.
     CagesLevel(Difficulty.Diabolical, 2, 4, 6, 6000,),
+
+    // All combinations are allowed for cages up to size 7.
     CagesLevel(Difficulty.Unlimited,  2, 4, 7, 16000,),
   ];
 
@@ -116,30 +137,39 @@ class CageGenerator
 
   // PRIVATE DATA
 
+  bool          myDebug = false;
+  // bool          myDebug = true;
+
+  // TODO - FAILS to find a puzzle that is Very Easy BlindFold Mathdoku...
+
+  // TODO - How to handle Possibilities? Calculate or tabulate?
+  // NOTE - nPossibilities depends on nSymbols (Puzzle size) as well as Cage
+  //        value. How to handle this? Been focussing too much on Killer 9x9!!!
+
   PuzzleMap     _puzzleMap;		// The geometry of the puzzle.
   BoardContents _solution;
 
   DLXSolver     _DLXSolver;		// A solver for generated puzzles.
 
-  bool          myDebug = false;
-  // bool          myDebug = true;
-
   int           _nSymbols  = 0;		// The height and width of the grid.
   int           _boardArea = 0;		// The number of cells in the grid.
 
-  bool          _killerSudoku = true;	// Killer Sudoku or Mathdoku rules?
-  bool          _hiddenOperators = true;// Operators in cages NOT displayed?
+  bool          _killerSudoku   = true;	// Killer Sudoku or Mathdoku rules?
+  bool          _hideOperators  = true;	// Operators in cages displayed or not?
 
   // Working-data used in the cage-generation algorithm.
 
-  List<int>     _unusedCells = [];	// Cells not yet assigned to cages.
+  List<int>     _unusedCells    = [];	// Cells not yet assigned to cages.
   List<int>     _neighbourFlags = [];	// The assigned neighbours cells have.
 
-  int           _singles    = 0;	// The number of 1-cell cages (clues).
-  int           _minSingles = 2;	// The minimum number of clues.
-  int           _maxSingles = 4;	// The maximum number of clues.
-  int           _maxSize    = 2;	// The maximum cage-size required.
-  int           _maxCombos  = 2000;	// The maximum combos a cage can have.
+  int           _singles        = 0;	// The number of 1-cell cages (clues).
+  int           _minSingles     = 2;	// The minimum number of clues.
+  int           _maxSingles     = 4;	// The maximum number of clues.
+  int           _maxSize        = 2;	// The maximum cage-size required.
+  int           _maxCombos      = 2000;	// The maximum combos a cage can have.
+  int           _featureSize    = 0;	// Size of feature cage, if any.
+  int           _maxFeatureSize = 0;	// Max size of feature cage, if any.
+  List<int>     _sizeDistribution = [];
 
   // The _possibilities list contains possible combinations and values all
   // the cages might have. It is used when setting up the DLX matrix for the
@@ -225,7 +255,6 @@ class CageGenerator
 
     // TODO - Will probably need to limit the number of size-1 cages and maybe
     //        guarantee a minimum number as well.
-    // TODO - Might need to generate at least one maximum-size cage first..
 
     /*
     ALGORITHM:
@@ -234,16 +263,17 @@ class CageGenerator
 
        Top priority for a starting point is a cell that is surrounded on three
        or four sides, otherwise the cell is chosen at random from the list of
-       unused cells.
+       unused cells. Choosing a cell surrounded on three sides allows the cage
+       to occupy and grow out of tight corners, avoiding an excess of small and
+       single-cell cages.
 
-       A cell surrounded on four sides must become a single-cell cage, with a
-       pre-determined value and no operator. Choosing a cell surrounded on three
-       sides allows the cage to occupy and grow out of tight corners, avoiding
-       an excess of small and single-cell cages.
+       if found, a cell surrounded on four sides must become a single-cell cage,
+       with a pre-determined value and no operator.
 
-       The chosen size is initially 1 (needed to control the difficulty of the
-       puzzle) and later a random number from 2 to the maximum cage-size. The
-       maximum cage-size also affects difficulty.
+       The first cage generated may have a featured large size, depending on the
+       difficulty level. After that, the chosen size is initially 1 (needed to
+       control the difficulty of the puzzle) and later a random number from 2 to
+       the maximum cage-size. The max size significantly affects difficulty.
 
     2. Use the function _makeOneCage() to make a cage of the required size.
 
@@ -251,8 +281,8 @@ class CageGenerator
        the required size is reached or it runs out of space to grow the cage
        further. It updates the lists of used cells and neighbours as it goes.
        A neighbour that would otherwise become surrounded on all four sides
-       is always added to the cage as it grows, but normally the next cell is
-       chosen randomly.
+       is usually added to the cage as it grows, but normally the next cell
+       is chosen randomly from among the cage's neighbours.
 
     3. Use the function _setCageTarget() to choose an operator (+*-/), calculate
        the cage's value from the cell-values in the puzzle's solution and find
@@ -273,6 +303,9 @@ class CageGenerator
 
     int numFailures = 0;
     int maxFailures = 20;
+    int feature     = level.featureSize;
+
+    print('START GENERATING CAGES');
 
     while (_unusedCells.length > 0) {
       List<int>    cage         = [];
@@ -282,7 +315,7 @@ class CageGenerator
       int          index        = -1;
 
       myDebug = true;
-      chosenSize = _startACage(cage, _maxSize);	// Start a cage.
+      chosenSize = _startACage(cage, _maxSize, feature);	// Start a cage.
 
       saveUnusedCells    = [..._unusedCells];
       saveNeighbourFlags = [..._neighbourFlags];
@@ -290,11 +323,19 @@ class CageGenerator
       if (myDebug) print("CALL _makeOneCage with seed $cage size $chosenSize");
       _makeOneCage (cage, chosenSize);		// Expand to chosen size.
 
+      if (feature > 0) {
+        if (cage.length < feature) {
+          print('Feature cage size $feature NOT found.');
+          continue;				// ?????? Keep trying ??????
+        }
+        print('Feature cage size $feature FOUND.');
+      }
+
       CageTarget t = _setCageTarget (cage);	// Choose operator and value.
       cageOperator = t.cageOperator;
       cageValue    = t.cageValue;
 
-      // Check thar the cage is valid.
+      // Check that the cage is valid.
       if (! _cageIsOK (cage, cageOperator, cageValue)) {
         _unusedCells    = [...saveUnusedCells];
         _neighbourFlags = [...saveNeighbourFlags];
@@ -306,6 +347,9 @@ class CageGenerator
           return 0;	// Too many problems with making cages.
         }
         continue;
+      }
+      if (feature > 0) {
+        feature = 0;				// Large-size cage found.
       }
 
       // The cage is OK: add it to the puzzle's layout.
@@ -387,18 +431,14 @@ class CageGenerator
    *                 >1 = there is more than one solution.
    */
   {
-    /* #ifdef MATHDOKU_LOG
-    if (myDebug) print("CageGenerator::checkPuzzle(): nCAGES" << _puzzleMap.cageCount();
-    #endif */
-
     int result       = 0;
     _nSymbols        = _puzzleMap.nSymbols;
     _boardArea       = _nSymbols * _nSymbols;
+
+    // Only Mathdoku puzzles can have hidden operators as part of the Puzzle.
+    // KillerSudoku has + or NoOp and just hides the +'s in the View.
     _killerSudoku    = (_puzzleMap.specificType == SudokuType.KillerSudoku);
-    // Only Mathdoku puzzles can have hidden operators as part of the *puzzle*.
-    // KillerSudoku has + or NoOp and makes the +'s hidden only in the *view*.
-    _hiddenOperators = _killerSudoku ? false : hideOperators;
-    // if (myDebug) print("\nCHECK PUZZLE: HIDDEN OPERATORS" << _hiddenOperators;
+    _hideOperators = _killerSudoku ? true : hideOperators;
 
     _possibilities.clear();
     _possibilitiesIndex.clear();
@@ -407,29 +447,10 @@ class CageGenerator
     int nCages = _puzzleMap.cageCount();
     for (int n = 0; n < nCages; n++) {
         // Add all the possibilities for each cage.
-    /* #ifdef MATHDOKU_LOG
-        if (myDebug) print("SET ALL Possibilities: cage size" << _puzzleMap.cage(n).length
-                 << "operator" << _puzzleMap.cageOperator(n) << "value"
-                 << _puzzleMap.cageValue(n) << "cage" << _puzzleMap.cage(n);
-    #endif */
         _setAllPossibilities (_puzzleMap.cage(n), _puzzleMap.cage(n).length,
-                             _puzzleMap.cageOperator(n), _puzzleMap.cageValue(n));
+                           _puzzleMap.cageOperator(n), _puzzleMap.cageValue(n));
         _possibilitiesIndex.add(_possibilities.length);
-    /* #ifdef MATHDOKU_LOG
-        int nVals = _possibilitiesIndex[n+1] - _possibilitiesIndex[n];
-        int size = _puzzleMap.cage(n).length;
-        int nCombos =  nVals / size;
-        if (myDebug) print("Cage" << n << "values" << nVals << "size" << size
-                 << "combos" << nCombos << "target" << _puzzleMap.cageValue(n)
-                 << "op" << _puzzleMap.cageOperator(n)
-                 << "topleft" << _puzzleMap.cageTopLeft(n);
-    #endif */
     }
-    /* #ifdef MATHDOKU_LOG
-    if (myDebug) print("POSSIBILITIES SET: now check-solve the puzzle.";
-    if (myDebug) print("INDEX" << (*_possibilitiesIndex);
-    if (myDebug) print("POSS:" << (*_possibilities);
-    #endif */
 
     // Use the DLX solver to check if this puzzle has a unique solution.
     int maxSolutions = 2;		// Stop if 2 solutions are found.
@@ -451,7 +472,7 @@ class CageGenerator
 
   // PRIVATE METHODS.
 
-  int _startACage(List<int> cage, int maxSize)
+  int _startACage(List<int> cage, int maxSize, int featureSize)
   {
     bool myDebug = true;
     int n;
@@ -461,8 +482,9 @@ class CageGenerator
     // If necessary, adjust max size for Puzzles with dimensions less than 9.
     int maxAvail = (maxSize <= _nSymbols) ? maxSize : _nSymbols;
 
-    // Choose size 1 (clues) first, until the minimum number is provided.
-    if (_singles < _minSingles) {
+    // Choose a featured large-size cage first, if it is specified,
+    // otherwise choose size 1 (clues), up to the minimum number.
+    if ((_singles < _minSingles) && (featureSize == 0)) {
       n = _puzzleMap.randomInt(_unusedCells.length);
       cellIndex = _unusedCells[n];
       cage.add(cellIndex);
@@ -511,7 +533,7 @@ class CageGenerator
     }
 
     cage.add(cellIndex);
-    return chosenSize;
+    return (featureSize == 0) ? chosenSize : featureSize;
   }
 
   void _makeOneCage (List<int> cage, int requiredSize)
@@ -547,7 +569,15 @@ class CageGenerator
         // Remove the selected cell from the unused-cell list.
         _unusedCells.removeAt (_unusedCells.indexOf (index));
         _neighbourFlags[index] = TAKEN;
-        if (myDebug) print("CURRENT CAGE CONTENTS $cage");
+        if (myDebug) {
+          List<int> values = [];
+          int       total  = 0;
+          for (int cell in cage) {
+            total += _solution[cell];
+            values.add(_solution[cell]);
+          }
+          print("CURRENT CAGE CELLS $cage WITH VALUES $values TOTAL $total");
+        }
         if (cage.length >= requiredSize) {
             break;	// The cage has reached the required size.
         }
@@ -697,9 +727,6 @@ class CageGenerator
     default:
         break;
     }
-    /* #ifdef MATHDOKU_LOG
-    if (myDebug) print("CHOSE OPERATOR" << op << "value" << value << digits;
-    #endif */
     return CageTarget(op, value);
   }
 
@@ -716,25 +743,6 @@ class CageGenerator
 
     int nDigits = cage.length;
     bool myDebug = true;
-
-/*
-    // DO NOT NEED THIS CHECK - _makeOneCage() now avoids generating
-    //                          duplicates in Killer Sudoku cages. 
-    // In Killer Sudoku, the cage's solution must not contain duplicate digits.
-    if (_killerSudoku) {
-        // Digits' range is 1->nSymbols.
-        List<bool> usedDigits = List.filled(_nSymbols + 1, false);
-        for (int n = 0; n < nDigits; n++) {
-            int k = cage[n];
-            int digit = _solution[k];
-            if (usedDigits[digit]) {
-              if (myDebug) print('SOLUTION VALUES CONTAIN DUPLICATE $digit $usedDigits');
-              return false;			// Cannot use this cage.
-            }
-            usedDigits[digit] = true;
-        }
-    }
-*/
 
     // Get all possibilities and keep checking, as we go, that the cage is OK.
     bool isOK = true;
@@ -769,8 +777,8 @@ class CageGenerator
                             CageOperator cageOperator, int cageValue)
   // Set all possible values for the cells of a cage (used by the solver).
   {
-    if ((nDigits > 1) && _hiddenOperators && (! _killerSudoku)) {
-        // Operators are hidden, so we must consider every possible operator.
+    if ((nDigits > 1) && _hideOperators && (! _killerSudoku)) {
+        // Mathdoku operators and hidden: must consider every possible operator.
         if (nDigits == 2) {
             _setPossibilities (cage, CageOperator.Divide, cageValue);
             _setPossibilities (cage, CageOperator.Subtract, cageValue);
@@ -779,7 +787,7 @@ class CageGenerator
         _setPossibilities (cage, CageOperator.Multiply, cageValue);
     }
     else {
-        // Operators are visible/fixed, so we can consider fewer possibilities.
+        // Operators are Killer or visible Mathdoku: can consider fewer cases.
         _setPossibilities (cage, cageOperator, cageValue);
     }
   }
@@ -835,10 +843,6 @@ class CageGenerator
     int currentValue;
     int nTarg = 0;
     int nCons = 0;
-    /* #ifdef MATHDOKU_LOG
-    int nDupl = 0;
-    int nIncons = 0;
-    #endif */
     int loopCount = 1;
 
     // Calculate the number of possible sets of digits in the cage.
@@ -852,40 +856,23 @@ class CageGenerator
     for (int n = 0; n < loopCount; n++) {
         if (currentValue == cageValue) {
             nTarg++;
-    /* #ifdef MATHDOKU_LOG
-            if (myDebug) print("TARGET REACHED" << cageValue
-                     << "OP" << cageOperator << "DIGITS" << digits;
-    #endif */
-            bool digitsOK = false;
-            // In Killer Sudoku, all digits in the cage must be unique.
-            if (_killerSudoku) {
-                // If so, there will be no breaches of Sudoku rules in the
-                // intersections of rows, columns and blocks with that cage,
-                // thus there is no need to do the _isSelfConsistent() check.
-                digitsOK = ! _hasDuplicates (nDigits, digits);
-            }
-            // In Mathdoku, duplicate digits are OK, subject to Sudoku rules.
-            else {
+
+            // In Killer Sudoku, all digits in the cage are unique, as already
+            // checked by method _makeOneCage() above, and all digits satisfy
+            // Sudoku rules because they are taken from a Sudoku solution array.
+            bool digitsOK = _killerSudoku;
+
+            // In Mathdoku, duplicates are OK, BUT subject to row/column rules.
+            if (! _killerSudoku) {
                 digitsOK = _isSelfConsistent (cage, nDigits, digits);
             }
+
             if (digitsOK) {
                 for (int n = 0; n < nDigits; n++) {
                     _possibilities.add(digits[n]);
                 }
                 nCons++;
             }
-    /* #ifdef MATHDOKU_LOG
-            if (_killerSudoku) {
-                nDupl   = digitsOK ? nDupl : nDupl++;
-                if (myDebug) print("CONTAINS DUPLICATES: KillerSudoku cage" << digitsOK
-                         << digits << "cage" << cage;
-            }
-            else {
-                nIncons = digitsOK ? nIncons : nIncons++;
-                if (myDebug) print("SELF CONSISTENT: Mathdoku cage" << digitsOK
-                         << digits << "cage" << cage;
-            }
-    #endif */
         }
 
         // Calculate the next set of possible digits (as in an odometer).
@@ -904,30 +891,10 @@ class CageGenerator
         if (cageOperator == CageOperator.Multiply) {
             currentValue = 1;
             for (int d = 0; d < nDigits; d++) {
-                // TODO - Used to be *= but that failed to compile (type => num)
                 currentValue = currentValue * digits[d];
             }
         }
     }
-    /* #ifdef MATHDOKU_LOG
-    if (myDebug) print(loopCount << "possibles" << nTarg << "hit target"
-             << nDupl << "had duplicate(s)" << nCons << "consistent";
-    #endif */
-  }
-
-  bool _hasDuplicates (int nDigits, List<int> digits)
-  // Check if a cage contains duplicate digits (not allowed in Killer Sudoku).
-  {
-    int usedDigits = 0;
-    int mask       = 0;
-    for (int n = 0; n < nDigits; n++) {
-        mask = 1 << digits[n];
-        if ((usedDigits & mask) > 0) {
-            return true;
-        }
-        usedDigits |= mask;
-    }
-    return false;
   }
 
   bool _isSelfConsistent (List<int> cage, int nDigits,  List<int> digits)
@@ -976,11 +943,11 @@ class CageGenerator
     return usedCells;
   }
 
-  void _init (bool hiddenOperators)
+  void _init (bool hideOperators)
   // Initialise the cage generator for a particular size and type of puzzle.
   {
-    _killerSudoku    = (_puzzleMap.specificType == SudokuType.KillerSudoku);
-    _hiddenOperators = _killerSudoku ? false : hiddenOperators;
+    _killerSudoku  = (_puzzleMap.specificType == SudokuType.KillerSudoku);
+    _hideOperators = _killerSudoku ? true : hideOperators;
 
     _nSymbols  = _puzzleMap.nSymbols;
     _boardArea = _puzzleMap.size;

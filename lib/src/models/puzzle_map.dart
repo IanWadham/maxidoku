@@ -120,7 +120,8 @@ class PuzzleMap
       _size         = 0,
       _blockSize    = 0,
       _nGroups      = 0,
-      _nSymbols     = 0
+      _nSymbols     = 0,
+      _hideOperators = false
   {
     bool   structuresFound = false; 
     bool   mapStarted = false;
@@ -209,6 +210,11 @@ class PuzzleMap
             }
           }
           break;
+        case 'HideOperators':		// Blindfold Mathdoku option. Default
+          _hideOperators = true;	// is false (operators are SHOWN).
+          print('PuzzleMap: _hideOperators = $_hideOperators');
+          break;
+
         case 'PuzzleMap':
           mapStarted = true;
 
@@ -313,6 +319,8 @@ class PuzzleMap
   int get size       => _size;
 
   String get name    => _name;
+
+  bool get hideOperators => _hideOperators;
 
   SudokuType    get specificType  => _specificType;
   BoardContents get emptyBoard    => _emptyBoard;
@@ -443,6 +451,8 @@ class PuzzleMap
   int _blockSize;	// Edge-length of a square 2D block or 3D cube.
   int _nGroups;		// Number of groups (cliques) in the puzzle.
   int _nSymbols;	// Number of symbols (4 9 16 25: 0-4, 0-9, A-P or A-Y).
+
+  bool _hideOperators = false;	// Default Mathdoku option: operators are SHOWN.
 
   int _diameter = 350;	// Default diameter of spheres in 3D puzzle * 100.
   int _rotateX  = 15;	// Default degrees rotation of view around X axis.
@@ -756,5 +766,5 @@ class Cage {					// In lieu of a struct { }...
   CageOperator cageOperator = CageOperator.Add;	// The mathematical operator.
   int          cageValue = 1;			// The value to be calculated.
   int          cageTopLeft = 0;			// The top-left (display) cell.
-
+  bool         hideOperator = false;		// Applies to Mathdoku only.
 }
