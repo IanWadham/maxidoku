@@ -168,8 +168,9 @@ class DLXSolver
                                 List<int> possibilitiesIndex,
                                 int solutionLimit)
   {
-    if (DLX_LOG) print('solveMathdokuKillerTypes ENTERED ${possibilities.length}'
-          ' possibilities, ${possibilitiesIndex.length} index size');
+    if (DLX_LOG)
+      print('solveMathdokuKillerTypes ENTERED ${possibilities.length} '
+            'possibilities, ${possibilitiesIndex.length} index size');
     int nSolutions   = 0;
     int nSymbols     = puzzleMap.nSymbols;
     int nCages       = puzzleMap.cageCount();
@@ -198,6 +199,12 @@ class DLXSolver
       _addAtRight (node, _corner);
     }
 
+    // Add 1's to the matrix for each cage and each possible cell-value in each
+    // combo, using a new row for each combo. If a combo contains duplicate
+    // cell-values, as allowed in Mathdoku, the use of groups among the column
+    // numbers ensures that each value goes into a different column, because
+    // Sudoku rules force the values to be in separate groups.
+
     int rowNumDLX = 0;
     int counter = 0;
     for (int n = 0; n < nCages; n++) {
@@ -205,17 +212,17 @@ class DLXSolver
       int nVals = possibilitiesIndex[n + 1] - possibilitiesIndex[n];
       int nCombos = nVals ~/ size;
       int index = possibilitiesIndex[n];
-    if (DLX_LOG) print('CAGE $n of $nCages size $size nCombos $nCombos'
-                       ' nVals $nVals index $index of ${possibilities.length}');
+      if (DLX_LOG) print('CAGE $n of $nCages size $size nCombos $nCombos '
+                         'value ${puzzleMap.cageValue(n)} '
+                         'nVals $nVals index $index/${possibilities.length}');
       for (int nCombo = 0; nCombo < nCombos; nCombo++) {
         _rows.add(_corner);		// Start a row for each combo.
         _addNode (rowNumDLX, n);	// Mark the cage's fill-in constraint.
         counter++;
-    if (DLX_LOG) print('Add cage-node: row $rowNumDLX'
-                       ' cage $n ${puzzleMap.cage(n)}');
+        List<int> possValues = [];
         for (int cell in puzzleMap.cage(n)) {
           int possVal = possibilities[index];
-          if (DLX_LOG) print('    Cell $cell possVal $possVal');
+          if (DLX_LOG) possValues.add(possVal);
           for (int group in puzzleMap.groupList(cell)) {
             // Poss values go from 0 to (nSymbols - 1) in DLX (so -1 here).
             _addNode (rowNumDLX, nCages + group * nSymbols + possVal - 1);
@@ -223,12 +230,15 @@ class DLXSolver
           }
           index++;
         }
+        if (DLX_LOG) print('Add cage-node: row $rowNumDLX'
+                           ' cage $n ${puzzleMap.cage(n)} values $possValues');
         rowNumDLX++;
       }
     }
     if (DLX_LOG) print('DLX MATRIX HAS ${_columns.length} cols,'
                                      ' ${_rows.length} rows,'
                                      ' $counter nodes');
+
     nSolutions = _solveDLX (solutionLimit);
     return nSolutions;
   }
