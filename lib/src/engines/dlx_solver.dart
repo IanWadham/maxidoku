@@ -19,7 +19,7 @@ import '../models/puzzle_map.dart';
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ****************************************************************************/
 
-const bool DLX_LOG = false;
+// const bool DLX_LOG = false;
 
 class DLXNode			// Represents a 1 in a sparse matrix
                                 // that contains only ones and zeroes.
@@ -168,9 +168,11 @@ class DLXSolver
                                 List<int> possibilitiesIndex,
                                 int solutionLimit)
   {
-    if (DLX_LOG)
-      print('solveMathdokuKillerTypes ENTERED ${possibilities.length} '
-            'possibilities, ${possibilitiesIndex.length} index size');
+    // bool DLX_LOG = true;
+
+    // if (DLX_LOG)
+      // print('solveMathdokuKillerTypes ENTERED ${possibilities.length} '
+            // 'possibilities, ${possibilitiesIndex.length} index size');
     int nSolutions   = 0;
     int nSymbols     = puzzleMap.nSymbols;
     int nCages       = puzzleMap.cageCount();
@@ -212,9 +214,9 @@ class DLXSolver
       int nVals = possibilitiesIndex[n + 1] - possibilitiesIndex[n];
       int nCombos = nVals ~/ size;
       int index = possibilitiesIndex[n];
-      if (DLX_LOG) print('CAGE $n of $nCages size $size nCombos $nCombos '
-                         'value ${puzzleMap.cageValue(n)} '
-                         'nVals $nVals index $index/${possibilities.length}');
+      // if (DLX_LOG) print('CAGE $n of $nCages size $size nCombos $nCombos '
+                         // 'value ${puzzleMap.cageValue(n)} '
+                         // 'nVal $nVals index $index/${possibilities.length}');
       for (int nCombo = 0; nCombo < nCombos; nCombo++) {
         _rows.add(_corner);		// Start a row for each combo.
         _addNode (rowNumDLX, n);	// Mark the cage's fill-in constraint.
@@ -222,7 +224,7 @@ class DLXSolver
         List<int> possValues = [];
         for (int cell in puzzleMap.cage(n)) {
           int possVal = possibilities[index];
-          if (DLX_LOG) possValues.add(possVal);
+          // if (DLX_LOG) possValues.add(possVal);
           for (int group in puzzleMap.groupList(cell)) {
             // Poss values go from 0 to (nSymbols - 1) in DLX (so -1 here).
             _addNode (rowNumDLX, nCages + group * nSymbols + possVal - 1);
@@ -230,14 +232,14 @@ class DLXSolver
           }
           index++;
         }
-        if (DLX_LOG) print('Add cage-node: row $rowNumDLX'
-                           ' cage $n ${puzzleMap.cage(n)} values $possValues');
+        // if (DLX_LOG) print('Add cage-node: row $rowNumDLX'
+                           // ' cage $n ${puzzleMap.cage(n)} poss $possValues');
         rowNumDLX++;
       }
     }
-    if (DLX_LOG) print('DLX MATRIX HAS ${_columns.length} cols,'
-                                     ' ${_rows.length} rows,'
-                                     ' $counter nodes');
+    // if (DLX_LOG) print('DLX MATRIX HAS ${_columns.length} cols,'
+                                     // ' ${_rows.length} rows,'
+                                     // ' $counter nodes');
 
     nSolutions = _solveDLX (solutionLimit);
     return nSolutions;
@@ -262,12 +264,12 @@ class DLXSolver
     if (! _solutionMoves.isEmpty) {
       _solutionMoves.clear();
     }
-    if (DLX_LOG) print('NUMBER OF ROWS IN SOLUTION ${solution.length}');
+    // if (DLX_LOG) print('NUMBER OF ROWS IN SOLUTION ${solution.length}');
     if ((t == SudokuType.Mathdoku) || (t == SudokuType.KillerSudoku)) {
       for (int n = 0; n < solution.length; n++) {
         int rowNumDLX = solution[n].value;
         int searchRow = 0;
-    if (DLX_LOG) print('    Node $n row number $rowNumDLX');
+        // if (DLX_LOG) print('    Node $n row number $rowNumDLX');
         for (int nCage = 0; nCage < nCages; nCage++) {
           int cageSize = _puzzleMap.cage(nCage).length;
           int nCombos = (_possibilitiesIndex[nCage + 1] -
@@ -278,11 +280,12 @@ class DLXSolver
           }
           int comboNum = rowNumDLX - searchRow;
           int comboValues = _possibilitiesIndex[nCage] + (comboNum * cageSize);
-          if (DLX_LOG) print('Solution node $n cage $nCage'
-                             ' ${_puzzleMap.cage(nCage)} combos $nCombos');
-          if (DLX_LOG) print('Search row $searchRow DLX row $rowNumDLX'
-                             ' cageSize $cageSize combo $comboNum'
-                             ' values at $comboValues');
+          // if (DLX_LOG) print('Solution node $n cage $nCage'
+                             // ' ${_puzzleMap.cage(nCage)} combos $nCombos');
+          // if (DLX_LOG) print('Search row $searchRow DLX row $rowNumDLX'
+                             // ' cageSize $cageSize combo $comboNum'
+                             // ' values at $comboValues');
+          /*
           String s = '';
           for (int cell in _puzzleMap.cage(nCage)) {
             if (DLX_LOG) s = s + ' $cell:${_possibilities[comboValues]}';
@@ -292,6 +295,7 @@ class DLXSolver
             comboValues++;
           }
           if (DLX_LOG) print(s + '\n\n');
+          */
           break;
         }
       }
@@ -303,10 +307,10 @@ class DLXSolver
       }
     }
 
-    if (DLX_LOG) {
-      print('\nSOLUTION $solutionNum\n');
-      _puzzleMap.printBoard(_boardValues);
-    }
+    // if (DLX_LOG) {
+      // print('\nSOLUTION $solutionNum\n');
+      // _puzzleMap.printBoard(_boardValues);
+    // }
   }
 
   // void retrieveSolution (BoardContents solution)
@@ -387,7 +391,7 @@ class DLXSolver
 
     if (_corner.right == _corner) {
       // Empty matrix, nothing to solve.
-      if (DLX_LOG) print('_solveDLX(): EMPTY MATRIX, NOTHING TO SOLVE.');
+      // if (DLX_LOG) print('_solveDLX(): EMPTY MATRIX, NOTHING TO SOLVE.');
       return solutionCount;
     }
 
@@ -407,20 +411,21 @@ class DLXSolver
           min = p.value;
         }
       }
-      if (DLX_LOG) print('\n_solveDLX: BEST COLUMN ${_columns.indexOf(bestCol)}'
-                         ' level $level rows ${bestCol.value}\n');
+      // if (DLX_LOG) print('\n_solveDLX: BEST COLUMN '
+                         // '${_columns.indexOf(bestCol)} '
+                         // 'level $level rows ${bestCol.value}\n');
 
       _coverColumn (bestCol);
       currNode = bestCol.below;
       solution.add(currNode);
-      if (DLX_LOG) {
-        print('CURRENT SOLUTION: ${solution.length} rows:');
-        String s = '';
-        for (DLXNode q in solution) {
-          s = s + ' ${q.value}';
-        }
-        print(s + '\n');
-      }
+      // if (DLX_LOG) {
+        // print('CURRENT SOLUTION: ${solution.length} rows:');
+        // String s = '';
+        // for (DLXNode q in solution) {
+          // s = s + ' ${q.value}';
+        // }
+        // print(s + '\n');
+      // }
       while (descending) {
         if (currNode != bestCol) {
           // Found a row: cover all other cols of currNode's row (L to R).
@@ -430,7 +435,7 @@ class DLXSolver
             _coverColumn (p.columnHeader);
             p = p.right;
           }
-          if (DLX_LOG) _printDLX();
+          // if (DLX_LOG) _printDLX();
 
           if (_corner.right != _corner) {
             break;		// Start searching a new sub-matrix.
@@ -451,7 +456,7 @@ class DLXSolver
             level--;
             currNode = solution[level];
             bestCol  = currNode.columnHeader;
-            if (DLX_LOG) print('BACKTRACKED TO LEVEL $level');
+            // if (DLX_LOG) print('BACKTRACKED TO LEVEL $level');
           }
           else {
             // The search is complete. There is nothing more to be found.
@@ -461,19 +466,19 @@ class DLXSolver
 
         // Uncover all other columns of currNode's row (R to L).
         // Restores those constraints to unsatisfied state in reverse order.
-        if (DLX_LOG) print('RESTORE !!!');
+        // if (DLX_LOG) print('RESTORE !!!');
         DLXNode p = currNode.left;
         while (p != currNode) {
           _uncoverColumn (p.columnHeader);
           p = p.left;
         }
-        if (DLX_LOG) _printDLX();
+        // if (DLX_LOG) _printDLX();
 
         // Select next row down and continue searching for a solution.
         currNode = currNode.below;
         solution [level] = currNode;
-        if (DLX_LOG) print('SELECT ROW ${currNode.value} FROM'
-                           ' COL ${_columns.indexOf(currNode.columnHeader)}');
+        // if (DLX_LOG) print('SELECT ROW ${currNode.value} FROM '
+                           // 'COL ${_columns.indexOf(currNode.columnHeader)}');
       } // End while (descending)
 
       level++;
@@ -492,15 +497,15 @@ class DLXSolver
      * @param colDLX        A pointer to the header of the column.
      */
 
-    if (DLX_LOG) print('_coverColumn: ${_columns.indexOf(colDLX)}'
-                       ' rows ${colDLX.value}\n');
+    // if (DLX_LOG) print('_coverColumn: ${_columns.indexOf(colDLX)}'
+                       // ' rows ${colDLX.value}\n');
     colDLX.left.right = colDLX.right;
     colDLX.right.left = colDLX.left;
 
     DLXNode colNode = colDLX.below;
     while (colNode != colDLX) {
       DLXNode rowNode = colNode.right;
-      if (DLX_LOG) print('_coverColumn: remove DLX row ${rowNode.value}');
+      // if (DLX_LOG) print('_coverColumn: remove DLX row ${rowNode.value}');
       while (rowNode != colNode) {
         rowNode.below.above = rowNode.above;
         rowNode.above.below = rowNode.below;
@@ -522,7 +527,7 @@ class DLXSolver
     DLXNode colNode = colDLX.below;
     while (colNode != colDLX) {
       DLXNode rowNode = colNode.right;
-      if (DLX_LOG) print('_uncoverColumn: return DLX row ${rowNode.value}');
+      // if (DLX_LOG) print('_uncoverColumn: return DLX row ${rowNode.value}');
       while (rowNode != colNode) {
         rowNode.below.above = rowNode;
         rowNode.above.below = rowNode;
@@ -532,8 +537,8 @@ class DLXSolver
       colNode = colNode.below;
     }
 
-    if (DLX_LOG) print('_uncoverColumn: ${_columns.indexOf(colDLX)}'
-                       ' rows ${colDLX.value}\n');
+    // if (DLX_LOG) print('_uncoverColumn: ${_columns.indexOf(colDLX)}'
+                       // ' rows ${colDLX.value}\n');
     colDLX.left.right = colDLX;
     colDLX.right.left = colDLX;
   }
@@ -543,10 +548,10 @@ class DLXSolver
     // Logically clear the DLX matrix, but leave all previous nodes allocated.
     // This is to support faster DLX solving on second and subsequent puzzles.
 
-    if (DLX_LOG) {
-      print('==========================================================');
-      print('_clearMatrix');
-    }
+    // if (DLX_LOG) {
+      // print('==========================================================');
+      // print('_clearMatrix');
+    // }
     _endNodeNum  = -1;
     _endRowNum   = -1;
     _endColNum   = -1;
@@ -637,6 +642,7 @@ class DLXSolver
   }
 */
 
+/*
   void _printDLX ({bool forced = false})
   {
     if (! DLX_LOG) return;
@@ -697,5 +703,6 @@ class DLXSolver
     print('Matrix NOW has $nRows rows, ${lastCol + 1 - totGap} columns'
                         ' and $nNodes ones\n');
   }
+*/
 
 } // End of DLXSolver Class.
