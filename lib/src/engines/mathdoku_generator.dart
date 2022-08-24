@@ -20,7 +20,7 @@ import 'cage_generator.dart';
  ****************************************************************************/
 
 /**
- * @class MathdokuGenerator
+ * @class MathdokuKillerGenerator
  * @short Generator for Killer Sudoku and Mathdoku puzzles.
  *
  * Generates a Killer Sudoku or Mathdoku puzzle from a Latin Square that
@@ -54,7 +54,7 @@ class MathdokuKillerGenerator
                                        Difficulty    difficultyRequired)
   {
     Message response = Message('', '');
-    bool hideOperators = _puzzleMap.hideOperators;;
+    // ???? bool hideOperators = _puzzleMap.hideOperators;;
     int  maxTries      = 20;
 
     // Cage sizes must be no more than the number of cells in a column or row.
@@ -64,8 +64,9 @@ class MathdokuKillerGenerator
     int  numMultis = 0;
     int  n = 0;
     while ((n <= 0) && (numTries < maxTries)) {
-      n = cageGen.makeCages
-                 (solutionMoves, hideOperators, difficultyRequired);
+      // ???? n = cageGen.makeCages
+                 // ???? (solutionMoves, hideOperators, difficultyRequired);
+      n = cageGen.makeCages(solutionMoves, difficultyRequired);
       if (n < 0) {
         numMultis++;
       }
@@ -119,10 +120,11 @@ class MathdokuKillerGenerator
   int solveMathdokuKillerTypes (BoardContents solution,
                           List<int>     solutionMoves)
   {
-    bool hideOperators = false;
+    // ???? bool hideOperators = false;
     int result   = 0;
     CageGenerator cageGen = CageGenerator(_puzzleMap, solution);
-    result = cageGen.checkPuzzle (solution, solutionMoves, hideOperators);
+    // ???? result = cageGen.checkPuzzle (solution, solutionMoves, hideOperators);
+    result = cageGen.checkPuzzle (solution, solutionMoves);
     return result;
   }
 

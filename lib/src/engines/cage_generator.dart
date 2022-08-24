@@ -106,7 +106,7 @@ const int TAKEN  = 31;	// Cell has been used in a cage.
 const List<CagesLevel> levelParams = [
 
     // Cage sizes for Very Easy are just 1 and 2, with all values allowed.
-    CagesLevel(Difficulty.VeryEasy,   4, 4, 2, 9,),
+    CagesLevel(Difficulty.VeryEasy,   6, 6, 2, 9,),
 
     // Cage sizes for Easy are from 1 to 3, with all values allowed.
     CagesLevel(Difficulty.Easy,       2, 4, 3, 28,),
@@ -140,8 +140,6 @@ class CageGenerator
   bool          myDebug = false;
   // bool          myDebug = true;
 
-  // TODO - FAILS to find a puzzle that is Very Easy BlindFold Mathdoku...
-
   // TODO - How to handle Possibilities? Calculate or tabulate?
   // NOTE - nPossibilities depends on nSymbols (Puzzle size) as well as Cage
   //        value. How to handle this? Been focussing too much on Killer 9x9!!!
@@ -155,7 +153,6 @@ class CageGenerator
   int           _boardArea = 0;		// The number of cells in the grid.
 
   bool          _killerSudoku   = true;	// Killer Sudoku or Mathdoku rules?
-  bool          _hideOperators  = true;	// Operators in cages displayed or not?
 
   // Working-data used in the cage-generation algorithm.
 
@@ -203,7 +200,7 @@ class CageGenerator
 
   // PUBLIC METHODS.
 
-  int makeCages (List<int> solutionMoves, bool hideOperators, Difficulty d)
+  int makeCages (List<int> solutionMoves, Difficulty d)
 
   /**
    * Fill the puzzle area with Mathdoku or Killer Sudoku cages. The _puzzleMap
@@ -213,9 +210,6 @@ class CageGenerator
    *
    * solutionMoves   An ordered list of "move" cells found by the solver
    *                 when it reached a solution: used to provide Hints.
-   * hideOperators   Whether operators are to be hidden in a Mathdoku
-   *                 puzzle. In a Killer Sudoku the operators are all +
-   *                 and are always hidden.
    * d               The level of difficulty required in this Puzzle.
    *
    * return          The number of cages generated, or 0 = too many
@@ -239,11 +233,7 @@ class CageGenerator
     List<int> saveNeighbourFlags;
     String usedCells = '';	// For DEBUG messages.
 
-    _init (hideOperators);
-    _puzzleMap.clearCages();
-    _possibilities.clear();
-    _possibilitiesIndex.clear();
-    _possibilitiesIndex.add(0);
+    _init();
     _singles = 0;
 
     if (myDebug) {
@@ -252,9 +242,6 @@ class CageGenerator
       }
     }
     if (myDebug) print("USED CELLS     $usedCells");
-
-    // TODO - Will probably need to limit the number of size-1 cages and maybe
-    //        guarantee a minimum number as well.
 
     /*
     ALGORITHM:
@@ -326,7 +313,7 @@ class CageGenerator
       if (feature > 0) {
         if (cage.length < feature) {
           print('Feature cage size $feature NOT found.');
-          continue;				// ?????? Keep trying ??????
+          continue;				// Keep trying.
         }
         print('Feature cage size $feature FOUND.');
       }
@@ -383,11 +370,19 @@ class CageGenerator
     } // End while()
 
     // Use the DLX solver to check if this puzzle has a unique solution.
+    print('Calling DLXSolver... index len ${_possibilitiesIndex.length} '
+          'poss len ${_possibilities.length}');
     int maxSolutions = 2;		// Stop if 2 solutions are found.
     int nSolutions = _DLXSolver.solveMathdokuKillerTypes (_puzzleMap,
                                                           _possibilities,
                                                           _possibilitiesIndex,
                                                           maxSolutions);
+    // Failed; clear dud cages and workspace, leaving puzzle-board view empty.
+    if (nSolutions != 1) {
+      _clearLists();
+    }
+
+    print('DLXSolver returned nSolutions $nSolutions, max $maxSolutions');
     if (nSolutions == 0) {
       if (myDebug) print("FAILED TO FIND A SOLUTION:"
                          " nSolutions = $nSolutions");
@@ -400,9 +395,8 @@ class CageGenerator
 
     if (myDebug) print("UNIQUE SOLUTION FOUND: nSolutions = $nSolutions");
     print('_puzzleMap.cageCount() ${_puzzleMap.cageCount()}');
-    // If there is a unique solution, retrieve it from the solver.
-    // TODO - Do we need THIS solution? Compare it with the existing soln?
-    // solution      = _DLXSolver.currentSolution;
+
+    // If there is a unique solution, retrieve the moves from the solver.
     solutionMoves.clear();
     for (int n in _DLXSolver.solutionMoves) {
       solutionMoves.add(n);
@@ -410,8 +404,7 @@ class CageGenerator
     return _puzzleMap.cageCount();	// Unique solution: return # of cages.
   }
 
-  int checkPuzzle (BoardContents solution,
-                   List<int> solutionMoves, bool hideOperators)
+  int checkPuzzle (BoardContents solution, List<int> solutionMoves)
   /**
    * Using just the puzzle map and its cages, solve a Mathdoku or Killer
    * Sudoku puzzle and check that it has only one solution. This method can
@@ -422,9 +415,6 @@ class CageGenerator
    * solution        The solution returned if a unique solution exists.
    * solutionMoves   An ordered list of "move" cells found by the solver
    *                 when it reached a solution. Can be used for Hints.
-   * hideOperators   Whether operators are to be hidden in a Mathdoku
-   *                 puzzle. In a Killer Sudoku the operators are all +
-   *                 and are always hidden.
    *
    * return          0  = there is no solution,
    *                 1  = there is a unique solution,
@@ -438,7 +428,6 @@ class CageGenerator
     // Only Mathdoku puzzles can have hidden operators as part of the Puzzle.
     // KillerSudoku has + or NoOp and just hides the +'s in the View.
     _killerSudoku    = (_puzzleMap.specificType == SudokuType.KillerSudoku);
-    _hideOperators = _killerSudoku ? true : hideOperators;
 
     _possibilities.clear();
     _possibilitiesIndex.clear();
@@ -447,8 +436,8 @@ class CageGenerator
     int nCages = _puzzleMap.cageCount();
     for (int n = 0; n < nCages; n++) {
         // Add all the possibilities for each cage.
-        _setAllPossibilities (_puzzleMap.cage(n), _puzzleMap.cage(n).length,
-                           _puzzleMap.cageOperator(n), _puzzleMap.cageValue(n));
+        _setPossibilities (_puzzleMap.cage(n), _puzzleMap.cageOperator(n),
+                           _puzzleMap.cageValue(n));
         _possibilitiesIndex.add(_possibilities.length);
     }
 
@@ -459,9 +448,7 @@ class CageGenerator
                                                   _possibilitiesIndex,
                                                   maxSolutions);
     if (result == 1) {
-        // If there is a unique solution, retrieve it from the solver.
-        // TODO - Do we need THIS solution? Compare it with the existing soln?
-        // solution      = _DLXSolver.currentSolution;
+        // If there is a unique solution, retrieve the moves from the solver.
         solutionMoves.clear();
         for (int n in _DLXSolver.solutionMoves) {
           solutionMoves.add(n);
@@ -735,18 +722,12 @@ class CageGenerator
   // Check whether a generated cage is within parameter requirements.
 
   {
-    // TODO - Is it worth checking for duplicate digits in Mathdoku, before
-    //        going the whole hog and checking for constraint satisfaction?
-    // NOTE - The solution, by definition, has to satisfy constraints, even
-    //        if it does have duplicate digits (ie. those digits must be in
-    //        different rows/columns/boxes).
-
     int nDigits = cage.length;
     bool myDebug = true;
 
     // Get all possibilities and keep checking, as we go, that the cage is OK.
     bool isOK = true;
-    _setAllPossibilities (cage, nDigits, cageOperator, cageValue);
+    _setPossibilities (cage, cageOperator, cageValue);
     int numPoss = (_possibilities.length - _possibilitiesIndex.last);
 
     // There should be some possibilities and not too many (re Difficulty).
@@ -772,12 +753,13 @@ class CageGenerator
     }
     return isOK;
   }
-
+/*
   void _setAllPossibilities (List<int> cage, int nDigits,
                             CageOperator cageOperator, int cageValue)
   // Set all possible values for the cells of a cage (used by the solver).
   {
     if ((nDigits > 1) && _hideOperators && (! _killerSudoku)) {
+        print('MULTIPLE POSSIBLE OPERATORS');
         // Mathdoku operators and hidden: must consider every possible operator.
         if (nDigits == 2) {
             _setPossibilities (cage, CageOperator.Divide, cageValue);
@@ -787,11 +769,12 @@ class CageGenerator
         _setPossibilities (cage, CageOperator.Multiply, cageValue);
     }
     else {
+        print('ONE OPERATOR ONLY');
         // Operators are Killer or visible Mathdoku: can consider fewer cases.
         _setPossibilities (cage, cageOperator, cageValue);
     }
   }
-
+*/
   void _setPossibilities (List<int> cage, CageOperator cageOperator,
                          int cageValue)
   // Set all possible values for one operator in a cage (used by the solver).
@@ -809,8 +792,6 @@ class CageGenerator
         for (int a = 1; a <= _nSymbols; a++) {
             for (int b = 1; b <= _nSymbols; b++) {
                 if ((a == b * cageValue) || (b == a * cageValue)) {
-                  // TODO - Used to be *mPossibilities << a << b; in C++.
-                  //        Does this have the same effect? Does order matter?
                   _possibilities.add(a);
                   _possibilities.add(b);
                 }
@@ -821,8 +802,6 @@ class CageGenerator
         for (int a = 1; a <= _nSymbols; a++) {
             for (int b = 1; b <= _nSymbols; b++) {
                 if (((a - b) == cageValue) || ((b - a) == cageValue)) {
-                  // TODO - Used to be *mPossibilities << a << b; in C++.
-                  //        Does this have the same effect? Does order matter?
                   _possibilities.add(a);
                   _possibilities.add(b);
                 }
@@ -860,11 +839,20 @@ class CageGenerator
             // In Killer Sudoku, all digits in the cage are unique, as already
             // checked by method _makeOneCage() above, and all digits satisfy
             // Sudoku rules because they are taken from a Sudoku solution array.
-            bool digitsOK = _killerSudoku;
+            //
+            // However, the odometer (see below) could generate sets of digits
+            // that add up to the cage value but contain duplicates, e.g. if the
+            // cage value is 6, with size 3, the possibilities are permutations
+            // of [1,2,3], [1,1,4] and [2,2,2]: 10 possibilities, 4 not valid.
+
+            bool digitsOK = false;
+            if (_killerSudoku) {
+              digitsOK = _hasNoDuplicates(nDigits, digits);
+            }
 
             // In Mathdoku, duplicates are OK, BUT subject to row/column rules.
-            if (! _killerSudoku) {
-                digitsOK = _isSelfConsistent (cage, nDigits, digits);
+            else {
+              digitsOK = _isSelfConsistent (cage, nDigits, digits);
             }
 
             if (digitsOK) {
@@ -897,6 +885,21 @@ class CageGenerator
     }
   }
 
+  bool _hasNoDuplicates (int nDigits, List<int> digits)
+  // Check if a cage contains duplicate digits (not allowed in Killer Sudoku).
+  {
+    int usedDigits = 0;
+    int mask       = 0;
+    for (int n = 0; n < nDigits; n++) {
+      mask = 1 << digits[n];
+      if ((usedDigits & mask) > 0) {
+        return false;
+      }
+      usedDigits |= mask;
+    }
+    return true;
+  }
+
   bool _isSelfConsistent (List<int> cage, int nDigits,  List<int> digits)
   // Check if a combo of digits in a cage satisfies Sudoku rules (a Mathdoku
   // cage can contain a digit more than once, but not in the same row/column).
@@ -909,7 +912,6 @@ class CageGenerator
         cell = cage[n];
         mask = 1 << digits[n];
         List<int> groupList = _puzzleMap.groupList (cell);
-        // TODO - Check this logic with _puzzlemap code for group-indexes.
         for (int group in groupList) {
             if ((mask & usedGroups[group]) > 0) {
                 return false;
@@ -943,11 +945,10 @@ class CageGenerator
     return usedCells;
   }
 
-  void _init (bool hideOperators)
+  void _init()
   // Initialise the cage generator for a particular size and type of puzzle.
   {
     _killerSudoku  = (_puzzleMap.specificType == SudokuType.KillerSudoku);
-    _hideOperators = _killerSudoku ? true : hideOperators;
 
     _nSymbols  = _puzzleMap.nSymbols;
     _boardArea = _puzzleMap.size;
@@ -978,8 +979,18 @@ class CageGenerator
 
         _neighbourFlags.add(neighbours);
     }
+    _clearLists();
+
     if (myDebug) print("UNUSED CELLS     $_unusedCells");
     if (myDebug) print("NEIGHBOUR-FLAGS  $_neighbourFlags");
+  }
+
+  void _clearLists()
+  {
+    _puzzleMap.clearCages();
+    _possibilities.clear();
+    _possibilitiesIndex.clear();
+    _possibilitiesIndex.add(0);
   }
 
 } // End class CageGenerator.
