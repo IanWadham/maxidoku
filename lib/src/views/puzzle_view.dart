@@ -33,11 +33,27 @@ import 'puzzle_painter_3d.dart';
 
 class PuzzleView extends StatelessWidget
 {
-// Displays a Sudoku puzzle of a selected type and size. It may be 2D or 3D.
+// Displays a 2D or 3D Sudoku puzzle of a selected type, difficulty and size.
+//
+// Widget build() paints or repaints the entire screen with a puzzle. Entered
+// initially from app.dart via Provider, operating on the Puzzle model. Can then
+// be entered automatically by Flutter whenever IT needs to repaint (e.g. during
+// a window-resize on a computer desktop) OR whenever the puzzle changes in any
+// way (due to a user action) OR when the timer display is updated OR when the
+// puzzle's view has to change without changing any puzzle data (e.g. to view
+// the sides or back of a 3D puzzle). All of these repaints are triggered by
+// Provider, using calls to notifyListeners(), mostly from the Puzzle methods.
+//
+// A further complication is that messages to the user can be issued only when
+// there is no repainting going on and they must not be accidentally RE-issued
+// if a screen repaint occurs, otherwise the screen darkens and goes black. Some
+// messages originate from actions within the puzzle model. These are deferred
+// and later handled by a postFrameCallback() procedure in the PuzzleBoardView's
+// Widget build(). PuzzleBoardView is a sub-Widget of the PuzzleView Widget.
 
-  bool  darkMode;
+  bool  darkMode;		// Display in dark theme-mode colours or light.
 
-  PuzzleView(/*bool */this.darkMode, {Key? key,}) : super(key: key);
+  PuzzleView(this.darkMode, {Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +61,7 @@ class PuzzleView extends StatelessWidget
     // Set portrait/landscape, depending on the device or window-dimensions.
     Orientation orientation = MediaQuery.of(context).orientation;
 
-    // Find the Puzzle object, which has been created by Provider.
+    // Find the Puzzle objecti (the model), which has been created by Provider.
     Puzzle puzzle = context.read<Puzzle>();
 
     // Save the orientation, for later use by PuzzlePainters and paint().
@@ -60,7 +76,7 @@ class PuzzleView extends StatelessWidget
     // Create the list of action-icons, making the icons resizeable.
     double iconSize = MediaQuery.of(context).size.shortestSide;
     double nIcons = 10.0;
-    iconSize = 0.5 * iconSize / nIcons;
+    iconSize = 0.4 * iconSize / nIcons;
 
     List<IconButton> actionIcons = [
       IconButton(
@@ -182,7 +198,8 @@ class PuzzleView extends StatelessWidget
     ); // End return Scaffold(
   } // End Widget build
 
-  // Procedures for icon actions and user messages.
+
+  // PROCEDURES FOR ICON ACTIONS AND USER MESSAGES.
 
   void generatePuzzle(Puzzle puzzle, BuildContext context)
   async
@@ -199,23 +216,9 @@ class PuzzleView extends StatelessWidget
         ' really want to generate a new puzzle?',
       );
     }
-    bool trying = true;
-    while (trying) {
+    if (newPuzzleOK) {
       Message m = puzzle.generatePuzzle();
-      if (m.messageType == 'Q') {
-        trying = await questionMessage(
-                         context, 'Generate Puzzle', m.messageText,
-                         okText: 'Try Again', cancelText: 'Accept');
-        // If trying == true, keep looping to try for the required Difficulty.
-      }
-      else if (m.messageType != '') {
-        // Inform the user about the puzzle that was generated, then return.
-        await infoMessage(context, 'Generate Puzzle', m.messageText);
-        print('User hit OK');
-        trying = false;	// break;
-      }
     }
-    puzzle.startClock();
   }
 
   void checkPuzzle(Puzzle puzzle, BuildContext context)
@@ -348,31 +351,40 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
   Future<void> executeAfterBuild(BuildContext context) async
   {
     if (puzzle.delayedMessage.messageType != '') {
-      // We arrive here if the user selected a puzzle from the menu-screen or
-      // asked for a retry to get a more difficult puzzle (see below). The
+      // The user selected a new puzzle from the menu-screen or icon-button
+      // or asked for a retry to get a more difficult puzzle (see below). The
       // delayed message is stored until after the puzzle area is repainted.
       Message m = puzzle.delayedMessage;
+
+      // Clear the message, to avoid repaint and blacking out on resizes, etc.
+      puzzle.delayedMessage = Message('', '');
+
       bool retrying = false;
       if (m.messageType == 'Q') {
         retrying = await questionMessage(
                          context, 'Generate Puzzle', m.messageText,
                          okText: 'Try Again', cancelText: 'Accept');
       }
-      else if (m.messageType != '') {
+      else {
         // Inform the user about the puzzle that was generated, then return.
         await infoMessage(context, 'Generate Puzzle', m.messageText);
+        if (m.messageType == 'F') {
+          // TODO - Improve the user-feedback when/if this happens...
+          print('BAIL OUT');
+          Navigator.pop(context);
+        }
       }
       if (retrying) {
         // Keep re-generating and repainting to try for the required Difficulty.
+        // N.B. Puzzle.generatePuzzle() will trigger a widget re-build and a
+        //      repaint, returning control to executeAferBuild() (above) again.
+        puzzle.delayedMessage = Message('', '');
         m = puzzle.generatePuzzle();
-        puzzle.delayedMessage = m;
-        notifyListeners();		// Trigger repaint of puzzle + message.
       }
       else {
-        puzzle.delayedMessage = Message('', '');
+        // A puzzle was selected, generated and accepted, so start the clock!
+        puzzle.startClock();
       }
-      // A puzzle has been selected, generated and accepted, so start the clock!
-      puzzle.startClock();
       return;
     }
 
@@ -394,10 +406,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
     else if (playNow == Play.Solved) {
       await infoMessage(context,
                         'CONGRATULATIONS!!!',
-                        'You have solved the puzzle!!!\n\n'
-                        'If you wish, you can use Undo and Redo to review'
-                        ' your moves -'
-                        ' or you could just try another puzzle...');
+                        'You have solved the puzzle!!!');
     }
     else if (playNow == Play.HasError) {
       await infoMessage(context,
