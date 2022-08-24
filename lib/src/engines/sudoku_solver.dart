@@ -87,7 +87,8 @@ class SudokuSolver
     // Now that _nGroups is known, set the list of group values to fixed-size.
     _requiredGroupValues = List.filled(_nGroups, 0, growable: false);
     _groupSize = _nSymbols;
-    print('CREATE SudokuSolver(): _nGroups $_nGroups, _boardArea $_boardArea');
+    // print('CREATE SudokuSolver(): _nGroups $_nGroups, '
+          // '_boardArea $_boardArea');
   }
 
   BoardContents createFilledBoard()
@@ -109,7 +110,7 @@ class SudokuSolver
     }
 
     BoardContents b = solveBoard (_currentBoard, GuessingMode.Random);
-    print(b.isEmpty ? 'CREATE FILLED BOARD FAILED\n' : 'BOARD FILLED\n');
+    // print(b.isEmpty ? 'CREATE FILLED BOARD FAILED\n' : 'BOARD FILLED\n');
     // _puzzleMap.printBoard(_currentBoard);
     cleanUp();
     return _currentBoard;
@@ -541,8 +542,6 @@ class SudokuSolver
     // Set bit-patterns to show that each cell can accept any value.  Bits are
     // set to zero as possibilities for each cell are eliminated when solving.
 
-    // TODO - Maybe should initialise this to the right size earlier and
-    //        just do a fillRange() here.
     _validCellValues = List.filled(_boardArea, allValues, growable: false);
     for (int i = 0; i < _boardArea; i++) {
         if (boardValues[i] == _unusable) {

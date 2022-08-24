@@ -262,7 +262,7 @@ class SudokuGenerator
       // Then, if the Puzzle is not as easy as required, keep adding more clues
       // until the required level of difficulty is reached.
       currPuzzle = insertValues (currSolution, difficultyRequired, symmetry);
-      print('RETURN FROM insertValues()\n');
+      // print('RETURN FROM insertValues()\n');
       if (currPuzzle.isEmpty) {		// Should very rarely if ever happen.
         response = Message('F', 'Sudoku Generator FAILED. Please try again.');
         return response;
@@ -278,7 +278,7 @@ class SudokuGenerator
         // puzzles such as Samurai take a very long time to compute.
         currPuzzle = removeValues (currSolution, currPuzzle,
                                    difficultyRequired, symmetry);
-        print('RETURN FROM removeValues()\n');
+        // print('RETURN FROM removeValues()\n');
         // dbo1 "Time to do removeValues: %d msec\n", t.elapsed());
       }
 
@@ -316,7 +316,7 @@ class SudokuGenerator
           'If you accept the puzzle as is, it may help to change to'
           ' No Symmetry or a simpler symmetry, then try'
           ' generating another puzzle.';
-        print(message);
+        // print(message);
         response = Message('Q', message);
         // Return this message to the Puzzle View.
         break;
@@ -331,7 +331,7 @@ class SudokuGenerator
             'The difficulty level is ${difficultyTexts[d.index]}, with'
             ' internal rating $bestRatingF. There are'
             ' $bestNClues clues at the start and $movesToGo moves to go.';
-          print(message);
+          // print(message);
           response = Message('I', message);
         }
         else {
@@ -340,7 +340,7 @@ class SudokuGenerator
             'This puzzle\'s difficulty level is ${difficultyTexts[d.index]},'
             ' with internal difficulty rating $bestRatingF, there are'
             ' $bestNClues clues at the start and $movesToGo moves to go.';
-          print(message);
+          // print(message);
           response = Message('I', message);
         }
 
@@ -441,9 +441,9 @@ class SudokuGenerator
     _accum.rating = _accum.rating / nSamples;
     _accum.ratingF = _accum.rating.toStringAsFixed(1);
     _accum.difficulty = calculateDifficulty (_accum.rating);
-    print('  CalcRATING: Av guesses $avGuesses Av deduces $avDeduces'
-            ' Av per deduce $avDeduced rating ${_accum.ratingF}'
-            ' difficulty ${_accum.difficulty}\n');
+    // print('  CalcRATING: Av guesses $avGuesses Av deduces $avDeduces'
+            // ' Av per deduce $avDeduced rating ${_accum.ratingF}'
+            // ' difficulty ${_accum.difficulty}\n');
 
     return _accum.difficulty;
   }
@@ -500,8 +500,8 @@ class SudokuGenerator
     // We should now have a puzzle-list board that is partly filled with clues
     // and a filled-list board that is completely filled. The puzzle should be
     // solvable by deduction alone, after one or more cycles in deduceValues().
-    print('INITIAL (RANDOM) INSERTIONS COMPLETED - PUZZLE\n');
-    if (dbgLevel > 0) print (puzzle);
+    // print('INITIAL (RANDOM) INSERTIONS COMPLETED - PUZZLE\n');
+    // if (dbgLevel > 0) print (puzzle);
 
     // Set the random sequence to restart if the puzzle needs to be easier.
     int index  = 0;
@@ -609,7 +609,7 @@ class SudokuGenerator
     // dbo1 "Guess limit = %.2f, nCells = %d, nClues = %d, noGuesses = %d\n",
             // guessLimit, _stats.nCells, _stats.nClues, noGuesses);
 
-    print('Start REMOVING:\n');
+    // print('Start REMOVING:\n');
 
     for (int n = 0; n < _boardArea; n++) {
         cell  = sequence[n];		// Pick a cell-index at random.
