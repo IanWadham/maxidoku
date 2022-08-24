@@ -18,10 +18,9 @@ import '../engines/mathdoku_generator.dart';
 class CellChange
 {
   int       cellIndex;		// The position of the cell that changed.
-  CellState before;		// The status and value before the change.
   CellState after;		// The status and value after the change.
 
-  CellChange(this.cellIndex, this.before, this.after);
+  CellChange(this.cellIndex, this.after);
 }
 
 class Puzzle with ChangeNotifier
@@ -211,9 +210,9 @@ class Puzzle with ChangeNotifier
         }
         if (response.messageType == '') {
           // Used up max tries and found no valid puzzle.
-          response.messageType = 'Q';		// Warning.
+          response.messageType = 'F';		// Warning.
           response.messageText = 'Attempts to generate a puzzle failed after'
-                                 ' about 200 tries. Try again?';
+                                 ' about 200 tries.';
         }
         else {
           _paintingSpecs2D.markCageBoundaries(_puzzleMap);
@@ -234,7 +233,9 @@ class Puzzle with ChangeNotifier
     }
     else {				// FAILED. Please try again.
       // Generator/solver may have failed internally.
+      print('IN Puzzle: Generator failed');
     }
+    delayedMessage = response;
     return response;
   }
 
@@ -383,6 +384,11 @@ class Puzzle with ChangeNotifier
 
   bool hitControlArea(int selection)
   {
+    if (puzzlePlay == Play.Solved) {
+      // All done! Can use undo/redo to review moves, but cannot make new moves.
+      return false;
+    }
+
     // Step 2 in making a move: tap on the control area to choose a value
     // (1-9, A-Y) to enter into a puzzle cell, to switch Notes mode on/off
     // or to clear a puzzle cell. In Notes mode, multiple values can be
@@ -542,23 +548,21 @@ class Puzzle with ChangeNotifier
         newStatus = ((newValue != _solution[n]) && (_solution[n] != VACANT)) ?
                      ERROR : CORRECT;
         if (newStatus == CORRECT) {
-          autoClearNotes(n, newValue);
+          _autoClearNotes(n, newValue);
         }
       }
     }
 
     CellState newState = CellState(newStatus, newValue);
-    CellState oldState = CellState(currentStatus, currentValue);
 
     int nCellChanges = _cellChanges.length;
     if (_indexUndoRedo < nCellChanges) {
       // Prune the list of cell changes (i.e. list of undo/redo possibilities).
-      print('PRUNE _indexUndoRedo $_indexUndoRedo nCellChanges $nCellChanges');
       _cellChanges.removeRange(_indexUndoRedo, nCellChanges);
     }
 
     // Update the undo/redo list and record the move.
-    _cellChanges.add(CellChange(n, oldState, newState));
+    _cellChanges.add(CellChange(n, newState));
     _indexUndoRedo     = _cellChanges.length;
     _cellStatus[n]     = newStatus;
     _stateOfPlay[n]    = newValue;
@@ -601,7 +605,7 @@ class Puzzle with ChangeNotifier
   void hint()
   {
     // print('HINTS: $_SudokuMoves');		// Cell numbers in play-order.
-    if(_puzzlePlay != Play.ReadyToStart && _puzzlePlay != Play.InProgress) {
+    if (_puzzlePlay != Play.ReadyToStart && _puzzlePlay != Play.InProgress) {
       return;
     }
     for (int n in _SudokuMoves) {
@@ -620,50 +624,60 @@ class Puzzle with ChangeNotifier
 
   bool undo() {
     // Undo a move.
-    int l = _cellChanges.length;
-    print('UNDO: _indexUndoRedo = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo <= 0) {
       print('NO MOVES available to Undo');
       return false;		// No moves left to undo - or none made yet.
     }
 
-    // Get details of the move to be undone and apply them.
+    // Redo all moves from the start, except for the latest one.
     _indexUndoRedo--;
-    CellChange change = _cellChanges[_indexUndoRedo];
-    int n = change.cellIndex;
-    _cellStatus[n]  = change.before.status;
-    _stateOfPlay[n] = change.before.cellValue;
-    notifyListeners();		// Trigger a repaint of the Puzzle View.
-    return true;
+    _indexUndoRedo--;
+    bool result = redo();
+    return result;
   }
 
   bool redo() {
-    // Redo a move.
+    // Redo a move. This goes right back to the start of the puzzle so that all
+    // _autoClearNotes() operations can also be re-done correctly.
     int l = _cellChanges.length;
-    print('REDO: _indexUndoRedo = $_indexUndoRedo, cell-changes $l');
     if (_indexUndoRedo >= _cellChanges.length) {
       print('NO MOVES available to Redo');
       return false;		// No moves left to redo - or none made yet.
     }
 
-    // Get details of the move to be redone and apply them.
-    CellChange change = _cellChanges[_indexUndoRedo];
-    int n = change.cellIndex;
-    _cellStatus[n]  = change.after.status;
-    _stateOfPlay[n] = change.after.cellValue;
+    // Restore the initial state of the Puzzle.
+    _stateOfPlay = [..._puzzleGiven];
+    for (int n = 0; n < _puzzleGiven.length; n++) {
+      if (_puzzleGiven[n] != UNUSABLE) {
+        _cellStatus[n] = (_puzzleGiven[n] > 0) ? GIVEN : VACANT;
+      }
+    }
+
+    // Get details of all moves (from the beginning) and redo them.
     _indexUndoRedo++;
+    for (int n = 0; n < _indexUndoRedo; n++) {
+      CellChange change = _cellChanges[n];
+      int cell = change.cellIndex;
+      _cellStatus[cell]  = change.after.status;
+      _stateOfPlay[cell] = change.after.cellValue;
+      _autoClearNotes(cell, _stateOfPlay[cell]);
+    }
+
     notifyListeners();		// Trigger a repaint of the Puzzle View.
     return true;
   }
 
-  void autoClearNotes(int n, int newValue)
-    // TODO - Does this function need to be Undoable. If so how? Would it need
-    //        the Undo/Redo to handle multi-cell changes? It all seems  academic
-    //        considering that the user has just made a winning move.
+  void _autoClearNotes(int n, int newValue)
+    // This operation is undoable and redoable. It can affect several cells at
+    // once, whereas the move that gives rise to it affects only one cell.
     //
-    //        Or maybe a Redo could just redo every move from the start of play.
+    // One way to implement undo/redo might have been to allow _cellChanges[] to
+    // contain a list of resulting cell-states for every move, even if only
+    // one cell is affected. Instead, redo() repeats every move from the first
+    // and undo() does the same for all moves but one, using redo() to do most
+    // of the work. This is fast enough because puzzle boards alway have < 1000
+    // cells and most have < 100 cells.
   {
-    // print('autoClearNotes cell $n value $newValue');
     int noteBit = 1 << newValue;
     List<int> groupList = puzzleMap.groupList(n);
     for (int g in groupList) {
