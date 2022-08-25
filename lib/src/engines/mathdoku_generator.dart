@@ -99,33 +99,4 @@ class MathdokuKillerGenerator
     return response;
   }
 
-  /**
-   * Solve a Mathdoku or Killer Sudoku and check how many solutions there are.
-   * The solver requires only the PuzzleMap, which contains all the cages.
-   *
-   * solution           The values returned as the solution.
-   * solutionMoves      An ordered list of "move" cells found by the solver
-   *                    when it reached a solution: used to provide Hints.
-   *
-   * return             0  = there is no solution,
-   *                    1  = there is a unique solution,
-   *                    >1 = there is more than one solution.
-   */
-
-  // TODO - Is this method really needed? Other methods are providing number
-  //        of solutions, solution and solution moves. Maybe this will be
-  //        when/if tapping-in of Mathdoku/Killer puzzles is implemented. There
-  //        are NO references to this method at present (13/08/22).
-
-  int solveMathdokuKillerTypes (BoardContents solution,
-                          List<int>     solutionMoves)
-  {
-    // ???? bool hideOperators = false;
-    int result   = 0;
-    CageGenerator cageGen = CageGenerator(_puzzleMap, solution);
-    // ???? result = cageGen.checkPuzzle (solution, solutionMoves, hideOperators);
-    result = cageGen.checkPuzzle (solution, solutionMoves);
-    return result;
-  }
-
 } // End MathdokuKillerGenerator class
