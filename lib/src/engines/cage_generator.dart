@@ -140,10 +140,6 @@ class CageGenerator
   bool          myDebug = false;
   // bool          myDebug = true;
 
-  // TODO - How to handle Possibilities? Calculate or tabulate?
-  // NOTE - nPossibilities depends on nSymbols (Puzzle size) as well as Cage
-  //        value. How to handle this? Been focussing too much on Killer 9x9!!!
-
   PuzzleMap     _puzzleMap;		// The geometry of the puzzle.
   BoardContents _solution;
 
@@ -189,15 +185,6 @@ class CageGenerator
     :
     _DLXSolver = new DLXSolver(_puzzleMap);
  
-  // TODO - Do we need to clear these lists at least?
-  // ~CageGenerator()
-  // {
-    // _possibilities.clear();
-    // _possibilitiesIndex.clear();
-    // delete _possibilities;
-    // delete _possibilitiesIndex;
-  // }
-
   // PUBLIC METHODS.
 
   int makeCages (List<int> solutionMoves, Difficulty d)
@@ -377,10 +364,11 @@ class CageGenerator
                                                           _possibilities,
                                                           _possibilitiesIndex,
                                                           maxSolutions);
-    // Failed; clear dud cages and workspace, leaving puzzle-board view empty.
     if (nSolutions != 1) {
-      _clearLists();
+      // Failed; clear dud cages, leaving puzzle-board view empty.
+      _puzzleMap.clearCages();
     }
+    _clearLists();			// Release possibilities workspace.
 
     print('DLXSolver returned nSolutions $nSolutions, max $maxSolutions');
     if (nSolutions == 0) {
@@ -980,6 +968,7 @@ class CageGenerator
         _neighbourFlags.add(neighbours);
     }
     _clearLists();
+    _puzzleMap.clearCages();
 
     if (myDebug) print("UNUSED CELLS     $_unusedCells");
     if (myDebug) print("NEIGHBOUR-FLAGS  $_neighbourFlags");
@@ -987,7 +976,6 @@ class CageGenerator
 
   void _clearLists()
   {
-    _puzzleMap.clearCages();
     _possibilities.clear();
     _possibilitiesIndex.clear();
     _possibilitiesIndex.add(0);
