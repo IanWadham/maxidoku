@@ -285,20 +285,19 @@ class DLXSolver
           // if (DLX_LOG) print('Search row $searchRow DLX row $rowNumDLX'
                              // ' cageSize $cageSize combo $comboNum'
                              // ' values at $comboValues');
-          /*
           String s = '';
           for (int cell in _puzzleMap.cage(nCage)) {
-            if (DLX_LOG) s = s + ' $cell:${_possibilities[comboValues]}';
+            // if (DLX_LOG) s = s + ' $cell:${_possibilities[comboValues]}';
             // Record the sequence of cell-numbers, for use in hints.
             _solutionMoves.add(cell);
             _boardValues [cell] = _possibilities[comboValues];
             comboValues++;
           }
-          if (DLX_LOG) print(s + '\n\n');
-          */
+          // if (DLX_LOG) print(s + '\n\n');
           break;
         }
       }
+      _solutionMoves.shuffle();
     }
     else {	// Sudoku or Roxdoku variant.
       for (DLXNode node in solution) {
