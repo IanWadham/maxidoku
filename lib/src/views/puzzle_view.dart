@@ -406,7 +406,8 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
     else if (playNow == Play.Solved) {
       await infoMessage(context,
                         'CONGRATULATIONS!!!',
-                        'You have solved the puzzle!!!');
+                        'Well done!!'
+                        ' You have reached the end of the puzzle!');
     }
     else if (playNow == Play.HasError) {
       await infoMessage(context,
