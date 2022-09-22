@@ -12,14 +12,14 @@ Future<bool> questionMessage(
 ) async
 {
   // Set up the buttons.
-  Widget okButton = FlatButton(
+  Widget okButton = TextButton(
     child: Text(okText),
     onPressed: () {
       print('User pressed $okText button in questionMessage()');
       Navigator.of(context).pop(true);	// Dismiss the dialog box.
     },
   );
-  Widget cancelButton = FlatButton(
+  Widget cancelButton = TextButton(
     child: Text(cancelText),
     onPressed: () {
       print('User pressed $cancelText button in questionMessage()');
@@ -60,7 +60,7 @@ Future<void> infoMessage
 async
 {
   // Set up the buttons.
-  Widget okButton = FlatButton(
+  Widget okButton = TextButton(
     child: Text(okText),
     onPressed: () {
       Navigator.of(context).pop();	// Dismiss the dialog box.
