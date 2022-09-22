@@ -109,18 +109,26 @@ const List<CagesLevel> levelParams = [
     CagesLevel(Difficulty.VeryEasy,   6, 6, 2, 9,),
 
     // Cage sizes for Easy are from 1 to 3, with all values allowed.
-    CagesLevel(Difficulty.Easy,       2, 4, 3, 28,),
+    CagesLevel(Difficulty.Easy,       2, 4, 3, 28,
+                                      featureSize: 3,
+                                      sizeDistribution: [60, 40]),
 
     // MaxCombos = 200 cuts off 4-cell values 17-23 (9-12 choices of digits)
     // where each set of 4 digits has 24 permutations (4 factorial).
-    CagesLevel(Difficulty.Medium,     2, 4, 4, 200, featureSize: 4),
+    CagesLevel(Difficulty.Medium,     2, 4, 4, 200,
+                                      featureSize: 4,
+                                      sizeDistribution: [60, 40, 30]),
 
     // MaxCombos = 400 allows all 4-cell values and 5-cell values 15-18 & 32-35,
     // where each set of 5 digits has 120 permutations (5 factorial).
-    CagesLevel(Difficulty.Hard,       2, 4, 4 /*5*/, 400, featureSize: 4 /*5*/),
+    CagesLevel(Difficulty.Hard,       2, 4, 4, 400,
+                                      featureSize: 4,
+                                      sizeDistribution: [60, 40, 30, 24]),
 
     // All combinations are allowed for cages up to size 6.
-    CagesLevel(Difficulty.Diabolical, 2, 4, 6, 6000,),
+    CagesLevel(Difficulty.Diabolical, 2, 4, 6, 6000,
+                                      featureSize: 6,
+                                      sizeDistribution: [60, 40, 30, 24, 20]),
 
     // All combinations are allowed for cages up to size 7.
     CagesLevel(Difficulty.Unlimited,  2, 4, 7, 16000,),
@@ -210,11 +218,12 @@ class CageGenerator
     bool myDebug = true;
 
     // Get the parameters for the required level of Difficulty.
-    CagesLevel level = levelParams[d.index];
-    _minSingles      = level.minSingles;
-    _maxSingles      = level.maxSingles;
-    _maxSize         = level.maxSize;
-    _maxCombos       = level.maxCombos;
+    CagesLevel level  = levelParams[d.index];
+    _minSingles       = level.minSingles;
+    _maxSingles       = level.maxSingles;
+    _maxSize          = level.maxSize;
+    _maxCombos        = level.maxCombos;
+    _sizeDistribution = level.sizeDistribution;
 
     List<int> saveUnusedCells;
     List<int> saveNeighbourFlags;
@@ -476,7 +485,7 @@ class CageGenerator
       case 13:
       case 14:
         cellIndex = k;		// Enclosed on three sides: start here.
-        chosenSize = _puzzleMap.randomInt(maxAvail - 1) + 2; //>=2 <=maxAvail.
+        chosenSize = _chooseCageSize(featureSize, maxAvail);
         if (myDebug) print("CHOSE CUL-DE-SAC flags ${_neighbourFlags[k]}"
                            " at cell $cellIndex, cage-size $chosenSize");
         break;
@@ -501,7 +510,7 @@ class CageGenerator
       int n = _puzzleMap.randomInt(_unusedCells.length);
       cellIndex = _unusedCells[n];
       // Then avoid size 1. Isolated cells left over => size 1 (see above).
-      chosenSize = _puzzleMap.randomInt(maxAvail - 1) + 2; //>=2 <=maxAvail.
+      chosenSize = _chooseCageSize(featureSize, maxAvail);
       if (myDebug) print("CHOSE RANDOM START flags"
                          " ${_neighbourFlags[cellIndex]}"
                          " at cell $cellIndex, cage-size $chosenSize");
@@ -509,6 +518,36 @@ class CageGenerator
 
     cage.add(cellIndex);
     return (featureSize == 0) ? chosenSize : featureSize;
+  }
+
+  int _chooseCageSize(int featureSize, int maxAvail)
+  {
+    if (featureSize > 0) {
+      return featureSize;
+    }
+    else if (_sizeDistribution.isEmpty) {
+      return _puzzleMap.randomInt(maxAvail - 1) + 2;	// >=2 <=maxAvail.
+    }
+    else {
+      int roll = 0;
+      int nMax = _sizeDistribution.length;
+      nMax = nMax > maxAvail ? maxAvail : nMax;
+      int n = 0;
+      for (n = 0; n < nMax; n++) {
+        roll += _sizeDistribution[n];;
+      }
+      print('nMax $nMax Roll $roll Distribution $_sizeDistribution');
+      roll = _puzzleMap.randomInt(roll);
+      print('Random roll $roll');
+      for (n = 0; n < nMax; n++) {
+        roll = roll - _sizeDistribution[n];
+        print('Roll $roll n $n');
+        if (roll < 0) {
+          break;
+        }
+      }
+      return (n + 2);					// >=2.
+    }
   }
 
   void _makeOneCage (List<int> cage, int requiredSize)
