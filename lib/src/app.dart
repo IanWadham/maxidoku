@@ -67,15 +67,20 @@ class MyApp extends StatelessWidget {
           // Define a light and dark color theme. Then, read the user's
           // preferred ThemeMode (light, dark, or system default) from the
           // SettingsController to display the required theme.
+          // TODO - Home screen's appBar is white, not teal, since Flutter 3.
+          //        So what colours are acceptable as a "seed" and does it make
+          //        a difference which type of seed invocation is used?
           theme: ThemeData(
             colorSchemeSeed: Colors.teal,
+            // primaryColor: Colors.teal,
             brightness:      Brightness.light,
-            useMaterial3:    true,
+            // useMaterial3:    true,
           ),
           darkTheme: ThemeData(
             colorSchemeSeed: Colors.teal,
+            // primaryColor: Colors.teal,
             brightness:      Brightness.dark,
-            useMaterial3:    true,
+            // useMaterial3:    true,
           ),
           themeMode: settingsController.themeMode,
 
