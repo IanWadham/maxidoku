@@ -35,7 +35,8 @@ class MyApp extends StatelessWidget {
       builder: (BuildContext context, Widget? child) {
         return MaterialApp(
 
-          debugShowCheckedModeBanner: false, // No Debug stripe at top-right.
+          // Show stripe in work-version, but NOT in /Applications play-version.
+          // debugShowCheckedModeBanner: false, // No Debug stripe at top-right.
 
           // Providing a restorationScopeId allows the Navigator built by the
           // MaterialApp to restore the navigation stack when a user leaves and
