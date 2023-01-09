@@ -267,6 +267,8 @@ class Puzzle with ChangeNotifier
 
   void startClock()
   {
+    // return;			// Hook for testing BoardView, CellView, etc.
+
     // TODO - Test to make sure that this assert does not trigger.
     assert(_ticker == null, 'ASSERT ERROR startClock(): _ticker is NOT null.');
     print('START THE CLOCK!!!');
@@ -293,6 +295,8 @@ class Puzzle with ChangeNotifier
 
   void stopClock()
   {
+    // return;			// Hook for testing BoardView, CellView, etc.
+
     // TODO - Test to make sure that this assert does not trigger.
     assert(_ticker != null, 'ASSERT ERROR stopClock(): _ticker IS NULL.');
     _solutionTime.stop();

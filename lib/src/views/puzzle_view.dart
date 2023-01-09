@@ -13,6 +13,7 @@ import '../settings/settings_view.dart';
 import '../globals.dart';
 import '../models/puzzle.dart';
 
+// TO BE TESTED --- import 'board_view.dart';
 import 'painting_specs.dart';
 
 import 'painting_specs_2d.dart';
@@ -319,7 +320,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
 
     // Find out if the System (O/S) or Flutter colour Theme is dark or light.
     bool darkMode = (Theme.of(context).brightness == Brightness.dark);
-
+// /* For testing BoardView and CellView...
     if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {
       return Container(
         // We wish to fill the parent, in either Portrait or Landscape layout.
@@ -346,6 +347,8 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         ),
       );
     }
+// */ End of testing BoardView...
+    // --- return BoardView(puzzleMap: puzzle.puzzleMap);
   } // End Widget build()
 
   Future<void> executeAfterBuild(BuildContext context) async
