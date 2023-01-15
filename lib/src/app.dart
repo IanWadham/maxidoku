@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
+// IDW TODO import 'app_lifecycle/app_lifecycle.dart';
 
 import 'models/puzzle.dart';
 import 'views/puzzle_view.dart';
@@ -13,6 +16,64 @@ import 'globals.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
+
+/* IDW GoRouter disabled for now.
+  static final _router = GoRouter(
+    routes: [
+      GoRoute(
+          path: '/',
+          builder: (context, state) =>
+              const MainMenuScreen(key: Key('main menu')),
+          routes: [
+            GoRoute(
+                path: 'play',
+                pageBuilder: (context, state) => buildMyTransition<void>(
+                      child: const LevelSelectionScreen(
+                          key: Key('level selection')),
+                      color: context.watch<Palette>().backgroundLevelSelection,
+                    ),
+                routes: [
+                  GoRoute(
+                    path: 'session/:level',
+                    pageBuilder: (context, state) {
+                      final levelNumber = int.parse(state.params['level']!);
+                      final level = gameLevels
+                          .singleWhere((e) => e.number == levelNumber);
+                      return buildMyTransition<void>(
+                        child: PlaySessionScreen(
+                          level,
+                          key: const Key('play session'),
+                        ),
+                        color: context.watch<Palette>().backgroundPlaySession,
+                      );
+                    },
+                  ),
+                  GoRoute(
+                    path: 'won',
+                    pageBuilder: (context, state) {
+                      final map = state.extra! as Map<String, dynamic>;
+                      final score = map['score'] as Score;
+
+                      return buildMyTransition<void>(
+                        child: WinGameScreen(
+                          score: score,
+                          key: const Key('win game'),
+                        ),
+                        color: context.watch<Palette>().backgroundPlaySession,
+                      );
+                    },
+                  )
+                ]),
+            GoRoute(
+              path: 'settings',
+              builder: (context, state) =>
+                  const SettingsScreen(key: Key('settings')),
+            ),
+          ]),
+    ],
+  );
+*/ // IDW End GoRouter disabled for now.
+
   const MyApp({
     Key? key,
     required this.settingsController,
@@ -111,6 +172,10 @@ class MyApp extends StatelessWidget {
 
                     bool darkMode =
                          (Theme.of(context).brightness == Brightness.dark);
+
+// IDW TODO - Should have separate Provider for Palette and Dark/Light changes,
+//            and maybe for other purposes (see examples in TicTacToe game).
+
                     return ChangeNotifierProvider(
                       create: (context) =>		// The Model to watch.
                               Puzzle(index, settingsController, darkMode),
