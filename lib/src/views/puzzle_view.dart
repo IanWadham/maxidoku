@@ -320,7 +320,6 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
 
     // Find out if the System (O/S) or Flutter colour Theme is dark or light.
     bool darkMode = (Theme.of(context).brightness == Brightness.dark);
-// /* For testing BoardView and CellView...
     if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {
       return Container(
         // We wish to fill the parent, in either Portrait or Landscape layout.
@@ -347,8 +346,6 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         ),
       );
     }
-// */ End of testing BoardView...
-    // --- return BoardView(puzzleMap: puzzle.puzzleMap);
   } // End Widget build()
 
   Future<void> executeAfterBuild(BuildContext context) async
@@ -386,7 +383,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
       }
       else {
         // A puzzle was selected, generated and accepted, so start the clock!
-        puzzle.startClock();
+        // puzzle.startClock();
       }
       return;
     }
@@ -407,6 +404,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
     // TODO - Expand this message a bit. Make it more explanatory.
     }
     else if (playNow == Play.Solved) {
+      // puzzle.stopClock();
       await infoMessage(context,
                         'CONGRATULATIONS!!!',
                         'Well done!!'

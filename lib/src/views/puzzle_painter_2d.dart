@@ -175,9 +175,9 @@ class PuzzlePainter2D extends CustomPainter
     }
 
     // Display the time taken so far for solving the puzzle.
-    double tSize = topLeftX < topLeftY ? topLeftX : topLeftY;
-    paintingSpecs.paintTextString(canvas, puzzle.solutionTimeDisplay,
-                  0.75 * tSize, Offset(0, 0), boldLinePaint, backgroundPaint);
+    // double tSize = topLeftX < topLeftY ? topLeftX : topLeftY;
+    // paintingSpecs.paintTextString(canvas, puzzle.solutionTimeDisplay,
+                  // 0.75 * tSize, Offset(0, 0), boldLinePaint, backgroundPaint);
 
     // Paint the highlight of the last puzzle-cell hit.
     if (highlightedCell >= 0) {

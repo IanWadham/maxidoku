@@ -126,11 +126,11 @@ class PuzzlePainter3D extends CustomPainter
     } // End list of circles.
 
     // Display the time taken so far for solving the puzzle.
-    double topLeftX = paintingSpecs.puzzleRect.left;
-    double topLeftY = paintingSpecs.puzzleRect.top;
-    double tSize = topLeftX < topLeftY ? topLeftX : topLeftY;
-    paintingSpecs.paintTextString(canvas, puzzle.solutionTimeDisplay,
-                  0.75 * tSize, Offset(0, 0), boldLinePaint, backgroundPaint);
+    // double topLeftX = paintingSpecs.puzzleRect.left;
+    // double topLeftY = paintingSpecs.puzzleRect.top;
+    // double tSize = topLeftX < topLeftY ? topLeftX : topLeftY;
+    // paintingSpecs.paintTextString(canvas, puzzle.solutionTimeDisplay,
+                  // 0.75 * tSize, Offset(0, 0), boldLinePaint, backgroundPaint);
 
     return;
 
