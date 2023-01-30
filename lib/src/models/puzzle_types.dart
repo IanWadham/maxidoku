@@ -1,24 +1,24 @@
+import 'package:flutter/foundation.dart' show debugPrint;
+
 class PuzzleTypesText {
 
-  PuzzleTypesText()
-    :
-    _nTypes = puzzleTypes.length
-  {
-    print (['PuzzleTypesText count =', _nTypes]);
-  }
+  PuzzleTypesText();
+
+  final int _nTypes = puzzleTypes.length;
 
   // Extract the specification String of the Puzzle Type at [index] and
   // split it into parseable lines, each line beginning with a keyword.
   List<String> puzzleTypeText (int index)
   {
-    List<String> result = List.empty(growable: true);;
+    List<String> result = List.empty(growable: true);
+    debugPrint ('Number of puzzle types = $_nTypes\n');
 
     // Split the string into lines, removing leading and trailing blanks.
     if ((index < _nTypes) && (index >= 0)) {
       result = puzzleTypes[index].split('\n');
       for (int i = 0; i < result.length; i++) {
         result[i] = result[i].trim();
-        print(result[i]);
+        debugPrint(result[i]);
       }
     }
 
@@ -34,29 +34,21 @@ class PuzzleTypesText {
   String getKeyByIndex (List<String> puzzleMapSpec, int index)
   {
     String temp = puzzleMapSpec[index];
-    print('getKeyByIndex');
-    print(temp);
+    debugPrint('getKeyByIndex');
+    debugPrint(temp);
     int firstSpace = temp.indexOf(' ');
-    print('First space is at $firstSpace');
+    debugPrint('First space is at $firstSpace');
 
     if (firstSpace > 0) {
       return  temp.substring(0, firstSpace); 
     }
-    else if (temp.length > 0) {
+    else if (temp.isNotEmpty) {
       return temp;
     }
     else {
       return '';
     }
   }
-
-/*******************************************************************
-Can use regular expressions, where \s matches a white space character,
-\w matches a word character (incluing _ and 0-9), \S matches non-white space
-character and \W matches a non-word character. A string of digits counts as
-a word(?). A single digit is matched by \d.  Some examples I could use at:
-     https://www.woolha.com/tutorials/dart-using-regexp-examples
-*******************************************************************/
 
   String getWholeDataByIndex (List<String> puzzleMapSpec, int index)
   {
@@ -75,7 +67,7 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
   int    findKey (List<String> puzzleMapSpec, String key)
   {
     int numberOfStrings = puzzleMapSpec.length;
-    print('puzzleMapSpec length = $numberOfStrings');
+    debugPrint('puzzleMapSpec length = $numberOfStrings');
     for (int i = 0; i < numberOfStrings; i++) {
         if (key == getKeyByIndex(puzzleMapSpec, i)) {
           return i;	// Found key.
@@ -83,8 +75,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     }
     return -1;		// Failed to find key.
   }
-
-  int _nTypes;
 
   static const List<String> puzzleTypes = [
 ''' Name Classic 4x4 Sudoku
@@ -95,7 +85,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 4
     SizeY 4
     SizeZ 1
-    NGroups 12
     NSymbols 4
     SpecificType PlainSudoku
     PuzzleMap
@@ -109,7 +98,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 10
     SizeY 10
     SizeZ 1
-    NGroups 60
     NSymbols 4
     SpecificType TinySamurai
     PuzzleMap
@@ -127,7 +115,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 9
     SizeY 9
     SizeZ 1
-    NGroups 27
     NSymbols 9
     SpecificType PlainSudoku
     PuzzleMap
@@ -141,7 +128,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 6
     SizeY 6
     SizeZ 1
-    NGroups 18
     NSymbols 6 
     SpecificType PseudoSudoku
     PuzzleMap
@@ -161,7 +147,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 9
     SizeY 9
     SizeZ 1
-    NGroups 27
     NSymbols 9 
     SpecificType Aztec
     PuzzleMap
@@ -184,7 +169,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 3
     SizeY 3
     SizeZ 3
-    NGroups 9
     NSymbols 9
     SpecificType Roxdoku
     Diameter 350
@@ -202,7 +186,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 5
     SizeY 5
     SizeZ 3
-    NGroups 18
     NSymbols 9
     SpecificType Roxdoku
     Diameter 350
@@ -221,7 +204,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 9
     SizeY 9
     SizeZ 1
-    NGroups 27
     NSymbols 9 
     SpecificType Jigsaw
     PuzzleMap
@@ -244,7 +226,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 4
     SizeY 4
     SizeZ 1
-    NGroups 12
     NSymbols 4
     SpecificType KillerSudoku
     PuzzleMap
@@ -258,7 +239,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 9
     SizeY 9
     SizeZ 1
-    NGroups 27
     NSymbols 9 
     SpecificType KillerSudoku
     PuzzleMap
@@ -272,7 +252,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 4
     SizeY 4
     SizeZ 1
-    NGroups 8
     NSymbols 4 
     SpecificType Mathdoku
     PuzzleMap
@@ -286,7 +265,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX Mathdoku
     SizeY Mathdoku
     SizeZ 1
-    NGroups Mathdoku*2
     NSymbols Mathdoku 
     SpecificType Mathdoku
     PuzzleMap
@@ -300,7 +278,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 9
     SizeY 9
     SizeZ 1
-    NGroups 27
     NSymbols 9 
     SpecificType Jigsaw
     PuzzleMap
@@ -323,7 +300,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 5
     SizeY 5
     SizeZ 1
-    NGroups 15
     NSymbols 5 
     SpecificType PseudoSudoku
     PuzzleMap
@@ -342,7 +318,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 5
     SizeY 5
     SizeZ 5
-    NGroups 18
     NSymbols 9
     SpecificType Roxdoku
     Diameter 350
@@ -361,7 +336,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 21
     SizeY 21
     SizeZ 1
-    NGroups 131
     NSymbols 9
     SpecificType Samurai
     PuzzleMap
@@ -384,7 +358,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 7
     SizeY 7
     SizeZ 7
-    NGroups 81
     NSymbols 9
     SpecificType Roxdoku
     Diameter 350
@@ -410,7 +383,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 21
     SizeY 21
     SizeZ 1
-    NGroups 108
     NSymbols 9
     SpecificType Sohei
     PuzzleMap
@@ -427,7 +399,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 4
     SizeY 4
     SizeZ 1
-    NGroups 12
     NSymbols 4 
     SpecificType Jigsaw
     PuzzleMap
@@ -450,7 +421,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 21
     SizeY 21
     SizeZ 1
-    NGroups 127
     NSymbols 9
     SpecificType Windmill
     PuzzleMap
@@ -469,7 +439,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 9
     SizeY 9
     SizeZ 1
-    NGroups 29
     NSymbols 9
     SpecificType XSudoku
     SpecialCells 17 0 10 20 30 40 50 60 70 80 8 16 24 32 48 56 64 72
@@ -485,7 +454,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 16
     SizeY 16
     SizeZ 1
-    NGroups 48
     NSymbols 16
     SpecificType PlainSudoku
     PuzzleMap
@@ -498,8 +466,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 25
     SizeY 25
     SizeZ 1
-    NGroups 75
-    NSymbols 25
     SpecificType PlainSudoku
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
@@ -511,7 +477,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 4
     SizeY 4
     SizeZ 4
-    NGroups 12
     NSymbols 16
     SpecificType Roxdoku
     Diameter 350
@@ -528,7 +493,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 5
     SizeY 5
     SizeZ 5
-    NGroups 15
     NSymbols 25
     SpecificType Roxdoku
     Diameter 350
@@ -546,7 +510,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX 7
     SizeY 7
     SizeZ 3
-    NGroups 45
     NSymbols 9
     SpecificType Roxdoku
     Diameter 350
@@ -568,7 +531,6 @@ a word(?). A single digit is matched by \d.  Some examples I could use at:
     SizeX Mathdoku
     SizeY Mathdoku
     SizeZ 1
-    NGroups Mathdoku*2
     NSymbols Mathdoku 
     SpecificType Mathdoku
     HideOperators

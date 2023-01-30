@@ -1,7 +1,11 @@
+// ignore_for_file: constant_identifier_names
+
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import 'dart:math';		// For random-number generator Random class.
 import '../globals.dart';
 
-/***************************************************************************
+/* *************************************************************************
  *   Copyright 2005-2007 Francesco Rossi <redsh@email.it>                  *
  *   Copyright 2006      Mick Kappenburg <ksudoku@kappendburg.net>         *
  *   Copyright 2006-2008 Johannes Bergmeier <johannes.bergmeier@gmx.net>   *
@@ -24,7 +28,7 @@ import '../globals.dart';
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
  ***************************************************************************/
 
-/**
+/*
  * @class PuzzleMap
  * @short Generalized data representing a Sudoku puzzle size, shape and rules.
  *
@@ -54,8 +58,8 @@ import '../globals.dart';
  * convert both ways between XYZ co-ordinates and a cell index (or cell number)
  * in an integer list representing a puzzle or solution.  The total size of the
  * list is (sizeX * sizeY * sizeZ) cells, but in some types of puzzle not all
- * cells are used (e.g. the gaps between the five sub-grids of a Samurai puzzle).
- * In these cases sizeX, sizeY and sizeX can be greater than the size of a Sudoku
+ * cells are used (e.g. gaps between the five sub-grids of a Samurai puzzle).
+ * In such cases sizeX, sizeY and sizeX can be greater than the size of a Sudoku
  * square or Roxdoku cube and the unused cells become empty space on the screen.
  *
  * Finally, the cells are organised into groups (or cliques) which represent
@@ -71,9 +75,9 @@ import '../globals.dart';
  * For example, the XSudoku puzzle type has order 9 and 29 groups (or cliques)
  * of 9 cells each: 9 rows, 9 columns and 9 blocks 3x3 square, plus 2 diagonals,
  * which must also comtain the numbers 1 to 9 in that type of Sudoku.  A Roxdoku
- * puzzle of order 16 has a cubic grid containing 12 planes, each being 4x4 cells
- * square and each having 16 cells to be filled with the letters A to P.  There
- * are three sets of 4 planes, which are perpendicular to the X, Y and Z
+ * puzzle of order 16 has a cubic grid containing 12 planes, each a square of
+ * 4x4 cells and each having 16 cells to be filled with the letters A to P.
+ * There are three sets of 4 planes, which are perpendicular to the X, Y and Z
  * directions respectively.
  *
  * For brevity and the convenience of classes using PuzzleMap, the groups or
@@ -123,7 +127,6 @@ class PuzzleMap
       _nSymbols     = 0,
       _hideOperators = false
   {
-    bool   structuresFound = false; 
     bool   mapStarted = false;
     int    index = 0;
     int    nSpecs = specStrings.length;
@@ -131,7 +134,7 @@ class PuzzleMap
     RegExp whiteSpace = RegExp(r'(\s+)');
 
     while (index < nSpecs) {
-      // print('Index: $index of $nSpecs');
+      // debugPrint('Index: $index of $nSpecs');
       String specLine = specStrings[index];
 
       if (specLine.isEmpty) { index++; continue; }	// Skip empty line(s).
@@ -139,8 +142,8 @@ class PuzzleMap
       List<String> fields = specLine.split(whiteSpace);
       int nFields = fields.length;
       if (nFields < 1) { break; }	// Must have one or more fields.
-      // print('nFields = $nFields');
-      // print(fields);
+      // debugPrint('nFields = $nFields');
+      // debugPrint(fields);
       String key = fields[0];
 
       int ok = -1;
@@ -156,7 +159,7 @@ class PuzzleMap
           if (_name == '') {
             _name = 'Missing name on Name line.';
           }
-          print(_name);
+          debugPrint(_name);
           break;
         case 'SpecificType':
           String st  = specLine.substring(key.length, specLine.length).trim();
@@ -165,40 +168,33 @@ class PuzzleMap
           SudokuType t = SudokuType.values.firstWhere((f)=> f.toString() == stx,
                                                orElse: ()=> SudokuType.Invalid);
           if (t == SudokuType.Invalid) {
-            print('$st is an invalid name for a SpecificType.');
+            debugPrint('$st is an invalid name for a SpecificType.');
           }
           else if (_specificType == SudokuType.Invalid) {
             _specificType = t;		// Valid SpecificType found.
           }
           else {
-            print('More than one SpecificType line for $_name.');
+            debugPrint('More than one SpecificType line for $_name.');
           }
           break;
         case 'SizeX':
           _sizeX = fields[1] == 'Mathdoku' ? 6 :
                                   _getDimension(fields, nFields, _sizeX);
-          print('_sizeX = $_sizeX');
+          debugPrint('_sizeX = $_sizeX');
           break;
         case 'SizeY':
           _sizeY = fields[1] == 'Mathdoku' ? 6 :
                                   _getDimension(fields, nFields, _sizeY);
-          print('_sizeY = $_sizeY');
+          debugPrint('_sizeY = $_sizeY');
           break;
         case 'SizeZ':
           _sizeZ = _getDimension(fields, nFields, _sizeZ);
-          print('_sizeZ = $_sizeZ');
-          break;
-        case 'NGroups':
-          // OBSOLETE: Use groupCount(). Human error in the PuzzleTypes data
-          //           for this number can cause nasty hard-to-find bugs.
-          _nGroups = fields[1] == 'Mathdoku*2' ? 12 :
-                                    _getDimension(fields, nFields, _nGroups);
-          print('_nGroups = $_nGroups');
+          debugPrint('_sizeZ = $_sizeZ');
           break;
         case 'NSymbols':
           _nSymbols = fields[1] == 'Mathdoku' ? 6 :
                                      _getDimension(fields, nFields, _nSymbols);
-          print('_nSymbols = $_nSymbols');
+          debugPrint('_nSymbols = $_nSymbols');
           break;
         case 'SpecialCells':
           // Cells that are specially coloured to draw attention, such as the
@@ -212,7 +208,7 @@ class PuzzleMap
           break;
         case 'HideOperators':		// Blindfold Mathdoku option. Default
           _hideOperators = true;	// is false (operators are SHOWN).
-          print('PuzzleMap: _hideOperators = $_hideOperators');
+          debugPrint('PuzzleMap: _hideOperators = $_hideOperators');
           break;
 
         case 'PuzzleMap':
@@ -226,16 +222,16 @@ class PuzzleMap
                   _blockSize = n;
               }
           }
-          print('Block size = $_blockSize');
+          debugPrint('Block size = $_blockSize');
 
           // Create a blank puzzle map filled with UNUSABLE cells. Some may
           // remain and be displayed as empty space, e.g. in Samurai puzzles.
           _size  = _sizeX * _sizeY * _sizeZ;
-          print('_size = $_size');
+          debugPrint('_size = $_size');
           if(_size > 0) {	// Create a new board of the required size.
             _emptyBoard = List.filled(_size, UNUSABLE, growable: false);
           }
-          // print(_emptyBoard);
+          // debugPrint(_emptyBoard);
           break;
         case 'SudokuGroups':
           if (mapStarted) {
@@ -274,7 +270,7 @@ class PuzzleMap
                   data.add(-1);
                 }
               }
-              print('IRREGULAR GROUP $data');
+              debugPrint('IRREGULAR GROUP $data');
               _addGroupStructure(data);
             }
           }
@@ -283,25 +279,30 @@ class PuzzleMap
         case 'Diameter':	// Diameter of spheres * 100.
           ok = _getDimension(fields, nFields, _diameter);
           if (ok > 0) _diameter = ok;
-          print('$fields ok = $ok _diameter = $_diameter');
+          debugPrint('$fields ok = $ok _diameter = $_diameter');
           break;
         case 'RotateX':		// Degrees rotation around the X axis.
           ok = _getDimension(fields, nFields, _rotateX);
           if (ok != -1) _rotateX = ok;
-          print('$fields ok = $ok _rotateX = $_rotateX');
+          debugPrint('$fields ok = $ok _rotateX = $_rotateX');
           break;
         case 'RotateY':		// Degrees rotation around the Y axis.
           ok = _getDimension(fields, nFields, _rotateY);
           if (ok != -1) _rotateY = ok;
-          print('$fields ok = $ok _rotateY = $_rotateY');
+          debugPrint('$fields ok = $ok _rotateY = $_rotateY');
           break;
         default:
+          // Skip unused or obsolete tags in puzzle_types.dart.
           break;
       }
       index++;
     }
-    // printBoard(_emptyBoard);
-    // printGroups();
+
+    // Finalise the number of groups.
+    _nGroups = groupCount();
+
+    printBoard(_emptyBoard);
+    printGroups();
 
     // Create an index to help puzzle generators and solvers.
     _createIndexOfCellsToGroups();
@@ -403,7 +404,7 @@ class PuzzleMap
   void addCage(List<int> cage, CageOperator cageOperator, int cageValue)
   {
         // Add to the cages list.
-        _cages.add (new Cage());
+        _cages.add (Cage());
         Cage   newCage        = _cages.last;
         newCage.cage          = cage;
         newCage.cageOperator  = cageOperator;
@@ -437,7 +438,7 @@ class PuzzleMap
   // Clear cages used in a previous puzzle, if any.
   void clearCages() {
         // Clear previous cages (if any).
-        if (! _cages.isEmpty) {
+        if (_cages.isNotEmpty) {
             _cages.clear();
         }
   }
@@ -459,22 +460,19 @@ class PuzzleMap
   int _rotateY  = 27;	// Default degrees rotation of view around Y axis.
 
   // Cells to get special colour, such as XSudoku diagonals and some 3D cells.
-  List<int>            _specialCells = [];
+  final List<int>            _specialCells = [];
 
   // High-level structures, 3 values per structure: structure type (see
   // enum), structure position and whether structure has square blocks.
-  List<StructureType>  _structureTypes = [];
-  List<int>            _structurePositions = [];
-  List<bool>           _structuresWithBlocks = [];
+  final List<StructureType>  _structureTypes = [];
+  final List<int>            _structurePositions = [];
+  final List<bool>           _structuresWithBlocks = [];
 
   // Low-level structures (rows, columns and blocks) also known as groups.
-  List<List<int>>  _groups = [];
-
-  List<int>        _cellIndex = [];        // Index of cells to groups.
-  List<int>        _cellGroups = [];      // Second level of the index.
+  final List<List<int>>  _groups = [];
 
   // Cages are for Mathdoku and Killer Sudoku puzzles only, else empty.
-  List<Cage>       _cages = [];
+  final List<Cage>       _cages = [];
 
   String           _name = 'PlainSudoku';
   SudokuType       _specificType = SudokuType.PlainSudoku;
@@ -485,12 +483,12 @@ class PuzzleMap
   int _getDimension(List<String>fields, int nFields, int dimension)
   {
     if (nFields < 2) {
-    // print('_getDimension() nFields is $nFields');
+    // debugPrint('_getDimension() nFields is $nFields');
     return -1;
     }
     // The value should be in the second field.
     int i = int.tryParse(fields[1], radix: 10) ?? -1; 
-    // print('_getDimension() returns i = $i');
+    // debugPrint('_getDimension() returns i = $i');
     return i;
   }
 
@@ -566,7 +564,6 @@ class PuzzleMap
   // Add a special or irregularly-shaped group to the list of structures.
   void _addGroupStructure(List<int> data) {
 
-        // _structures << Group << _groups.length << 0;
         _structureTypes.add(StructureType.Groups);
         _structurePositions.add(_groups.length);
         _structuresWithBlocks.add(false);
@@ -581,13 +578,13 @@ class PuzzleMap
             // Set cells in groups VACANT: cells not in groups are UNUSABLE.
             _emptyBoard [data.elementAt(n)] = VACANT;
         }
-        // print('ADD GROUP $data');
+        // debugPrint('ADD GROUP $data');
         // printBoard(_emptyBoard);
   }
 
   // For time-efficiency in generating and solving puzzles, make an index from
   // each cell number to the list of groups (cliques) where the cell belongs.
-  List<List<int>> _indexOfCellsToGroups = [];
+  final List<List<int>> _indexOfCellsToGroups = [];
 
   void _createIndexOfCellsToGroups()
   {
@@ -602,28 +599,28 @@ class PuzzleMap
     // group, because they are in the empty space between puzzle structures
     // and are unusable.
 
-    if ((_size <= 0) || (_nGroups <= 0))
-         return;			 // Nothing to do: empty constructor.
+    if ((_size <= 0) || (_nGroups <= 0)) {
+      return;			 // Nothing to do: empty constructor.
+    }
 
     for (int i = 0; i < _size; i++) {
       _indexOfCellsToGroups.add(List.empty(growable: true));
     }
-    // print('Empty index created');
-    // print(_indexOfCellsToGroups);	// Print an empty index.
+    // debugPrint('Empty index created');
+    // debugPrint(_indexOfCellsToGroups);	// Print an empty index.
 
     // Now look up each group, break out the cells that belong to it and
     // add the group number to the index-list of each cell.
-    _nGroups = groupCount();
     for (int groupNumber = 0; groupNumber < _nGroups; groupNumber++) {
       List<int> cells = _groups[groupNumber];
       int nCells = cells.length;
-      // print('');
-      // print('Group: $groupNumber nCells: $nCells --- List of cells: $cells');
+      // debugPrint('\nGroup: $groupNumber nCells: $nCells --- '
+      //            'List of cells: $cells');
       for (int n = 0; n < nCells; n++) {
         int cell = cells[n];
         _indexOfCellsToGroups[cell].add(groupNumber);
-        List<int> cellIndex = _indexOfCellsToGroups[cell];
-        // print('Cell $cell: add group: $groupNumber: giving index $cellIndex');
+        // debugPrint('Cell $cell: add group: $groupNumber: '
+        //            'giving index ${_indexOfCellsToGroups}');
       }
     }
     // _testIndexOfCells();
@@ -632,37 +629,37 @@ class PuzzleMap
 /*
   void _testIndexOfCells()
   {
-    print('');
+    debugPrint('');
     for (int n = 0; n < _size; n++) {
       List<int> indexEntry = _indexOfCellsToGroups[n];
-      print('Index of cell $n: $indexEntry');
+      debugPrint('Index of cell $n: $indexEntry');
     }
-    // print('');
-    // print('Whole Index');
-    // print(_indexOfCellsToGroups);
+    // debugPrint('');
+    // debugPrint('Whole Index');
+    // debugPrint(_indexOfCellsToGroups);
 
-    print('\nTest groupList(int cellNumber)\n');
+    debugPrint('\nTest groupList(int cellNumber)\n');
     List<int> result;
     result = groupList(0);
-    print('Cell 0 is in groups $result');
+    debugPrint('Cell 0 is in groups $result');
     result = groupList(5);
-    print('Cell 5 is in groups $result');
+    debugPrint('Cell 5 is in groups $result');
     result = groupList(10);
-    print('Cell 10 is in groups $result');
+    debugPrint('Cell 10 is in groups $result');
     result = groupList(15);
-    print('Cell 15 is in groups $result');
+    debugPrint('Cell 15 is in groups $result');
     result = groupList(33);
-    print('Cell 33 is in groups $result');
+    debugPrint('Cell 33 is in groups $result');
     result = groupList(63);
-    print('Cell 63 is in groups $result');
+    debugPrint('Cell 63 is in groups $result');
     result = groupList(36);
-    print('Cell 36 is in groups $result');
+    debugPrint('Cell 36 is in groups $result');
     result = groupList(66);
-    print('Cell 66 is in groups $result');
+    debugPrint('Cell 66 is in groups $result');
     result = groupList(42);
-    print('Cell 42 is in groups $result');
+    debugPrint('Cell 42 is in groups $result');
     result = groupList(50);
-    print('Cell 50 is in groups $result');
+    debugPrint('Cell 50 is in groups $result');
   }
 */
 
@@ -671,8 +668,8 @@ class PuzzleMap
   // **********************************************************  //
 
   // Random _random = Random(266133);	// Fixed seed for testing only.
-  // NOTE: There is no setSeed() function. Must re-construct _random to set seed.
-  Random _random = Random(DateTime.now().millisecondsSinceEpoch);
+  // NOTE: There is no setSeed() function. Must re-create _random to set seed.
+  final Random _random = Random(DateTime.now().millisecondsSinceEpoch);
 
   // Generate a random integer in a given range.
   int randomInt(int limit)
@@ -712,10 +709,10 @@ class PuzzleMap
 
   void printGroups()
   {
-    print('GROUPS: $_nGroups');
-    print('GROUP_COUNT: ${groupCount()}');
-    print(_groups);
-    print('');
+    debugPrint('NUMBER OF GROUPS: ${groupCount()}');
+    debugPrint('_nGroups = $_nGroups');
+    debugPrint('LIST OF GROUPS: ${_groups.toString()}');
+    debugPrint('');
   }
 
   void printBoard(BoardContents board)
@@ -725,17 +722,16 @@ class PuzzleMap
     const String letters = '.abcdefghijklmnopqrstuvwxyz';
     String symbol = ' ';
 
-    if (board.length <= 0) {
-      print('NO BOARD VALUES');
+    if (board.isEmpty) {
+      debugPrint('NO BOARD VALUES');
       return;
     }
 
-    print('');
+    debugPrint('');
     for (int y=0; y < _sizeY; y++) {
       String line = '  ';
       for (int z=0; z < sizeZ; z++) {
         for (int x=0; x < _sizeX; x++) {
-          // value = board[x * _sizeY + y];
           value = board[cellIndex(x, y, z)];
           if (value == UNUSABLE) {
             symbol = ' ';		// Hide unusable cells.
@@ -747,19 +743,17 @@ class PuzzleMap
             // Show a symbol for a filled value or '.' for an unfilled cell.
             symbol = (_nSymbols > 9) ?  letters[value] : digits[value];
           }
-          line = line + ' ' + symbol;
+          line = '$line $symbol';
         }
-        line = line + '  ';
+        line = '$line  ';
       }				// End x
-      print(line);
+      debugPrint(line);
     }				// End z
-    print('');
+    debugPrint('');
   }				// End y
 
-} // End of Dart class declaration and definition.
+} // End of PuzzleMap class.
 
-
-// Defined in lieu of a struct of data only: not available in Dart as at Oct 21.
 
 class Cage {					// In lieu of a struct { }...
   List<int>    cage = [];			// The cells in the cage.
