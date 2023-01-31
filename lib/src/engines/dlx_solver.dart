@@ -1,7 +1,7 @@
 import '../globals.dart';
 import '../models/puzzle_map.dart';
 
-/****************************************************************************
+/* **************************************************************************
  *    Copyright 2015  Ian Wadham iandw dot au at gmail com                  *
  *    Copyright 2022  Ian Wadham iandw dot au at gmail com                  *
  *                                                                          *
@@ -34,7 +34,7 @@ class DLXNode			// Represents a 1 in a sparse matrix
                                 // In node: row-number of node.
 }
 
-/**
+/*
  * @class DLXSolver
  * @short Provides a solver, based on the DLX algorithm, for Sudoku variants.
  *
@@ -72,32 +72,29 @@ class DLXSolver
 
   late DLXNode   _corner;		// Anchors matrix links. Holds no data.
 
-  List<DLXNode>  _columns       = [];
-  List<DLXNode>  _rows          = [];
-  List<DLXNode>  _nodes         = [];
-  int            _endColNum     = -1;
-  int            _endRowNum     = -1;
-  int            _endNodeNum    = -1;
+  final List<DLXNode>  _columns       = [];
+  final List<DLXNode>  _rows          = [];
+  final List<DLXNode>  _nodes         = [];
+  int                  _endNodeNum    = -1;
 
-  BoardContents  _boardValues   = [];	// Holds Multidoku puzzle and solution.
-  List<int>      _solutionMoves = [];	// Sequence of cells used in solution.
-  List<int>      _possibilities = [];
-  List<int>      _possibilitiesIndex = [];
+  final BoardContents  _boardValues   = [];	// Holds puzzle and solution.
+  final List<int>      _solutionMoves = [];	// Sequence of solving cells.
+        List<int>      _possibilities = [];
+        List<int>      _possibilitiesIndex = [];
 
   DLXSolver (this._puzzleMap)
   {
     // CONSTRUCTOR.
 
-    print("DLXSolver constructor entered");
     // Create the anchor-point for the matrix.
-    _corner = new DLXNode();
+    _corner = DLXNode();
     // Make the matrix empty. It should consist of _corner, pointing to itself.
     _clearMatrix();
   }
 
   // Public methods
 
-  /**
+  /*
    * solveMathdokuKillerTypes() takes a Mathdoku or Killer Sudoku puzzle and
    * converts it to a sparse matrix of constraints and possible solution values
    * for each cage. The constraints are that each cage must be filled in and
@@ -193,7 +190,6 @@ class DLXSolver
 
     // Create the initial set of columns.
     for (int n = 0; n < (nCages + nGroups * nSymbols); n++) {
-      _endColNum++;
       // Put an empty column in the matrix.
       DLXNode node = _allocNode();
       _columns.add(node);
@@ -208,7 +204,7 @@ class DLXSolver
     // Sudoku rules force the values to be in separate groups.
 
     int rowNumDLX = 0;
-    int counter = 0;
+    // if (DLX_LOG) int counter = 0;
     for (int n = 0; n < nCages; n++) {
       int size = puzzleMap.cage(n).length;
       int nVals = possibilitiesIndex[n + 1] - possibilitiesIndex[n];
@@ -220,15 +216,15 @@ class DLXSolver
       for (int nCombo = 0; nCombo < nCombos; nCombo++) {
         _rows.add(_corner);		// Start a row for each combo.
         _addNode (rowNumDLX, n);	// Mark the cage's fill-in constraint.
-        counter++;
-        List<int> possValues = [];
+        // if (DLX_LOG) counter++;
+        // if (DLX_LOG) List<int> possValues = [];
         for (int cell in puzzleMap.cage(n)) {
           int possVal = possibilities[index];
           // if (DLX_LOG) possValues.add(possVal);
           for (int group in puzzleMap.groupList(cell)) {
             // Poss values go from 0 to (nSymbols - 1) in DLX (so -1 here).
             _addNode (rowNumDLX, nCages + group * nSymbols + possVal - 1);
-            counter++;
+            // if (DLX_LOG) counter++;
           }
           index++;
         }
@@ -240,6 +236,7 @@ class DLXSolver
     // if (DLX_LOG) print('DLX MATRIX HAS ${_columns.length} cols,'
                                      // ' ${_rows.length} rows,'
                                      // ' $counter nodes');
+    // _printDLX();
 
     nSolutions = _solveDLX (solutionLimit);
     return nSolutions;
@@ -261,7 +258,7 @@ class DLXSolver
     int nSymbols = _puzzleMap.nSymbols;
     int nCages = _puzzleMap.cageCount();
     SudokuType t = _puzzleMap.specificType;
-    if (! _solutionMoves.isEmpty) {
+    if (_solutionMoves.isNotEmpty) {
       _solutionMoves.clear();
     }
     // if (DLX_LOG) print('NUMBER OF ROWS IN SOLUTION ${solution.length}');
@@ -285,7 +282,7 @@ class DLXSolver
           // if (DLX_LOG) print('Search row $searchRow DLX row $rowNumDLX'
                              // ' cageSize $cageSize combo $comboNum'
                              // ' values at $comboValues');
-          String s = '';
+          // String s = '';
           for (int cell in _puzzleMap.cage(nCage)) {
             // if (DLX_LOG) s = s + ' $cell:${_possibilities[comboValues]}';
             // Record the sequence of cell-numbers, for use in hints.
@@ -311,12 +308,6 @@ class DLXSolver
       // _puzzleMap.printBoard(_boardValues);
     // }
   }
-
-  // void retrieveSolution (BoardContents solution)
-  // {
-    // // Copy back to the caller the last solution found by the solver.
-    // solution = _boardValues;
-  // }
 
   /*      HOW THE DANCING LINKS ALGORITHM WORKS IN METHOD _solveDLX().
 
@@ -484,7 +475,7 @@ class DLXSolver
 
     } // End while (searching)
 
-    return solutionCount;		// Should never reach this point.
+    // Should never reach this point.
   }
 
   void _coverColumn (DLXNode colDLX)
@@ -545,15 +536,10 @@ class DLXSolver
   void _clearMatrix()
   {
     // Logically clear the DLX matrix, but leave all previous nodes allocated.
-    // This is to support faster DLX solving on second and subsequent puzzles.
+    // This is to support faster DLX solving on second and subsequent attempts
+    // to generate a puzzle that has a single solution.
 
-    // if (DLX_LOG) {
-      // print('==========================================================');
-      // print('_clearMatrix');
-    // }
     _endNodeNum  = -1;
-    _endRowNum   = -1;
-    _endColNum   = -1;
     _initNode (_corner);
   }
 
@@ -561,9 +547,6 @@ class DLXSolver
   {
     // Add a node (i.e. a 1) to the sparse DLX matrix.
     DLXNode header = _columns[colNum];
-    if (header == 0) {
-        return;			// This constraint is excluded (clue or unused).
-    }
 
     // Get a node from the pool --- or create one.
     DLXNode node = _allocNode();
@@ -594,7 +577,7 @@ class DLXSolver
     _endNodeNum++;
     if (_endNodeNum >= _nodes.length) {
       // Allocate a node only when needed, otherwise re-use one.
-      _nodes.add(new DLXNode());
+      _nodes.add(DLXNode());
     }
 
     return _nodes[_endNodeNum];
@@ -628,23 +611,24 @@ class DLXSolver
   }
 
 /*
-  // In Dart, _deleteAll() is not used. The _nodes, _columns and _rows lists and
+  // In Dart, delete is not used. The _nodes, _columns and _rows lists and
   // their contents should be garbage-collected when the DLX solver is no longer
   // referenced and used by the Cage Generator.
-  void _deleteAll()
-  {
-    // Deallocate all nodes.
-    if (DLX_LOG) print('DLX Solver _deleteAll() called');
-    _nodes.clear();
-    _columns.clear();		// Secondary pointers: no nodes to deallocate.
-    _rows.clear();
-  }
 */
 
-/*
+/*   USED ONLY FOR DEBUGGING the DLX Solver algorithm.
+
+  // Prints the sparse DLX matrix. Each line has a column number followed
+  // by a list of row-numbers that have a 1 in that column. In large
+  // puzzles, printing of the row detail is suppressed, unless the
+  // forced: parameter is set true.
+
   void _printDLX ({bool forced = false})
   {
+    // bool DLX_LOG = true;
     if (! DLX_LOG) return;
+    int _endColNum = _columns.length - 1;
+    int _endRowNum = _rows.length - 1;
 
     // Print DLX matrix (default is to skip printing those that are too large).
     bool verbose = (forced || (_puzzleMap.nSymbols <= 5));
