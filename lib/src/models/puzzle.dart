@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart';
-// import 'dart:async';		// Needed to compile Timer and _ticker.
+import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
 
 import '../settings/settings_controller.dart';
 
@@ -7,7 +6,6 @@ import '../globals.dart';
 import 'puzzle_map.dart';
 import 'puzzle_types.dart';
 
-import '../views/painting_specs.dart';
 import '../views/painting_specs_2d.dart';
 import '../views/painting_specs_3d.dart';
 
@@ -46,7 +44,7 @@ class Puzzle with ChangeNotifier
   PaintingSpecs2D get paintingSpecs2D => _paintingSpecs2D;
   PaintingSpecs3D get paintingSpecs3D => _paintingSpecs3D;
 
-  void set portrait(bool b)           => (_puzzleMap.sizeZ == 1) ?
+  set portrait(bool b)                => (_puzzleMap.sizeZ == 1) ?
                                          _paintingSpecs2D.portrait = b :
                                          _paintingSpecs3D.portrait = b;
 
@@ -63,7 +61,7 @@ class Puzzle with ChangeNotifier
 
   // The full solution of the puzzle, +ve integers. Stays fixed during play.
   BoardContents    _solution    = [];
-  List<int>        _SudokuMoves = [];	// Move-list for Sudoku hints.
+  final List<int>  _sudokuMoves = [];	// Move-list for Sudoku hints.
 
   // Current values of each cell, which may be +ve integers or bitmaps of Notes.
   BoardContents    _stateOfPlay = [];
@@ -80,7 +78,7 @@ class Puzzle with ChangeNotifier
   BoardContents get cellStatus => _cellStatus;
 
   // The sequence of cell-changes and user-moves, for undo/redo purposes.
-  List<CellChange> _cellChanges = [];
+  final List<CellChange> _cellChanges = [];
 
   // Index ranges from 0 to the number of undoable moves that have been made,
   // which is the length of the _cellChanges list. If 0, either no moves have
@@ -90,13 +88,13 @@ class Puzzle with ChangeNotifier
   int  _indexUndoRedo  = 0;
 
   int  selectedControl = 1;
-  int? selectedCell    = null;		// Null means no valid cell to play.
+  int? selectedCell;		// Null means no valid cell to play.
   bool notesMode       = false;
 
   bool createState(int index, bool darkMode)
   {
     // Create the layout, clues and model for the puzzle type the user selected.
-    print('Create Puzzle: index $index hash ${hashCode}');
+    debugPrint('Create Puzzle: index $index hash $hashCode');
 
     // Get a list of puzzle specifications in textual form.
     PuzzleTypesText puzzleList = PuzzleTypesText();
@@ -145,13 +143,13 @@ class Puzzle with ChangeNotifier
     _cellStatus  = [..._puzzleMap.emptyBoard];
 
     _cellChanges.clear();	// No moves to undo/redo yet.
-    _SudokuMoves.clear();	// No hints available yet.
+    _sudokuMoves.clear();	// No hints available yet.
 
     // Get the user's chosen/default Difficulty and Symmetry from Settings.
     _difficulty = settings.difficulty;
     _symmetry   = settings.symmetry;
 
-    int  _indexUndoRedo  = 0;
+    _indexUndoRedo  = 0;
 
     selectedCell    = null;
     selectedControl = 1;
@@ -192,12 +190,12 @@ class Puzzle with ChangeNotifier
 	// Generate variants of Killer Sudoku or Mathdoku (aka Kenken TM) types.
         MathdokuKillerGenerator mg = MathdokuKillerGenerator(_puzzleMap);
 	int maxTries = 10;
-        print('GENERATE $puzzleType, $_difficulty');
+        debugPrint('GENERATE $puzzleType, $_difficulty');
         for (int numTries = 1; numTries <= maxTries; numTries++) {
           // Try up to 10 different starting-solutions.
           _solution = _fillBoard();
           response  = mg.generateMathdokuKillerTypes(_puzzleGiven, _solution,
-                                                     _SudokuMoves, _difficulty);
+                                                     _sudokuMoves, _difficulty);
           if ((response.messageType != '') && (response.messageType != 'F')) {
             break;
           } 
@@ -215,9 +213,9 @@ class Puzzle with ChangeNotifier
       default:
 	// Generate Sudoku (2D) and Roxdoku (3D) types - and all their variants.
         SudokuGenerator srg = SudokuGenerator(_puzzleMap);
-        print('GENERATE $puzzleType, $_difficulty, $_symmetry');
+        debugPrint('GENERATE $puzzleType, $_difficulty, $_symmetry');
 	response = srg.generateSudokuRoxdoku(_puzzleGiven, _solution,
-                                             _SudokuMoves,
+                                             _sudokuMoves,
                                              _difficulty, _symmetry);
         break;
     }
@@ -227,7 +225,7 @@ class Puzzle with ChangeNotifier
     }
     else {				// FAILED. Please try again.
       // Generator/solver may have failed internally.
-      print('IN Puzzle: Generator failed');
+      debugPrint('IN Puzzle: Generator failed');
     }
     delayedMessage = response;
     return response;
@@ -247,8 +245,8 @@ class Puzzle with ChangeNotifier
         if (_puzzleGiven[n] > 0) {
           _cellStatus[n] = GIVEN;
         }
-        else if (selectedCell == null) {
-          selectedCell = n;	// The default selected cell needs to be VACANT.
+        else {
+          selectedCell ??= n;	// The default selected cell needs to be VACANT.
         }
       }
     }
@@ -267,7 +265,7 @@ class Puzzle with ChangeNotifier
     return solver.createFilledBoard();	// createFilledBoard() does cleanup().
   }
 
-  /**
+  /*
    * Check that a puzzle is soluble, has the desired solution and has only one
    * solution.  This method can be used to check puzzles loaded from a file or
    * entered manually, in which case the solution parameter can be omitted. It
@@ -285,7 +283,7 @@ class Puzzle with ChangeNotifier
   int checkPuzzle()
   {
     // Check that a puzzle tapped in or loaded by user has a proper solution.
-    print('ENTERED checkPuzzle().');
+    debugPrint('ENTERED checkPuzzle().');
     SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
     int error = 0;
     error = solver.checkSolutionIsValid (_stateOfPlay, _solution);
@@ -300,7 +298,7 @@ class Puzzle with ChangeNotifier
 
   void convertDataToPuzzle()
   {
-    print('ENTERED convertDataToPuzzle().');
+    debugPrint('ENTERED convertDataToPuzzle().');
     _puzzleGiven = [..._stateOfPlay];
     for (int n = 0; n < _puzzleGiven.length; n++) {
       if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
@@ -355,17 +353,17 @@ class Puzzle with ChangeNotifier
 
     bool hideNotes = (puzzlePlay == Play.NotStarted) ||
                      (puzzlePlay == Play.BeingEntered);
-    // print('hitControlArea: selection $selection, hideNotes $hideNotes');
+    // debugPrint('hitControlArea: selection $selection, hideNotes $hideNotes');
     if ((! hideNotes) && (selection == 0)) {
       // If solving, switch Notes mode and change colour of highlight.
       notesMode = !notesMode;
-      // print('Switched Notes to $notesMode');
+      // debugPrint('Switched Notes to $notesMode');
       notifyListeners();	// Trigger a repaint of the Puzzle View.
       return true;
     }
     // The value selected is treated as a cell-value, a note or an erase.
     selectedControl = selection - (hideNotes ? 0 : 1);
-    // print('hitControlArea: Selected control $selectedControl');
+    // debugPrint('hitControlArea: Selected control $selectedControl');
 
     int cellToChange = selectedCell ?? -1;
     if (cellToChange < 0) {
@@ -392,8 +390,8 @@ class Puzzle with ChangeNotifier
       _puzzlePlay = Play.BeingEntered;
     }
 
-    // Attempt to make the move. Return the status and value of the cell.
-    CellState c =  move(cellToChange, symbol);
+    // Make the move.
+    move(cellToChange, symbol);
 
     if ((_puzzlePlay == Play.InProgress) || (_puzzlePlay == Play.HasError)) {
       // If all cells are now filled, change the Puzzle Play status to Solved or
@@ -416,7 +414,7 @@ class Puzzle with ChangeNotifier
   {
     // The user has tapped on a puzzle-cell in 2D/3D: apply the rules of play.
     if ((n < 0) || (n > _puzzleMap.size)) {
-      print('puzzle.dart:validCellSelection() - INVALID CELL-INDEX $n');
+      debugPrint('puzzle.dart:validCellSelection() - INVALID CELL-INDEX $n');
       return false;
     }
     if (_puzzlePlay == Play.Solved) {
@@ -430,11 +428,11 @@ class Puzzle with ChangeNotifier
     }
 
     CellStatus status = _cellStatus[n];
-    // print('Cell status $n = $status');
+    // debugPrint('Cell status $n = $status');
 
     // Check that the user has selected a symbol and that the cell is usable.
     if (status == UNUSABLE || status == GIVEN) {
-      print('Invalid: Status is UNUSABLE or GIVEN');
+      debugPrint('Invalid: Status is UNUSABLE or GIVEN');
       return false;
     }
     return true;
@@ -444,11 +442,11 @@ class Puzzle with ChangeNotifier
   {
     // The user has tapped on a control-cell: if OK, allow a move to be made.
     if ((n < 0) || (n > _puzzleMap.size)) {
-      print('puzzle.dart:validMove() - INVALID CELL-INDEX $n');
+      debugPrint('puzzle.dart:validMove() - INVALID CELL-INDEX $n');
       return false;
     }
     if ((symbol < 0) || (symbol > _puzzleMap.nSymbols)) {
-      print('puzzle.dart:validMove() - INVALID SYMBOL $symbol');
+      debugPrint('puzzle.dart:validMove() - INVALID SYMBOL $symbol');
       return false;
     }
     if ((symbol == VACANT) && (_stateOfPlay[n] == VACANT)) {
@@ -458,7 +456,7 @@ class Puzzle with ChangeNotifier
     return true;
   }
 
-  CellState move(int n, CellValue symbol)
+  void move(int n, CellValue symbol)
   { 
     // Register a move in the Model data and update the Puzzle cell's state.
     CellStatus currentStatus = _cellStatus[n];
@@ -479,15 +477,16 @@ class Puzzle with ChangeNotifier
       newValue  = newValue ^ (1 << symbol);
       newStatus = NOTES;
 
-      int currV  = currentValue & (NotesBit - 1);
-      int newV   = newValue     & (NotesBit - 1);
+      // int currV  = currentValue & (NotesBit - 1);
+      // int newV   = newValue     & (NotesBit - 1);
+      // debugPrint('Puzzle: cell $n: new val $newV status $newStatus');
+      // debugPrint('Puzzle: cell $n: old val $currV status $currentStatus');
+
       // If the last Note has been cleared, clear the whole cell-state.
       if (newValue == NotesBit) {
         newValue   = VACANT;
         newStatus  = VACANT;
       }
-      // print('Puzzle: cell $n: new val $newV status $newStatus');
-      // print('Puzzle: cell $n: old val $currV status $currentStatus');
     }
     else {
       // Normal entry of a possible solution-value or a delete.
@@ -511,6 +510,8 @@ class Puzzle with ChangeNotifier
       }
     }
 
+    // TODO - Need to test newValue == currentValue, i.e. that cell did change?
+    //        If no change, do not update the puzzle state and undo/redo list.
     CellState newState = CellState(newStatus, newValue);
 
     int nCellChanges = _cellChanges.length;
@@ -525,9 +526,9 @@ class Puzzle with ChangeNotifier
     _cellStatus[n]     = newStatus;
     _stateOfPlay[n]    = newValue;
 
-    // print('NEW MOVE: cell $n status $newStatus value $newValue changes'
+    // debugPrint('NEW MOVE: cell $n status $newStatus value $newValue changes'
           // ' ${_cellChanges.length} Undo/Redo $_indexUndoRedo');
-    return newState;
+    return;
   }
 
   Play _isPuzzleSolved()
@@ -562,11 +563,11 @@ class Puzzle with ChangeNotifier
 
   void hint()
   {
-    // print('HINTS: $_SudokuMoves');		// Cell numbers in play-order.
+    // debugPrint('HINTS: $_sudokuMoves');	// Cell numbers in play-order.
     if (_puzzlePlay != Play.ReadyToStart && _puzzlePlay != Play.InProgress) {
       return;
     }
-    for (int n in _SudokuMoves) {
+    for (int n in _sudokuMoves) {
       if (stateOfPlay[n] == VACANT) {
         // Move in the usual way, including Undo/Redo data and highlighting.
         bool savedNotesMode = notesMode;
@@ -583,7 +584,7 @@ class Puzzle with ChangeNotifier
   bool undo() {
     // Undo a move.
     if (_indexUndoRedo <= 0) {
-      print('NO MOVES available to Undo');
+      debugPrint('NO MOVES available to Undo');
       return false;		// No moves left to undo - or none made yet.
     }
 
@@ -597,9 +598,8 @@ class Puzzle with ChangeNotifier
   bool redo() {
     // Redo a move. This goes right back to the start of the puzzle so that all
     // _autoClearNotes() operations can also be re-done correctly.
-    int l = _cellChanges.length;
     if (_indexUndoRedo >= _cellChanges.length) {
-      print('NO MOVES available to Redo');
+      debugPrint('NO MOVES available to Redo');
       return false;		// No moves left to redo - or none made yet.
     }
 
@@ -659,7 +659,7 @@ class Puzzle with ChangeNotifier
   {
     // This is needed if the Puzzle is terminated before it is solved. It avoids
     // an error when the Timer runs on and the Puzzle object no longer exists.
-    print('Puzzle DISPOSED');
+    debugPrint('Puzzle DISPOSED');
 /*
     if (_ticker != null) {
       stopClock();
