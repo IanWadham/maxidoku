@@ -136,7 +136,7 @@ class MyListView extends StatefulWidget
   final ValueChanged<int> onChanged;
  
   @override
-  _MyListViewState createState() => _MyListViewState();
+  createState() => _MyListViewState();
 }
 
 /// This is the private State class that goes with MyListView.
@@ -146,12 +146,12 @@ class _MyListViewState extends State<MyListView>
 
   int _selectedIndex = -1;
 
-@override
   void _handleTap ()
   {
     widget.onChanged (_selectedIndex);
   }
 
+  @override
   Widget build(BuildContext context) {
     // To work with lists that may contain a large number of items, it’s best
     // to use the ListView.builder constructor.
@@ -176,7 +176,7 @@ class _MyListViewState extends State<MyListView>
           isThreeLine: true,
           leading:     Image.asset(
             // Display a MultiDoku icon from the assets folder.
-            'assets/icons/hi48-action-' + item[3] + '.png',
+            'assets/icons/hi48-action-${item[3]}.png',
             color: null,    // Don't blend in any colour.
           ),
           // Highlight prevous selection (from settings).
@@ -185,7 +185,7 @@ class _MyListViewState extends State<MyListView>
           // Called when the user has selected an item from the list.
           onTap: () {
             item = items.getItem(index);
-            print('TAP received: index = $index, item = $item');
+            debugPrint('TAP received: index = $index, item = $item');
             // Make the highlight on this selection persist.
             setState(() { _selectedIndex = index; });
             // Pass the selection to app.dart via the Settings Controller.

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../globals.dart';
 import '../models/puzzle.dart';
-import '../models/puzzle_map.dart';
 import 'painting_specs_3d.dart';
 
 
@@ -19,7 +18,7 @@ class PuzzlePainter3D extends CustomPainter
   //       the Puzzle class rely on Provider to trigger repaints on ANY change
   //       in the Puzzle model, whether the user taps on icon-buttons or Canvas.
 
-  Offset topLeft  = Offset (0.0, 0.0);
+  Offset topLeft  = const Offset (0.0, 0.0);
   double cellSide = 1.0;
 
   @override
@@ -29,12 +28,12 @@ class PuzzlePainter3D extends CustomPainter
     // that the user has entered as their solution so far.
 
     // If anything goes wrong, don't paint outside the Canvas.
-    canvas.clipRect((Offset(0.0, 0.0) & size));
+    canvas.clipRect((const Offset(0.0, 0.0) & size));
 
     // ******** DEBUG ********
-    int w = size.width.floor();
-    int h = size.height.floor();
-    // print('ENTERED PuzzlePainter3D.paint() W $w, H $h');
+    // int w = size.width.floor();
+    // int h = size.height.floor();
+    // debugPrint('ENTERED PuzzlePainter3D.paint() W $w, H $h');
     // ***********************
 
     PaintingSpecs3D paintingSpecs = puzzle.paintingSpecs3D;
@@ -44,7 +43,7 @@ class PuzzlePainter3D extends CustomPainter
     bool hideNotes     = (puzzle.puzzlePlay == Play.NotStarted) ||
                          (puzzle.puzzlePlay == Play.BeingEntered);
     int  nControls     = hideNotes ? nSymbols + 1 : nSymbols + 2;
-    // print('3D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
+    // debugPrint('3D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
 
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
     paintingSpecs.setPuzzleThemeMode(darkMode);
@@ -58,11 +57,10 @@ class PuzzlePainter3D extends CustomPainter
     Paint errorCellPaint   = paintingSpecs.errorCellPaint;
     Paint thinLinePaint    = paintingSpecs.thinLinePaint;
     Paint boldLinePaint    = paintingSpecs.boldLinePaint;
-    Paint cageLinePaint    = paintingSpecs.cageLinePaint;
     Paint highlight        = paintingSpecs.highlight;
 
     // Paint the background of the canvas.
-    canvas.drawRect(Offset(0, 0) & size, backgroundPaint);
+    canvas.drawRect(const Offset(0, 0) & size, backgroundPaint);
 
     paintingSpecs.calculateScale();
 
@@ -89,14 +87,14 @@ class PuzzlePainter3D extends CustomPainter
 
       // Set the main colour for this sphere. The order of priority
       // is ERROR, SPECIAL, GIVEN and then Normal.
-      int ID = paintingSpecs.rotated[n].ID;
-      int status = puzzle.cellStatus[ID];
+      int id = paintingSpecs.rotated[n].id;
+      int status = puzzle.cellStatus[id];
 
       Paint cellPaint = innerSpherePaint;	// Normal colour.
       if (status == ERROR) {
         cellPaint = errorCellPaint;		// ERROR colour.
       }
-      else if (paintingSpecs.cellBackG[ID] == SPECIAL) {
+      else if (paintingSpecs.cellBackG[id] == SPECIAL) {
         cellPaint = specialCellPaint;		// Enhanced visibility colour.
       }
       else if (status == GIVEN) {
@@ -113,12 +111,12 @@ class PuzzlePainter3D extends CustomPainter
       canvas.drawOval(r, circleGradient);
       canvas.drawOval(r, boldLinePaint);
       // Highlight the selected sphere.
-      if (ID == highlightedCell) {
+      if (id == highlightedCell) {
         canvas.drawOval(r, highlight);
       }
 
       // Scale and paint the symbols on this sphere, if any.
-      int ns = puzzle.stateOfPlay[ID];
+      int ns = puzzle.stateOfPlay[id];
       // Offset cellPos = centre - Offset(diam/2.0, diam/2.0);
       Offset cellPos = centre - Offset(diam * 0.4, diam * 0.4);
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
