@@ -17,9 +17,9 @@ import 'painting_specs.dart';
 class PaintingSpecs2D extends PaintingSpecs
 {
 
-  PuzzleMap _puzzleMap;
+  final PuzzleMap _puzzleMap;
 
-  PaintingSpecs2D(PuzzleMap this._puzzleMap, SettingsController settings)
+  PaintingSpecs2D(this._puzzleMap, SettingsController settings)
     :
     super(_puzzleMap, settings);
 
@@ -34,8 +34,8 @@ class PaintingSpecs2D extends PaintingSpecs
     sizeX    = _puzzleMap.sizeX;
     sizeY    = _puzzleMap.sizeY;
     sizeZ    = _puzzleMap.sizeZ;
-    print('nSymbols = ${nSymbols},'
-          ' sizeX = ${sizeX}, sizeY = ${sizeY}, sizeZ = ${sizeZ}');
+    debugPrint('nSymbols = $nSymbols,'
+          ' sizeX = $sizeX, sizeY = $sizeY, sizeZ = $sizeZ');
 
     calculatePaintAreas();
 
@@ -46,7 +46,7 @@ class PaintingSpecs2D extends PaintingSpecs
 
   void _calculateEdgeLines()
   {
-    print('calculateEdgeLines(): sizeX $sizeX, sizeY $sizeY');
+    debugPrint('calculateEdgeLines(): sizeX $sizeX, sizeY $sizeY');
 
     List<int> edgesEWtemp     = List.filled(sizeX * (sizeY + 1), 0);
     List<int> edgesNStemp     = List.filled(sizeY * (sizeX + 1), 0);
@@ -77,23 +77,23 @@ class PaintingSpecs2D extends PaintingSpecs
         if (_puzzleMap.cellPosX(groupCells[k]) != x) isRow = false;
         if (_puzzleMap.cellPosY(groupCells[k]) != y) isCol = false;
       }
-      // print('x $x y $y isRow $isRow isCol $isCol GROUP $group');
+      // debugPrint('x $x y $y isRow $isRow isCol $isCol GROUP $group');
       if (isRow || isCol) continue;
       // Set thick edges for groups that are not rows or columns.
       _markEdges(groupCells, _puzzleMap, cellBackG, edgesEWtemp, edgesNStemp);
     }
 
-    // print('edgesEWtemp, just calculated...');
-    // print('${edgesEWtemp}');
+    // debugPrint('edgesEWtemp, just calculated...');
+    // debugPrint('${edgesEWtemp}');
     edgesEW = edgesEWtemp;
     edgesNS = edgesNStemp;
   }
 
   void _markEdges (List<int> cells,
-                   PuzzleMap _puzzleMap, BoardContents cellBackG,
+                   PuzzleMap puzzleMap, BoardContents cellBackG,
                    List<int> edgesEW, List<int> edgesNS)
   {
-    // print('ENTERED _markEdges()');
+    // debugPrint('ENTERED _markEdges()');
     List<int> edgeCellFlags = findOutsideEdges(cells, _puzzleMap);
 
     int nCells = cells.length;
@@ -103,17 +103,16 @@ class PaintingSpecs2D extends PaintingSpecs
         // Keep thin lines around detached cells (e.g. on XSudoku diagonals).
         continue;
       }
-      int x = _puzzleMap.cellPosX(cells[n]);
-      int y = _puzzleMap.cellPosY(cells[n]);
+      int x = puzzleMap.cellPosX(cells[n]);
+      int y = puzzleMap.cellPosY(cells[n]);
       // Now set up the edges we have found - to be drawn thick.
-      int sizeX = _puzzleMap.sizeX;
-      int sizeY = _puzzleMap.sizeY;
+      int sizeY = puzzleMap.sizeY;
       if ((edges & left)  != 0) edgesNS[x * sizeY + y] = 2;
       if ((edges & right) != 0) edgesNS[(x + 1) * sizeY + y] = 2;
       if ((edges & above) != 0) edgesEW[x * (sizeY + 1) + y] = 2;
       if ((edges & below) != 0) edgesEW[x * (sizeY + 1) + y + 1] = 2;
-      // print('edgesEW...');
-      // print('$edgesEW');
+      // debugPrint('edgesEW...');
+      // debugPrint('$edgesEW');
     }
   }
 
@@ -146,8 +145,8 @@ class PaintingSpecs2D extends PaintingSpecs
       }
       cellEdges.add(edges);
     }
-    // print('Cell list $cells');
-    // print('Cell edges $cellEdges');
+    // debugPrint('Cell list $cells');
+    // debugPrint('Cell edges $cellEdges');
     return cellEdges;
   }
 
@@ -203,23 +202,26 @@ class PaintingSpecs2D extends PaintingSpecs
     for (int cageNum = 0; cageNum < nCages; cageNum++)	// For each cage...
     {
       int topLeft    = puzzleMap.cageTopLeft(cageNum);
-      List<int> cage = puzzleMap.cage(cageNum);
       int cell       = topLeft;
 
       // *********** DEBUG ************ //
-      // print('Cage $cageNum $cage topLeft $topLeft'
+      // debugPrint('Cage $cageNum $cage topLeft $topLeft'
             // ' label ${puzzleMap.cageValue(cageNum)}');
       // List<int> temp = [];
       // for (int nCell in cage) {
         // temp.add(cagesEdges[nCell]);
       // }
-      // print('Cage edges $temp');
+      // debugPrint('Cage edges $temp');
       // ****************************** //
 
       int edgeBits   = cagesEdges[cell];
       int edgeNum    = 0;
       int direction  = cycle[edgeNum];
       List<int> perimeter = [setPair(cell, 0)];
+
+// TODO - Use a list of Paths instead of a list of "perimeter"s, then use
+//        canvas.drawPath() in PuzzlePainter2D. May need to offset the points
+//        added to a Path, so that the cage-boundary is drawn within its cells.
 
       // Keep marking lines until we get back to starting cell and direction.
       do {
@@ -250,7 +252,7 @@ class PaintingSpecs2D extends PaintingSpecs
         }
       } while (! ((cell == topLeft) && (direction == E)));
 
-      // print('Cage $cageNum $cage perimeter $perimeter');
+      // debugPrint('Cage $cageNum $cage perimeter $perimeter');
       cagePerimeters.add(perimeter);
 
     } // Mark out next cage.

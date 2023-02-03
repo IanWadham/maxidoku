@@ -30,18 +30,18 @@ typedef Coords = Vector3;
 
 class Sphere
 {
-  Sphere(this.ID, this.used, this.xyz);
+  Sphere(this.id, this.used, this.xyz);
 
-  final int ID;
+  final int id;
   final bool used;
   Coords xyz = Coords(0.0, 0.0, 0.0);
 }
 
 class PaintingSpecs3D extends PaintingSpecs
 {
-  PuzzleMap _map;
+  final PuzzleMap _map;
 
-  PaintingSpecs3D(PuzzleMap this._map, SettingsController settings)
+  PaintingSpecs3D(this._map, SettingsController settings)
     :
     super(_map, settings);
 
@@ -51,7 +51,7 @@ class PaintingSpecs3D extends PaintingSpecs
 
   // final Matrix identityM = Matrix.identity();
 
-  Offset       _origin      = Offset(0, 0);	// Centre of 3D puzzle-area.
+  Offset       _origin      = const Offset(0, 0);	// Centre of 3D puzzle-area.
   double       _scale       = 1.0;		// Current scale of puzzle.
   double       _diameter    = 2.0;		// Relative size of spheres.
   double       _rotateX     = 0.0;		// Deg to rotate view around X.
@@ -109,7 +109,7 @@ class PaintingSpecs3D extends PaintingSpecs
     }
 
     // Rotate all the pseudo-spheres so as to give the user a better view.
-    print('\nROTATIONS: _rotateX $_rotateX _rotateY $_rotateY\n');
+    debugPrint('\nROTATIONS: _rotateX $_rotateX _rotateY $_rotateY\n');
     rotationM = Matrix.rotationX(_rotateX*deg).
                 multiplied(Matrix.rotationY(_rotateY*deg));
     homeRotM  = rotationM.clone();
@@ -123,12 +123,12 @@ class PaintingSpecs3D extends PaintingSpecs
     // Apply the matrix-rotation to the centre of each pseudo-sphere.
     for (int n = 0; n < spheres.length; n++) {
       Coords sphereN = rotationM.rotated3(spheres[n].xyz);
-      Coords XYZ = sphereN.clone();
+      // Coords XYZ = sphereN.clone();
       // String s = '[';
       // s = s + XYZ[0].toStringAsFixed(2) + ', ';
       // s = s + XYZ[1].toStringAsFixed(2) + ', ';
       // s = s + XYZ[2].toStringAsFixed(2) + ']';
-      // print('Sphere $n: from ${spheres[n].xyz} to $s');
+      // debugPrint('Sphere $n: from ${spheres[n].xyz} to $s');
       rotated.add(Sphere(n, spheres[n].used, sphereN));
     }
 
@@ -170,12 +170,12 @@ class PaintingSpecs3D extends PaintingSpecs
 
   int whichSphere(Offset hitPos)
   {
-    // print('whichSphere: hitPos = $hitPos');
+    // debugPrint('whichSphere: hitPos = $hitPos');
     // Scale back and translate to "List<Sphere> rotated" co-ordinates.
     Offset hitXY = hitPos - origin;
-    // print('hitXY = $hitXY relative to origin $origin');
+    // debugPrint('hitXY = $hitXY relative to origin $origin');
     hitXY = Offset(hitXY.dx / scale, -hitXY.dy / scale);
-    // print('hitXY scaled back by factor $scale = $hitXY');
+    // debugPrint('hitXY scaled back by factor $scale = $hitXY');
 
     double d = diameter;
     Rect r = Rect.fromCenter(center: hitXY, width: d, height: d);
@@ -184,15 +184,15 @@ class PaintingSpecs3D extends PaintingSpecs
       if (! s.used) {
         continue;
       }
-      // if (r.contains(Offset(s.xyz[0], s.xyz[1]))) return s.ID;
+      // if (r.contains(Offset(s.xyz[0], s.xyz[1]))) return s.id;
       if (r.contains(Offset(s.xyz[0], s.xyz[1]))) possibles.add(s);
     }
-    if (possibles.length == 0) {
+    if (possibles.isEmpty) {
       return -1;
     }
     else if (possibles.length == 1) {
-      print('whichSphere: SINGLE POSSIBILITY ${possibles[0].ID}');
-      return possibles[0].ID;
+      debugPrint('whichSphere: SINGLE POSSIBILITY ${possibles[0].id}');
+      return possibles[0].id;
     }
     Sphere closestZ  = possibles[0];
     Sphere closestXY = possibles[0];
@@ -212,13 +212,13 @@ class PaintingSpecs3D extends PaintingSpecs
         closestXY = s;
       }
     }
-    print('POSSIBLES ${possibles}');
-    print('Closest Z $bestZ: sphere ${closestZ.ID}');
-    print('Closest XY $bestXY: sphere ${closestXY.ID}');
-    return closestZ.ID;
+    debugPrint('POSSIBLES $possibles');
+    debugPrint('Closest Z $bestZ: sphere ${closestZ.id}');
+    debugPrint('Closest XY $bestXY: sphere ${closestXY.id}');
+    return closestZ.id;
   }
 
-  List<Path> _arrowList = [];
+  final List<Path> _arrowList = [];
 
   void add3DViewControls(Canvas canvas)
   {

@@ -19,10 +19,10 @@ class PuzzlePainter2D extends CustomPainter
   //       the Puzzle class rely on Provider to trigger repaints on ANY change
   //       in the Puzzle model, whether the user taps on icon-buttons or Canvas.
 
-  Offset topLeft  = Offset (0.0, 0.0);
+  Offset topLeft  = const Offset (0.0, 0.0);
   double cellSide = 1.0;
 
-  Offset hitPosition = Offset(-1.0, -1.0);
+  Offset hitPosition = const Offset(-1.0, -1.0);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -31,11 +31,11 @@ class PuzzlePainter2D extends CustomPainter
     // that the user has entered as their solution.
 
     // If anything goes wrong, don't paint outside the Canvas.
-    canvas.clipRect((Offset(0.0, 0.0) & size));
+    canvas.clipRect((const Offset(0.0, 0.0) & size));
 
     // ******** DEBUG ********
-    int w = size.width.floor();
-    int h = size.height.floor();
+    // int w = size.width.floor();
+    // int h = size.height.floor();
     // print('ENTERED PuzzlePainter2D W $w, H $h');
     // ***********************
 
@@ -59,8 +59,6 @@ class PuzzlePainter2D extends CustomPainter
     double topLeftX    = topLeft.dx;
     double topLeftY    = topLeft.dy;
 
-    double controlSize = paintingSpecs.controlSide;
-
     // Paints (and brushes/pens) for areas and lines.
     Paint backgroundPaint  = paintingSpecs.backgroundPaint;
     Paint emptyCellPaint   = paintingSpecs.emptyCellPaint;
@@ -79,7 +77,7 @@ class PuzzlePainter2D extends CustomPainter
     highlight.strokeWidth      = cellSide * paintingSpecs.highlightInset;
 
     // Now paint the background of the canvas.
-    canvas.drawRect(Offset(0, 0) & size, backgroundPaint);
+    canvas.drawRect(const Offset(0, 0) & size, backgroundPaint);
 
     // Paint the backgrounds of puzzle-cells, as required by the puzzle-type.
     int nCells   = sizeX * sizeY;
@@ -149,7 +147,7 @@ class PuzzlePainter2D extends CustomPainter
         o1 = topLeftX + gap/2.0 + (pos~/sizeY) * cellSide;
         o2 = topLeftY + gap/2.0 + (pos %sizeY) * cellSide;
         // TODO - Shading is not easy to see if givenCellColor is in Dark mode.
-        List<Color> shaderColors = [cellPaint.color, Color(0x00FFFFFF)];
+        List<Color> shaderColors = [cellPaint.color, const Color(0x00FFFFFF)];
         RadialGradient rg = RadialGradient(radius: 1.0, colors: shaderColors);
         Rect r = Offset(o1, o2) & Size(cellSide - gap, cellSide - gap);
         Shader shader = rg.createShader(r);
@@ -204,10 +202,13 @@ class PuzzlePainter2D extends CustomPainter
   }
 
   void paintCages(Canvas canvas, int cageCount, 
-                  Paint labelPaint_fg, Paint labelPaint_bg, Paint cageLinePaint)
+                  Paint labelPaintFg, Paint labelPaintBg, Paint cageLinePaint)
   {
     PaintingSpecs2D paintingSpecs  = puzzle.paintingSpecs2D;
     PuzzleMap       map            = puzzle.puzzleMap;
+
+// TODO - Can we make this a list of Path ... i.e. List<Path>? If so, we would
+//        have to introduce the insets in some other way...
     List<List<int>> cagePerimeters = paintingSpecs.cagePerimeters;
 
     double inset = cellSide/12.0;
@@ -219,7 +220,7 @@ class PuzzlePainter2D extends CustomPainter
     // Paint lines to connect lists of right-turn and left-turn points in cage
     // perimeters. Lines are inset within cage edges and have a special colour.
     for (List<int> perimeter in cagePerimeters) {
-      Offset? startLine   = null;
+      Offset? startLine;	// Initially null.
       for (Pair point in perimeter) {
         int cell          = point >> lowWidth;
         int corner        = point & lowMask;
@@ -249,7 +250,7 @@ class PuzzlePainter2D extends CustomPainter
       Offset inset      = Offset(cellSide/20.0, cellSide/20.0);
       paintingSpecs.paintTextString(canvas, cageLabel,
                                     textSize, cellOrigin + inset,
-                                    labelPaint_fg, labelPaint_bg);
+                                    labelPaintFg, labelPaintBg);
     }
   }
 

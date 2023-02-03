@@ -35,11 +35,12 @@ abstract class PaintingSpecs
   // identifiers do not have leading underscores. They are visible to inheritors
   // of this class, such as PaintingSpecs2D and PaintingSpecs3D.
 
-  PuzzleMap          _puzzleMap;
-  SettingsController _settings;
+  final PuzzleMap          _puzzleMap;
+  final SettingsController _settings;
 
-  PaintingSpecs(PuzzleMap this._puzzleMap, SettingsController this._settings);
-
+  PaintingSpecs(this._puzzleMap, this._settings);
+  // TODO - Settings Controller is not used here at present. Need to move lists
+  //        of colours (themes) into Settings.
   // A fixed text-painter for painting Sudoku symbols on a Canvas.
   final TextPainter textPainter = TextPainter(
           textAlign: TextAlign.center,
@@ -62,8 +63,8 @@ abstract class PaintingSpecs
 
   // These properties may change size during puzzle play. Can happen if a
   // desktop window changes size or a device flips landscape/portrait view.
-  Rect      _puzzleRect     = Rect.fromLTWH(10.0, 10.0, 10.0, 10.0);
-  Rect      _controlRect    = Rect.fromLTWH(20.0, 20.0, 20.0, 20.0);
+  Rect      _puzzleRect     = const Rect.fromLTWH(10.0, 10.0, 10.0, 10.0);
+  Rect      _controlRect    = const Rect.fromLTWH(20.0, 20.0, 20.0, 20.0);
   double    _cellSide       = 10.0;
   double    _controlSide    = 10.0;
 
@@ -72,12 +73,12 @@ abstract class PaintingSpecs
   double    get cellSide    => _cellSide;	// Dimension of puzzle square.
   double    get controlSide => _controlSide;	// Dimension of control square.
 
-  void set controlRect(Rect r)        => _controlRect = r;
+            set controlRect(Rect r) => _controlRect = r;
 
   // Control-values for switching between light and dark Puzzle themes.
-  var _lightThemeMask = 0x00000000;
-  var _darkThemeMask  = 0x00ffffff;
-  var _themeMask      = 0x00000000;		// Default is light.
+  static const _lightThemeMask = 0x00000000;
+  static const _darkThemeMask  = 0x00ffffff;
+  var          _themeMask      = _lightThemeMask;	// Default is light.
 
   Color moveHighlight  = Colors.red.shade400;	// Used when making moves.
   Color notesHighlight = Colors.blue.shade400;	// Used when entering notes.
@@ -89,7 +90,7 @@ abstract class PaintingSpecs
     ..strokeJoin       = StrokeJoin.round;
 
   // Default theme for Puzzle Canvas contents.
-  List<int> _theme = [
+  final List<int> _theme = [
     Colors.amber.shade100.value,	// Background colour of puzzle.
     Colors.amber.shade200.value,	// Colour of unfilled 2D cells.
     Colors.amber.shade300.value,	// Main colour of unfilled 3D spheres.
@@ -147,9 +148,9 @@ abstract class PaintingSpecs
 
   void setPuzzleThemeMode(bool darkMode)
   {
-    // print('ENTERED setPuzzleThemeMode: darkMode $darkMode themeMask ${_themeMask.toRadixString(16)}');
+    // debugPrint('ENTERED setPuzzleThemeMode: darkMode $darkMode themeMask ${_themeMask.toRadixString(16)}');
     _themeMask = darkMode ? _darkThemeMask : _lightThemeMask;
-    // print('DID setPuzzleThemeMode: darkMode $darkMode themeMask ${_themeMask.toRadixString(16)}');
+    // debugPrint('DID setPuzzleThemeMode: darkMode $darkMode themeMask ${_themeMask.toRadixString(16)}');
     _setTheme();
   }
 
@@ -275,7 +276,7 @@ void paintPuzzleControls(Canvas canvas, int nControls, Paint thinLinePaint,
 // List<double> calculatePuzzleLayout (Size size, bool hideNotes)
 void calculatePuzzleLayout (Size size, bool hideNotes)
 {
-  // print('LAYOUT: Portrait $portrait, Size $size, hideNotes $hideNotes');
+  // debugPrint('LAYOUT: Portrait $portrait, Size $size, hideNotes $hideNotes');
 
   // Set up the layout calculation for landscape orientation.
   double shortSide   = size.height;
@@ -293,7 +294,7 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
   // Fix the spaces now remaining for the puzzle and the control buttons.
   shortSide = shortSide - margin * 2.0;
   longSide  = longSide  - margin * 3.0;
-  // print('MARGIN: $margin, shortSide $shortSide, longSide $longSide');
+  // debugPrint('MARGIN: $margin, shortSide $shortSide, longSide $longSide');
 
   // Calculate the space allocations. Initially assume that the puzzle-area
   // will fill the short side, except for the two margins.
@@ -304,38 +305,35 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
   double padding         = longSide - shortSide - controlSize;
   bool   longSidePadding = (padding >= 1.0);	// Enough space for padding?
 
-  // print('X $x, nControls $nControls, shortSide $shortSide');
-  // print('longSide $longSide, padding $padding, controlSize $controlSize');
+  // debugPrint('X $x, nControls $nControls, shortSide $shortSide');
+  // debugPrint('longSide $longSide, padding $padding, controlSize $controlSize');
 
   // If everything fits, fine...
   if (longSidePadding) {
     // Calculate space left at top-left corner.
-    // print('LONG SIDE PADDING $padding');
+    // debugPrint('LONG SIDE PADDING $padding');
     longSide  = margin + padding / 2.0;
     shortSide = margin;
-    // print('Long side $longSide, short side $shortSide');
+    // debugPrint('Long side $longSide, short side $shortSide');
   }
   else {
     // ...otherwise make the puzzle-area smaller and pad the short side.
     cellSize    = (shortSide + padding) / puzzleCells;
     controlSize = (shortSide + padding) / nControls;
     padding     = shortSide - puzzleCells * cellSize;   // Should be +'ve now.
-    // print('SHORT SIDE PADDING $padding');
+    // debugPrint('SHORT SIDE PADDING $padding');
     // Calculate space left at top-left corner.
     shortSide   = margin + padding / 2.0;
     longSide    = margin;
-    // print('Long side $longSide, short side $shortSide');
+    // debugPrint('Long side $longSide, short side $shortSide');
   }
   // Set the offsets and sizes to be used for co-ordinates within the puzzle.
-  List<double> result;
   if (portrait) {
     _puzzleRect = Rect.fromLTWH(
           shortSide, longSide, sizeX * cellSize, sizeY * cellSize);
     _controlRect = Rect.fromLTWH(
           shortSide, size.height - controlSize - margin,
           controlSize * nControls, controlSize);	// Horizontal.
-    // result = [shortSide, longSide,
-              // shortSide, size.height - controlSize - margin];
   }
   else {
     _puzzleRect = Rect.fromLTWH(
@@ -343,15 +341,10 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
     _controlRect = Rect.fromLTWH(
           size.width - controlSize - margin, shortSide,
           controlSize, controlSize * nControls);	// Vertical.
-    // result = [longSide, shortSide,
-              // size.width - controlSize - margin, shortSide];
   }
   _cellSide    = cellSize;
   _controlSide = controlSize;
   return;
-  // result.add(cellSize);
-  // result.add(controlSize);
-  // return result;
 }
 
 
@@ -359,13 +352,11 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
                    {bool isNote = false, bool isCell = true})
   {
     if ((n < 0) || ((n == UNUSABLE) || ((n > nSymbols) && (!isNote)))) {
-      print('Invalid value of cell');
+      debugPrint('Invalid value of cell');
       return;
     }
     if (n == 0) return;		// Skip empty cell.
 
-    //////// double topMargin     = 0.17;
-    //////// double bottomMargin  = 0.17;
     double topMargin          = 0.2;
     double bottomMargin       = 0.2;
     double bottomNotesMargin  = 0.15;
@@ -390,7 +381,7 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
         notes = notes ^ NotesBit;	// Clear the Notes bit.
       }
       else if ((n > nSymbols) || (n < 1)) {
-        print('Invalid value of note');
+        debugPrint('Invalid value of note');
         return;
       }
       else {
@@ -399,9 +390,9 @@ void calculatePuzzleLayout (Size size, bool hideNotes)
 
       int val = 0;
       while (notes > 0) {
-        // print('Notes before >> $notes');
+        // debugPrint('Notes before >> $notes');
         notes = notes >> 1;
-        // print('Notes after  >> $notes');
+        // debugPrint('Notes after  >> $notes');
         while (notes > 0) {
           val++;
           if ((notes & 1) == 1) break;
