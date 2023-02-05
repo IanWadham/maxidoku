@@ -1,4 +1,7 @@
-/****************************************************************************
+// ignore_for_file: constant_identifier_names
+// Flutter likes names of constants to start in lower-case then use Camel Case.
+
+/* **************************************************************************
  *    Copyright 2007      Francesco Rossi <redsh@email.it>                  *
  *    Copyright 2006-2007 Mick Kappenburg <ksudoku@kappendburg.net>         *
  *    Copyright 2011  Ian Wadham <iandw.au@gmail.com>                       *
@@ -16,7 +19,7 @@
  *                                                                          *
  *    You should have received a copy of the GNU General Public License     *
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
- ****************************************************************************/
+ ***************************************************************************/
 
 // NOTE: On most platforms Dart/Flutter integers are 64 bits, BUT in Web apps,
 //       based on JavaScript, bit-wise operations are limited to 32 bits and
@@ -142,13 +145,14 @@ class PuzzleState		// Used by model of puzzle and view of puzzle.
   CellState  cellState;		// Cell state: values defined above.
   Play       playBefore;
   Play       playAfter;
-  Message    _message = Message('', '');
+
+  final Message    _message = Message('', '');
 
   PuzzleState(this.position, this.cellState, this.playBefore, this.playAfter);
 
   String get messageType => _message.messageType;
   String get message     => _message.messageText;
 
-  void   set messageType(String t) => _message.messageType = t;
-  void   set message(String s)     => _message.messageText = s;
+         set messageType(String t) => _message.messageType = t;
+         set message(String s)     => _message.messageText = s;
 }
