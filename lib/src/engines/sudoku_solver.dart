@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../globals.dart';
 import '../models/puzzle_map.dart';
 
-/****************************************************************************
+/* **************************************************************************
  *    Copyright 2011  Ian Wadham <iandw.au@gmail.com>                       *
  *    Copyright 2006  David Bau <david bau @ gmail com> Original algorithms *
  *    Copyright 2015  Ian Wadham <iandw.au@gmail.com>                       *
@@ -53,13 +55,13 @@ class SudokuSolver
   MoveTypeList   _moveTypes   = [];
 
   BoardContents _currentBoard = [];
-  List<State>   _states       = [];
+  final List<State> _states   = [];
 
   // Getters needed by SudokuGenerator to analyse moves and extract hint-moves.
   MoveList       get   moves       => _moves;
   MoveTypeList   get   moveTypes   => _moveTypes;
 
-  late PuzzleMap _puzzleMap;
+  final PuzzleMap _puzzleMap;
 
   List<int> _requiredGroupValues = [];
   List<int> _validCellValues = [];
@@ -72,22 +74,22 @@ class SudokuSolver
 
   final int dbgLevel = 0;
 
-  int _nSymbols  = 9;
-  int _nGroups   = 0;
-  int _groupSize = 9;
-  int _boardArea = 81;
+  final int _nSymbols;
+  final int _nGroups;
+  final int _groupSize;
+  final int _boardArea;
 
   SudokuSolver({required PuzzleMap puzzleMap})
       :
     _puzzleMap = puzzleMap,
     _nSymbols  = puzzleMap.nSymbols,
     _nGroups   = puzzleMap.groupCount(),
+    _groupSize = puzzleMap.nSymbols,
     _boardArea = puzzleMap.size
   {
     // Now that _nGroups is known, set the list of group values to fixed-size.
     _requiredGroupValues = List.filled(_nGroups, 0, growable: false);
-    _groupSize = _nSymbols;
-    // print('CREATE SudokuSolver(): _nGroups $_nGroups, '
+    // debugPrint('CREATE SudokuSolver(): _nGroups $_nGroups, '
           // '_boardArea $_boardArea');
   }
 
@@ -110,10 +112,10 @@ class SudokuSolver
     }
 
     BoardContents b = solveBoard (_currentBoard, GuessingMode.Random);
-    // print(b.isEmpty ? 'CREATE FILLED BOARD FAILED\n' : 'BOARD FILLED\n');
-    // _puzzleMap.printBoard(_currentBoard);
+    // debugPrint(b.isEmpty ? 'CREATE FILLED BOARD FAILED\n' : 'BOARD FILLED\n');
+    // _puzzleMap.printBoard(b);
     cleanUp();
-    return _currentBoard;
+    return b;
   }
 
   int checkSolutionIsValid (BoardContents puzzle, BoardContents solution)
@@ -147,15 +149,15 @@ class SudokuSolver
 
     int result = 0;
     if (answer.length != solution.length) {
-      // print('Wrong length: ans ${answer.length}, sol ${solution.length}'); 
+      // debugPrint('Wrong length: ans ${answer.length}, sol ${solution.length}'); 
       result = -2;		// The solution differs from the one supplied.
     }
     else {
       for (int n = 0; n < answer.length; n++) {
         if (answer[n] != solution[n]) {
-          // print('Clash at cell $n: ans ${answer[n]}, sol ${solution[n]}');
-          // print('ANS $answer');
-          // print('SOL $solution');
+          // debugPrint('Clash at cell $n: ans ${answer[n]}, sol ${solution[n]}');
+          // debugPrint('ANS $answer');
+          // debugPrint('SOL $solution');
           result = -2;		// The solution differs from the one supplied.
           break;
         }
@@ -168,14 +170,14 @@ class SudokuSolver
   {
     BoardContents answer = [];
     answer = _solve_2();
-    if (! answer.isEmpty) {
-      // print('Solver.checkSolutionIsUnique: There is MORE THAN ONE SOLUTION.\n');
+    if (answer.isNotEmpty) {
+      // debugPrint('Solver.checkSolutionIsUnique: There is MORE THAN ONE SOLUTION.\n');
       return -3;		// There is more than one solution.
     }
     return 0;			// The solution is unique.
   }
 
-  /**
+  /*
    * Solve a puzzle and return the first solution found, if any solution exists.
    *
    * The solution may or may not yet be known to be unique or it may not matter.
@@ -196,8 +198,8 @@ class SudokuSolver
   BoardContents solveBoard (BoardContents boardValues, GuessingMode gMode)
   {
     if (dbgLevel >= 2) {
-        print('ENTER "solveBoard()\n');
-        print(boardValues);
+        debugPrint('ENTER "solveBoard()\n');
+        debugPrint('$boardValues');
     }
     _currentBoard = [...boardValues];		// Deep copy.
     return _solve_1 (gMode);
@@ -223,16 +225,16 @@ class SudokuSolver
     // _puzzleMap.printBoard(_currentBoard);
     if (g.isEmpty) {
         // The entire solution can be deduced by applying the Sudoku rules.
-        // print('NO GUESSES NEEDED, the solution can be entirely deduced.\n');
+        // debugPrint('NO GUESSES NEEDED, the solution can be entirely deduced.\n');
         return _currentBoard;
     }
 
-    int n = g.length;
-    // print('\n\nSTART GUESSING... ADD FIRST STATE TO STACK $n guesses');
+    // int n = g.length;
+    // debugPrint('\n\nSTART GUESSING... ADD FIRST STATE TO STACK $n guesses');
     // _puzzleMap.printBoard(_currentBoard);
 
     // From now on we need to use a mix of guessing, deducing and backtracking.
-    _states.add (new State (g, 0, _currentBoard, _moves, _moveTypes));
+    _states.add (State (g, 0, _currentBoard, _moves, _moveTypes));
     return _tryGuesses (gMode);
 
     // NOTE: At this point the States, Moves and MoveTypes lists will remain, in
@@ -249,16 +251,15 @@ class SudokuSolver
 
   BoardContents _tryGuesses ([GuessingMode gMode = GuessingMode.Random])
   {
-    while (_states.length > 0) {
-        int nStates = _states.length;
+    while (_states.isNotEmpty) {
         GuessesList guesses = _states.last.guesses;
         int n = _states.last.guessNumber;
-        // print('NStates $nStates top guesses $guesses guess number $n');
+        // debugPrint('NStates $nStates top guesses $guesses guess number $n');
         if ((n >= guesses.length) || ((guesses[0]) == -1)) {
-            // print('POP: Out of guesses at level $nStates\n');
-            // print('\n\nREMOVE A STATE FROM THE STACK...');
+            // debugPrint('POP: Out of guesses at level ${_states.length}\n');
+            // debugPrint('\n\nREMOVE A STATE FROM THE STACK...');
             _states.removeLast();
-            if (_states.length > 0) {
+            if (_states.isNotEmpty) {
                 _moves.clear();
                 _moveTypes.clear();
                 _moves = _states.last.moves;
@@ -269,18 +270,18 @@ class SudokuSolver
         _states.last.guessNumber = n + 1;
         _currentBoard = List.from(_states.last.values);
         // BoardContents b = _states.last.values;
-        // print('Test value b = $b');
-        // print('Current board $_currentBoard');
+        // debugPrint('Test value b = $b');
+        // debugPrint('Current board $_currentBoard');
         _moves.add (guesses[n]);
         _moveTypes.add (MoveType.Guess);
         _currentBoard [pairPos (guesses[n])] = pairVal (guesses[n]);
-        int depth = _states.length;
-        int guess = guesses[n];
-        int pos   = pairPos(guesses[n]);
-        int val   = pairVal(guesses[n]);
-        // dbo2
-        // print('\nNEXT GUESS: depth $depth, guess number $n move $guess');
-        // print('  Pick pos $pos value $val');
+
+        // int depth = _states.length;
+        // int guess = guesses[n];
+        // int pos   = pairPos(guesses[n]);
+        // int val   = pairVal(guesses[n]);
+        // debugPrint('\nNEXT GUESS: depth $depth, guess num $n move $guess');
+        // debugPrint('  Pick pos $pos value $val');
                 // pairVal (guesses[n]), pairPos (guesses[n]),
                 // pairPos (guesses[n])/_boardSize + 1,
                 // pairPos (guesses[n])%_boardSize + 1);
@@ -294,15 +295,18 @@ class SudokuSolver
 	    //       SudokuSolver object (i.e. this) is deleted.
             return _currentBoard;
         }
-        int ng = guesses.length;
-        // print('\n\nADD ANOTHER STATE TO THE STACK... $ng guesses');
-        _states.add (new State (guesses, 0, _currentBoard, _moves, _moveTypes));
+
+        // debugPrint('\n\nADD ANOTHER STATE TO THE STACK... '
+                      // '${guesses.length}  guesses');
+        _states.add (State (guesses, 0, _currentBoard, _moves, _moveTypes));
     }
 
     // No solution.
     _currentBoard.clear();
     return _currentBoard;
   }
+
+  int _guessCounter = 0;
 
   GuessesList deduceValues (BoardContents boardValues,
                             [GuessingMode gMode = GuessingMode.Random])
@@ -317,28 +321,20 @@ class SudokuSolver
         _moves.add (iteration);
         _moveTypes.add (MoveType.Deduce);
         bool stuck = true;
-        int  guessCounter = 0;
+        _guessCounter = 0;
         guesses.clear();
 
-        // Search through cells that are not yet filled.
+        // Search through cells that are still unsolved (i.e. vacant).
         for (int cell = 0; cell < _boardArea; cell++) {
             if (boardValues[cell] == _vacant) {
                 newGuesses.clear();
                 int numbers = _validCellValues[cell];
-                // print('Cell $cell possible values $numbers');	// dbg 3
                 // 1-bits in "numbers" show which values are possible.
-                // dbo3 "Cell %d, valid numbers %03o\n", cell, numbers);
                 if (numbers == 0) {
-                    // dbo2 "SOLUTION FAILED: RETURN at cell %d\n", cell);
-                    // print('SOLUTION FAILED: RETURN at cell $cell');
-                    // print('Guesses $guesses\n');
-                    // _puzzleMap.printBoard(_currentBoard);
-                    return solutionFailed (guesses);
+                    return solutionFailed (guesses, 'cell $cell');
                 }
                 int validNumber = 1;
                 while (numbers != 0) {
-                    // dbo3 "Numbers = %03o, validNumber = %d\n",
-                            // numbers, validNumber);
                     if (numbers.isOdd) {	// Found a 1-bit.
                         newGuesses.add (setPair (cell, validNumber));
                     }
@@ -346,61 +342,36 @@ class SudokuSolver
                     validNumber++;
                 }
                 if (newGuesses.length == 1) {
+                    // Cell has only one possible value: add it to the solution.
                     _moves.add (newGuesses.first);
                     _moveTypes.add (MoveType.Single);
                     boardValues [cell] = pairVal (newGuesses.removeAt(0));
-                    int value = boardValues[cell];
-                    // print('Single Pick cell $cell value $value');
-                    // dbo3 "  Single Pick %d %d row %d col %d\n",
-                            // boardValues[cell], cell,
-                            // cell/_boardSize + 1, cell%_boardSize + 1);
+                    // debugPrint('Single Pick cell $cell value ${boardValues[cell]}');
                     _updateValueRequirements (boardValues, cell);
                     stuck = false;
                 }
                 else if (stuck) {
-                    // Select a list of guesses.
-                    // print('A: Guesses ${guesses.length}, new ${newGuesses.length}');
-                    if (guesses.isEmpty ||
-                        (newGuesses.length < guesses.length)) {
-                        // Take newGuesses if guesses list is empty or longer.
-                        // print('A: Take newGuesses $newGuesses not $guesses');
-                        guessCounter = 1;
+                    // Select best list of guesses so far.
+                    if (foundBetterGuesses(guesses, newGuesses, gMode)) {
                         guesses.clear();
                         guesses = [...newGuesses];
-                        // print('Guess count $guessCounter guesses $guesses');
-                    }
-                    else if (newGuesses.length > guesses.length) {
-                        // Ignore newGuesses list if it is longer than guesses.
-                        ;
-                    }
-                    else if (gMode == GuessingMode.Random) {
-                        // Equal length, so make a randomised choice.
-                        int gl = guesses.length;
-                        int ngl = newGuesses.length;
-                        guessCounter++;
-                        if (_puzzleMap.randomInt(guessCounter) == 0) {
-                          //print('B: Take newGuesses $newGuesses not $guesses');
-                          guesses.clear();
-                          guesses = [...newGuesses];
-                          // print('Guess count $guessCounter guesses $guesses');
-                        }
                     }
                 }
-            } // End if
+            } // End if cell is vacant
         } // Next cell
 
-        // print('Board values after Single Pick pass'); 
+        // debugPrint('Board values after Single Pick pass'); 
         // _puzzleMap.printBoard(boardValues);
+
         // Search through groups that still have at least one unfilled cell.
         for (int groupNumber = 0; groupNumber < _nGroups; groupNumber++) {
             int numbers = _requiredGroupValues[groupNumber];
             // 1-bits in "numbers" show which values are currently required. 
-            // dbo3 "Group %d, valid numbers %03o\n", groupNumber, numbers);
             if (numbers == 0) {
                 continue;	// The group contains all the required values.
             }
 
-            // print('Group $groupNumber required-value bits $numbers'); 
+            // debugPrint('Group $groupNumber required-value bits $numbers'); 
 	    List<int> cellList = _puzzleMap.group (groupNumber);
             int validNumber = 1;
             int bit         = 1;
@@ -415,47 +386,25 @@ class SudokuSolver
                         }
                     }
                     if (newGuesses.isEmpty) {
-                        // dbo2 "SOLUTION FAILED: RETURN at group %d\n", groupNumber);
-                        // print('SOLUTION FAILED: RETURN at group $groupNumber');
-                        // print('Guesses $guesses\n');
-                        return solutionFailed (guesses);
+                        return solutionFailed (guesses, 'group $groupNumber');
                     }
                     else if (newGuesses.length == 1) {
+                        // Group has just one unsolved cell: add it to solution.
                         _moves.add (newGuesses.first);
                         _moveTypes.add (MoveType.Spot);
                         cell = pairPos (newGuesses.removeAt(0));
                         boardValues [cell] = validNumber;
-                        // print('Single Spot group $groupNumber value $validNumber');
-                        // print('Cell $cell in list $cellList');
-                        // dbo3 "  Single Spot in Group %d value %d %d "
-                                // "row %d col %d\n",
-                                // groupNumber, validNumber, cell,
-                                // cell/_boardSize + 1, cell%_boardSize + 1);
+                        // debugPrint('Single Spot group $groupNumber '
+                                   // 'value $validNumber');
+                        // debugPrint('Cell $cell in list $cellList');
                         _updateValueRequirements (boardValues, cell);
                         stuck = false;
                     }
                     else if (stuck) {
-                        // Select a list of guesses.
-                    // print('C: Guesses ${guesses.length}, new ${newGuesses.length}');
-                        if (guesses.isEmpty ||
-                            (newGuesses.length < guesses.length)) {
-                        // print('C: Take newGuesses $newGuesses not $guesses');
-                            guessCounter = 1;
+                        // Select best list of guesses so far.
+                        if (foundBetterGuesses(guesses, newGuesses, gMode)) {
                             guesses.clear();
                             guesses = [...newGuesses];
-                        // print('Guess count $guessCounter guesses $guesses');
-                        }
-                        else if (newGuesses.length > guesses.length) {
-                            ;
-                        }
-                        else if (gMode == GuessingMode.Random){
-                          guessCounter++;
-                          if (_puzzleMap.randomInt(guessCounter) == 0) {
-                        // print('D: Take newGuesses $newGuesses not $guesses');
-                                guesses.clear();
-                                guesses = [...newGuesses];
-                        // print('Guess count $guessCounter guesses $guesses');
-                            }
                         }
                     }
                 } // End if (numbers & 1)
@@ -466,7 +415,7 @@ class SudokuSolver
         } // Next groupNumber
 
         if (stuck) {
-            // print('\nGuesses $guesses');
+            // debugPrint('\nGuesses $guesses');
             if (gMode == GuessingMode.Random) {
               // Put the list of guesses into random order.
               GuessesList original = [...guesses];
@@ -477,18 +426,44 @@ class SudokuSolver
                 guesses.add(original[sequence[i]]);
               }
               original.clear();
-              // print('Shuffled guesses $guesses');
+              // debugPrint('Shuffled guesses $guesses');
             }
             return guesses;
         }
     } // End while (true)
   }
 
-  GuessesList solutionFailed (GuessesList guesses)
+  bool foundBetterGuesses(GuessesList current, GuessesList possible,
+                          GuessingMode gMode) {
+
+    // If "possible" is the first list of guesses or has fewer guesses in its
+    // list than previously, use it.
+    bool result = false;
+    if (current.isEmpty || (possible.length < current.length)) {
+      result = true;
+    }
+
+    // If "possible" has the same length as the previous list and guessing-mode
+    // is random, make a random choice between the two lists.
+    else if ((gMode == GuessingMode.Random) &&
+             (possible.length == current.length)) {
+      _guessCounter++;		// Keep reducing the chances: 1/2, 1/3, 1/4 ...
+      if (_puzzleMap.randomInt(_guessCounter) == 0) {
+        result = true;
+      }
+    }
+
+    return result; 
+  }
+
+  GuessesList solutionFailed (GuessesList guesses, String failurePoint)
   {
     guesses.clear();
     guesses.add (-1);
-    // print('Guesses set by solutionFailed() $guesses\n');
+    debugPrint('SOLUTION FAILED: RETURN at $failurePoint');
+    // debugPrint('Guesses $guesses\n');
+    // debugPrint('Guesses set by solutionFailed() $guesses\n');
+    // _puzzleMap.printBoard(_currentBoard);
     return guesses;
   }
 
@@ -497,10 +472,10 @@ class SudokuSolver
     // Set a 1-bit for each possible cell-value in this order of Sudoku,
     // for example 9 bits for a 9x9 grid with 3x3 blocks.
     int allValues = (1 << _nSymbols) - 1;
-    // print(allValues);
+    // debugPrint(allValues);
 
     if (dbgLevel >= 2) {
-        print('ENTER _setUpValueRequirements()\n');
+        debugPrint('ENTER _setUpValueRequirements()\n');
         _puzzleMap.printBoard(boardValues);
     }
 
@@ -526,8 +501,8 @@ class SudokuSolver
         _requiredGroupValues [groupNumber] = bitPattern ^ allValues;
 	// dbo3 "bits %03o\n", _requiredGroupValues[groupNumber]);
     }
-    // print('Required Group Values (bit patterns)');
-    // print(_requiredGroupValues);
+    // debugPrint('Required Group Values (bit patterns)');
+    // debugPrint(_requiredGroupValues);
     // _puzzleMap.printGroups();
     for (int groupNumber = 0; groupNumber < _nGroups; groupNumber++) {
       List<int> cellList = _puzzleMap.group (groupNumber);
@@ -535,8 +510,9 @@ class SudokuSolver
       for (int n = 0; n < _groupSize; n++) {
         values.add(boardValues[cellList[n]]); 
       }
-      int bitMap = _requiredGroupValues[groupNumber];
-      // print('Bit map: $bitMap groupNumber $groupNumber cells $cellList values $values');
+      // debugPrint('Bit map: ${_requiredGroupValues[groupNumber]} '
+                    // 'groupNumber $groupNumber '
+                    // 'cells $cellList values $values');
     }
 
     // Set bit-patterns to show that each cell can accept any value.  Bits are
@@ -565,8 +541,8 @@ class SudokuSolver
             _validCellValues [cell] &= _requiredGroupValues[groupNumber];
         }   
     }
-    // print('Bit maps for the currently valid cell values');
-    // print(_validCellValues);
+    // debugPrint('Bit maps for the currently valid cell values');
+    // debugPrint(_validCellValues);
     // dbo2 "Finished _setUpValueRequirements()\n");
 
     // dbo3 "allowed:\n");
@@ -585,30 +561,24 @@ class SudokuSolver
   void _updateValueRequirements (BoardContents boardValues, int cell)
   {
     // int val = boardValues[cell];	// Debugging.
-    // print('_updateValueRequirements for cell $cell new value $val');
+    // debugPrint('_updateValueRequirements for cell $cell new value $val');
     // Set a 1-bit for each possible cell-value in this order of Sudoku.
     int allValues  = (1 << _nSymbols) - 1;
     // Set a complement-mask for this cell's new value.
     int bitPattern = (1 << (boardValues[cell] - 1)) ^ allValues;
     // Show that this cell no longer requires values: it has been filled.
     _validCellValues [cell] = 0;
-    // print('bitPattern = $bitPattern');
+    // debugPrint('bitPattern = $bitPattern');
 
     // Update the requirements for each group to which this cell belongs.
     List<int> groupList = _puzzleMap.groupList(cell);
     for (int groupNumber in groupList) {
-        int before = _requiredGroupValues [groupNumber];
         _requiredGroupValues [groupNumber] &= bitPattern;
-        int after = _requiredGroupValues [groupNumber];
-        // print('Group $groupNumber required values: before $before after $after');
 
 	List<int> cellList = _puzzleMap.group (groupNumber);
         for (int n = 0; n < _nSymbols; n++) {
 	    int cell = cellList[n];
-            before = _validCellValues[cell];
             _validCellValues[cell] &= bitPattern;
-            after = _validCellValues[cell];
-            // print('Group $groupNumber cell $cell bits: before $before after $after');
         }   
     }
   }
@@ -616,7 +586,7 @@ class SudokuSolver
 
 class State
 {
-/**
+/*
  * Saves a deep copy (or snapshot) of the current state of the solver. The
  * ... operator delivers the current CONTENTS of the collections (e.g. Lists)
  * rather than REFERENCES to the collections back in the caller.
@@ -627,33 +597,28 @@ class State
  */
 
   // CONSTRUCTOR.
-  State (GuessesList   guesses,
-         int           guessNumber,
-         BoardContents inputValues,
-         MoveList      moves,
-         MoveTypeList  moveTypes)
+  State (GuessesList   pGuesses,
+                       this.guessNumber,
+         BoardContents pBoardValues,
+         MoveList      pMoves,
+         MoveTypeList  pMoveTypes)
     :
-    _guesses         = [...guesses],
-    _guessNumber     = guessNumber,
-    _values          = [...inputValues],
-    _moves           = [...moves],
-    _moveTypes       = [...moveTypes]
-  {
-  }
-
+    _guesses         = [...pGuesses],
+    _values          = [...pBoardValues],
+    _moves           = [...pMoves],
+    _moveTypes       = [...pMoveTypes]
+  ;
   // Getters and setters of properties.
   GuessesList    get   guesses     => _guesses;
-  int            get   guessNumber => _guessNumber;
   BoardContents  get   values      => _values;
   MoveList       get   moves       => _moves;
   MoveTypeList   get   moveTypes   => _moveTypes;
 
-  void           set   guessNumber(int n) => _guessNumber = n;
+  int                  guessNumber;	// Read/write property.
 
-  // The underlying properties (private).
-  GuessesList    _guesses;
-  int            _guessNumber;
-  BoardContents  _values = [];
-  MoveList       _moves;
-  MoveTypeList   _moveTypes;
+  // The underlying data (private and read-only).
+  final GuessesList    _guesses;
+  final BoardContents  _values;
+  final MoveList       _moves;
+  final MoveTypeList   _moveTypes;
 }
