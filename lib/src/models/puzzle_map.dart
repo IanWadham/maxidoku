@@ -159,7 +159,7 @@ class PuzzleMap
           if (_name == '') {
             _name = 'Missing name on Name line.';
           }
-          debugPrint(_name);
+          // debugPrint(_name);
           break;
         case 'SpecificType':
           String st  = specLine.substring(key.length, specLine.length).trim();
@@ -180,21 +180,21 @@ class PuzzleMap
         case 'SizeX':
           _sizeX = fields[1] == 'Mathdoku' ? 6 :
                                   _getDimension(fields, nFields, _sizeX);
-          debugPrint('_sizeX = $_sizeX');
+          // debugPrint('_sizeX = $_sizeX');
           break;
         case 'SizeY':
           _sizeY = fields[1] == 'Mathdoku' ? 6 :
                                   _getDimension(fields, nFields, _sizeY);
-          debugPrint('_sizeY = $_sizeY');
+          // debugPrint('_sizeY = $_sizeY');
           break;
         case 'SizeZ':
           _sizeZ = _getDimension(fields, nFields, _sizeZ);
-          debugPrint('_sizeZ = $_sizeZ');
+          // debugPrint('_sizeZ = $_sizeZ');
           break;
         case 'NSymbols':
           _nSymbols = fields[1] == 'Mathdoku' ? 6 :
                                      _getDimension(fields, nFields, _nSymbols);
-          debugPrint('_nSymbols = $_nSymbols');
+          // debugPrint('_nSymbols = $_nSymbols');
           break;
         case 'SpecialCells':
           // Cells that are specially coloured to draw attention, such as the
@@ -208,7 +208,7 @@ class PuzzleMap
           break;
         case 'HideOperators':		// Blindfold Mathdoku option. Default
           _hideOperators = true;	// is false (operators are SHOWN).
-          debugPrint('PuzzleMap: _hideOperators = $_hideOperators');
+          // debugPrint('PuzzleMap: _hideOperators = $_hideOperators');
           break;
 
         case 'PuzzleMap':
@@ -227,7 +227,7 @@ class PuzzleMap
           // Create a blank puzzle map filled with UNUSABLE cells. Some may
           // remain and be displayed as empty space, e.g. in Samurai puzzles.
           _size  = _sizeX * _sizeY * _sizeZ;
-          debugPrint('_size = $_size');
+          // debugPrint('_size = $_size');
           if(_size > 0) {	// Create a new board of the required size.
             _emptyBoard = List.filled(_size, UNUSABLE, growable: false);
           }
@@ -270,7 +270,7 @@ class PuzzleMap
                   data.add(-1);
                 }
               }
-              debugPrint('IRREGULAR GROUP $data');
+              // debugPrint('IRREGULAR GROUP $data');
               _addGroupStructure(data);
             }
           }
@@ -279,17 +279,17 @@ class PuzzleMap
         case 'Diameter':	// Diameter of spheres * 100.
           ok = _getDimension(fields, nFields, _diameter);
           if (ok > 0) _diameter = ok;
-          debugPrint('$fields ok = $ok _diameter = $_diameter');
+          // debugPrint('$fields ok = $ok _diameter = $_diameter');
           break;
         case 'RotateX':		// Degrees rotation around the X axis.
           ok = _getDimension(fields, nFields, _rotateX);
           if (ok != -1) _rotateX = ok;
-          debugPrint('$fields ok = $ok _rotateX = $_rotateX');
+          // debugPrint('$fields ok = $ok _rotateX = $_rotateX');
           break;
         case 'RotateY':		// Degrees rotation around the Y axis.
           ok = _getDimension(fields, nFields, _rotateY);
           if (ok != -1) _rotateY = ok;
-          debugPrint('$fields ok = $ok _rotateY = $_rotateY');
+          // debugPrint('$fields ok = $ok _rotateY = $_rotateY');
           break;
         default:
           // Skip unused or obsolete tags in puzzle_types.dart.
@@ -301,8 +301,8 @@ class PuzzleMap
     // Finalise the number of groups.
     _nGroups = groupCount();
 
-    printBoard(_emptyBoard);
-    printGroups();
+    // printBoard(_emptyBoard);
+    // printGroups();
 
     // Create an index to help puzzle generators and solvers.
     _createIndexOfCellsToGroups();

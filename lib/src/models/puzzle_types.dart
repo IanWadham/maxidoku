@@ -11,7 +11,7 @@ class PuzzleTypesText {
   List<String> puzzleTypeText (int index)
   {
     List<String> result = List.empty(growable: true);
-    debugPrint ('Number of puzzle types = $_nTypes\n');
+    debugPrint ('Number of puzzle types = $_nTypes, selected index $index\n');
 
     // Split the string into lines, removing leading and trailing blanks.
     if ((index < _nTypes) && (index >= 0)) {
