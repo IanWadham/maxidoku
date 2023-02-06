@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../globals.dart';
 import '../models/puzzle_map.dart';
 import 'sudoku_solver.dart';
 
-/****************************************************************************
+/* **************************************************************************
  *    Copyright 2011  Ian Wadham <iandw.au@gmail.com>                       *
  *    Copyright 2006  David Bau <david bau @ gmail com> Original algorithms *
  *    Copyright 2015  Ian Wadham <iandw.au@gmail.com>                       *
@@ -21,7 +23,7 @@ import 'sudoku_solver.dart';
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ****************************************************************************/
 
-/**
+/*
  * @class SudokuGenerator
  * @short Data-structures and methods for generating Sudoku puzzles.
  *
@@ -128,40 +130,40 @@ class SudokuGenerator
     int        _boardArea = 81;			///< The number of cells in the
 						///< whole board.  In Samurai
 						///< with 9x9 grids this is 441.
-    int        _overlap = 0;			///< The degree of overlap in a
+    // int        _overlap = 0;			///< The degree of overlap in a
 						///< Samurai board (=_blockSize
 						///< or 1 for a TinySamurai).
-    int        _nGroups = 27;			///< The total number of rows,
+    // int        _nGroups = 27;			///< The total number of rows,
 						///< columns, blocks, diagonals,
 						///< etc. in the puzzle.
-    int        _groupSize = 9;			///< The number of cells in each
+    // int        _groupSize = 9;			///< The number of cells in each
 						///< group (= _order).
-    List<int>  _cellIndex = [];			///< A first-level index from a
+    // List<int>  _cellIndex = [];			///< A first-level index from a
 						///< cell to the list of groups
 						///< to which it belongs.
-    List<int>  _cellGroups = [];		///< A second-level index from
+    // List<int>  _cellGroups = [];		///< A second-level index from
 						///< cells to individual groups
 						///< to which they belong.
 
     // The layout, type and size of the board, including the grouping of cells
     // into rows, columns and blocks, as needed by the type of puzzle selected.
-    PuzzleMap     _puzzleMap;
+    final PuzzleMap     _puzzleMap;
 
     // The solver for all types of puzzle except Mathdoku and Killer Sudoku.
-    SudokuSolver  _solver;
+    final SudokuSolver  _solver;
 
-    int           _vacant      = VACANT;
-    int           _unusable    = UNUSABLE;
+    final int           _vacant      = VACANT;
+    final int           _unusable    = UNUSABLE;
 
-    Statistics    _stats       = Statistics();
-    Statistics    _accum       = Statistics();
+    final Statistics    _stats       = Statistics();
+    final Statistics    _accum       = Statistics();
     MoveList      _moves       = [];
     MoveTypeList  _moveTypes   = [];
-    List<int>     _SudokuMoves = [];	// Move-list for Sudoku hints.
+    final List<int>     _sudokuMoves = [];	// Move-list for Sudoku hints.
 
     static const int dbgLevel  = 0;
 
-  /**
+  /*
    * Construct a new SudokuGenerator object with a required type and size.
    *
    * @param puzzleMap     The layout, type and size of the board, including
@@ -172,7 +174,6 @@ class SudokuGenerator
   SudokuGenerator (PuzzleMap puzzleMap)
     :
     _boardSize    = 0,
-    _overlap      = 0,
     _puzzleMap    = puzzleMap,
     _solver       = SudokuSolver(puzzleMap: puzzleMap)
   {
@@ -180,8 +181,8 @@ class SudokuGenerator
     _order        = puzzleMap.nSymbols;
     _blockSize    = puzzleMap.blockSize;
     _boardArea    = puzzleMap.size;
-    _nGroups      = puzzleMap.groupCount();
-    _groupSize    = _order;
+    // _nGroups      = puzzleMap.groupCount();
+    // _groupSize    = _order;
 
     _stats.type      = _type;
     _stats.blockSize = _blockSize;
@@ -189,12 +190,12 @@ class SudokuGenerator
     _boardSize       = puzzleMap.sizeX;
   }
 
-  /**
+  /*
    * Generate a puzzle and its solution (see details in the documentation above).
    *
    * @param puzzle        The generated puzzle.
    * @param solution      The generated solution.
-   * @param SudokuMoves   Moves required to reach the solution (used in Hints).
+   * @param sudokuMoves   Moves required to reach the solution (used in Hints).
    * @param difficulty    The required level of difficulty as defined in globals.
    * @param symmetry      The required symmetry of layout of the clues.
    *
@@ -207,7 +208,7 @@ class SudokuGenerator
 
   Message generateSudokuRoxdoku (BoardContents puzzle,
                                  BoardContents solution,
-                                 List<int>     SudokuMoves,
+                                 List<int>     sudokuMoves,
                                  Difficulty    difficultyRequired,
                                  Symmetry      symmetry)
   {
@@ -217,13 +218,13 @@ class SudokuGenerator
     String        bestRatingF      = '0.0';
     Difficulty    bestDifficulty   = Difficulty.VeryEasy;
     int           bestNClues       = 0;
-    int           bestNGuesses     = 0;
-    int           bestFirstGuessAt = 0;
+    // int           bestNGuesses     = 0;
+    // int           bestFirstGuessAt = 0;
     BoardContents bestPuzzle       = [];
     BoardContents bestSolution     = [];
     BoardContents currPuzzle;
     BoardContents currSolution;
-    Message       response         = Message('', '');;
+    Message       response         = Message('', '');
 
     if (_puzzleMap.sizeZ > 1) {
         symmetry = Symmetry.NONE;	// Symmetry not implemented in 3-D.
@@ -232,27 +233,27 @@ class SudokuGenerator
       List<Symmetry> choices = [Symmetry.DIAGONAL_1, Symmetry.CENTRAL,
                        Symmetry.LEFT_RIGHT, Symmetry.SPIRAL, Symmetry.FOURWAY];
       symmetry = choices[_puzzleMap.randomInt(choices.length)];
-      print('RANDOM_SYM chose symmetry $symmetry');
+      debugPrint('RANDOM_SYM chose symmetry $symmetry');
     }
 
     if (symmetry == Symmetry.DIAGONAL_1) {
       // If diagonal symmetry, choose between 1 (NW->SE) and 2 (NE->SW) diags.
       List<Symmetry> choices = [Symmetry.DIAGONAL_1, Symmetry.DIAGONAL_2];
       symmetry = choices[_puzzleMap.randomInt(choices.length)];
-      // print('Diagonal symmetry used $symmetry');
+      // debugPrint('Diagonal symmetry used $symmetry');
     }
 
-    print('GenerateSudokuRoxdoku $difficultyRequired $symmetry');
+    debugPrint('GenerateSudokuRoxdoku $difficultyRequired $symmetry');
 
     while (true) {
       // Fill the board with values that satisfy the Sudoku rules but are
       // chosen in a random way: these values are the solution of the puzzle.
       currSolution = _solver.createFilledBoard();
 
-      // print('RETURN FROM _solver.createFilledBoard()\n');
+      // debugPrint('RETURN FROM _solver.createFilledBoard()\n');
       // dbo1 "Time to fill board: %d msec\n", t.elapsed());
       if (currSolution.isEmpty) {
-        print('FAILED to find a solution from which to generate a puzzle.');
+        debugPrint('FAILED to find a solution from which to generate a puzzle.');
         response = Message('F', 'Puzzle generation failed. Please try again?');
         break;
       }
@@ -262,7 +263,7 @@ class SudokuGenerator
       // Then, if the Puzzle is not as easy as required, keep adding more clues
       // until the required level of difficulty is reached.
       currPuzzle = insertValues (currSolution, difficultyRequired, symmetry);
-      // print('RETURN FROM insertValues()\n');
+      // debugPrint('RETURN FROM insertValues()\n');
       if (currPuzzle.isEmpty) {		// Should very rarely if ever happen.
         response = Message('F', 'Sudoku Generator FAILED. Please try again.');
         return response;
@@ -278,7 +279,7 @@ class SudokuGenerator
         // puzzles such as Samurai take a very long time to compute.
         currPuzzle = removeValues (currSolution, currPuzzle,
                                    difficultyRequired, symmetry);
-        // print('RETURN FROM removeValues()\n');
+        // debugPrint('RETURN FROM removeValues()\n');
         // dbo1 "Time to do removeValues: %d msec\n", t.elapsed());
       }
 
@@ -298,8 +299,8 @@ class SudokuGenerator
         bestRatingF      = _accum.ratingF;
         bestDifficulty   = d;
         bestNClues       = _stats.nClues;
-        bestNGuesses     = _accum.nGuesses;
-        bestFirstGuessAt = _stats.firstGuessAt;
+        // bestNGuesses     = _accum.nGuesses;
+        // bestFirstGuessAt = _stats.firstGuessAt;
         bestPuzzle       = currPuzzle;
         bestSolution     = currSolution;
       }
@@ -316,7 +317,7 @@ class SudokuGenerator
           'If you accept the puzzle as is, it may help to change to'
           ' No Symmetry or a simpler symmetry, then try'
           ' generating another puzzle.';
-        // print(message);
+        // debugPrint(message);
         response = Message('Q', message);
         // Return this message to the Puzzle View.
         break;
@@ -331,7 +332,7 @@ class SudokuGenerator
             'The difficulty level is ${difficultyTexts[d.index]}, with'
             ' internal rating $bestRatingF. There are'
             ' $bestNClues clues at the start and $movesToGo moves to go.';
-          // print(message);
+          // debugPrint(message);
           response = Message('I', message);
         }
         else {
@@ -340,7 +341,7 @@ class SudokuGenerator
             'This puzzle\'s difficulty level is ${difficultyTexts[d.index]},'
             ' with internal difficulty rating $bestRatingF, there are'
             ' $bestNClues clues at the start and $movesToGo moves to go.';
-          // print(message);
+          // debugPrint(message);
           response = Message('I', message);
         }
 
@@ -355,9 +356,9 @@ class SudokuGenerator
     }
 
     if (dbgLevel > 0) {
-      print('FINAL PUZZLE\n');
+      debugPrint('FINAL PUZZLE\n');
       _puzzleMap.printBoard(bestPuzzle);
-      print('\nSOLUTION\n');
+      debugPrint('\nSOLUTION\n');
       _puzzleMap.printBoard(bestSolution);
     }
 
@@ -370,20 +371,20 @@ class SudokuGenerator
       puzzle.add(bestPuzzle[n]);
       solution.add(bestSolution[n]);
     }
-    SudokuMoves.clear();
-    for (int n in _SudokuMoves) {
-      SudokuMoves.add(n);
+    sudokuMoves.clear();
+    for (int n in _sudokuMoves) {
+      sudokuMoves.add(n);
     }
 
     // Return the result-message (created above) for display by the PuzzleView.
     return response;
   }
 
-  /**
+  /*
    * Calculate the INTERNAL difficulty of a puzzle, based on the number of
    * guesses required to solve it, the number of iterations of the solver's
-   * deduction method over the whole board and the fraction of clues or givens in
-   * the * starting position.  Easier levels of difficulty involve logical
+   * deduction method over the whole board and the fraction of clues or givens
+   * in the starting position.  Easier levels of difficulty involve logical
    * deduction only and would usually not require guesses: harder levels might.
    *
    * When guesses are involved (i.e. branches or forks in the solution
@@ -399,56 +400,61 @@ class SudokuGenerator
    */
   Difficulty calculateRating (BoardContents puzzle, int nSamples)
   {
-    double avGuesses;
-    double avDeduces;
-    double avDeduced;
-    double fracClues;
+    // The following variables are used in commented-out debug-code below.
+    // double avGuesses;
+    // double avDeduces;
+    // double avDeduced;
+    // double fracClues;
+
     _accum.nSingles = _accum.nSpots = _accum.nGuesses = _accum.nDeduces = 0;
     _accum.rating   = 0.0;
 
-    // Repeat the Solution calculation nSamples times and collect statistics.
-    BoardContents solution = [..._puzzleMap.emptyBoard];	// Deep copy.
+    // At this point, it is known that the puzzle has a unique solution, so
+    // solveBoard() will repeatedly find the same solution, but possibly by
+    // different (random) paths.
 
     for (int n = 0; n < nSamples; n++) {
-        // print('SOLVE PUZZLE, sample ${n+1} of $nSamples\n');
-        solution = _solver.solveBoard (puzzle, nSamples == 1 ?
-                               GuessingMode.NotRandom : GuessingMode.Random);
-        // print('PUZZLE SOLVED, sample ${n+1} of $nSamples\n');
+        // We don't need the value returned by SudokuSolver.solveBoard().
+        _solver.solveBoard (puzzle, nSamples == 1 ?
+                            GuessingMode.NotRandom : GuessingMode.Random);
+
         countClues(puzzle, _stats);
         analyseMoves (_stats);
-        // In Dart, / between two integers => double.
-        fracClues = (_stats.nClues) / (_stats.nCells);
+
         _accum.nSingles += _stats.nSingles;
         _accum.nSpots   += _stats.nSpots;
         _accum.nGuesses += _stats.nGuesses;
         _accum.nDeduces += _stats.nDeduces;
         _accum.rating   += _stats.rating;
 
-        avDeduced = (_stats.nSingles + _stats.nSpots) / _stats.nDeduces;
-        // print('  Type ${_stats.type} ${_stats.order}:'
+        // fracClues = (_stats.nClues) / (_stats.nCells);
+        // avDeduced = (_stats.nSingles + _stats.nSpots) / _stats.nDeduces;
+        // debugPrint('  Type ${_stats.type} ${_stats.order}:'
                 // ' clues ${_stats.nClues} ${_stats.nCells}'
                 // ' ${(fracClues * 100.0).toStringAsFixed(1)}%'
                 // ' ${(_stats.nCells -  _stats.nClues)} moves'
                 // ' ${_stats.nSingles}P ${_stats.nSpots}S ${_stats.nGuesses}G'
                 // ' ${(_stats.nSingles + _stats.nSpots + _stats.nGuesses)}M'
                 // ' ${_stats.nDeduces}D ${_stats.ratingF}R\n');
+
         _solver.cleanUp();
     }
 
-    avGuesses = (_accum.nGuesses) / nSamples;
-    avDeduces = (_accum.nDeduces) / nSamples;
-    avDeduced = (_accum.nSingles + _accum.nSpots) / _accum.nDeduces;
     _accum.rating = _accum.rating / nSamples;
     _accum.ratingF = _accum.rating.toStringAsFixed(1);
     _accum.difficulty = calculateDifficulty (_accum.rating);
-    // print('  CalcRATING: Av guesses $avGuesses Av deduces $avDeduces'
+
+    // avGuesses = (_accum.nGuesses) / nSamples;
+    // avDeduces = (_accum.nDeduces) / nSamples;
+    // avDeduced = (_accum.nSingles + _accum.nSpots) / _accum.nDeduces;
+    // debugPrint('  CalcRATING: Av guesses $avGuesses Av deduces $avDeduces'
             // ' Av per deduce $avDeduced rating ${_accum.ratingF}'
             // ' difficulty ${_accum.difficulty}\n');
 
     return _accum.difficulty;
   }
 
-  /**
+  /*
    * GENERATE A FAIRLY EASY PUZZLE.
    *
    * Clear a board-array and insert values into it from a solved board.  As
@@ -500,8 +506,8 @@ class SudokuGenerator
     // We should now have a puzzle-list board that is partly filled with clues
     // and a filled-list board that is completely filled. The puzzle should be
     // solvable by deduction alone, after one or more cycles in deduceValues().
-    // print('INITIAL (RANDOM) INSERTIONS COMPLETED - PUZZLE\n');
-    // if (dbgLevel > 0) print (puzzle);
+    // debugPrint('INITIAL (RANDOM) INSERTIONS COMPLETED - PUZZLE\n');
+    // if (dbgLevel > 0) debugPrint (puzzle);
 
     // Set the random sequence to restart if the puzzle needs to be easier.
     int index  = 0;
@@ -517,17 +523,18 @@ class SudokuGenerator
         result = _solver.checkSolutionIsUnique(puzzle, solution);
         if (result >= 0) {
           _stats.difficulty = calculateDifficulty (_stats.rating);
-          // print('REQUIRED $required, CALCULATED ${_stats.difficulty},'
+          // debugPrint('REQUIRED $required, CALCULATED ${_stats.difficulty},'
                 // ' RATING ${_stats.ratingF}');
         }
       }
       _solver.cleanUp();
+
       if (result < 0) {		// The solution is no good.
         // This is extremely unlikely to happen. All we are doing is adding
         // clues (givens or hints) to a puzzle whose solution has been deduced
         // by applying Sudoku rules. The solution should be valid, unique and
         // always the same solution... But just in case...
-        print('INSERTION FAILED: RESULT $result, last insertion $index');
+        debugPrint('INSERTION FAILED: RESULT $result, last insertion $index');
         _puzzleMap.printBoard(puzzle);
         puzzle.clear();		// If it happens, let the user have another go.
         break;
@@ -550,17 +557,17 @@ class SudokuGenerator
       }
 
       if (index >= limit) {	// Avoid any chance of an endless loop.
-        print('LIMIT REACHED: nCells ${_stats.nCells} nClues ${_stats.nClues}');
+        debugPrint('LIMIT REACHED: nCells ${_stats.nCells} nClues ${_stats.nClues}');
         break;
       }
     } // End while
 
-    if (dbgLevel > 0) print (puzzle);
+    if (dbgLevel > 0) debugPrint ('$puzzle');
     return puzzle;
   }
 
-  /**
-   * UPGRADE THE PUZZLE TO A MORE DIFFICULT PUZZLE, IF POSSIBLE.
+  /*
+   *
    *
    * Remove clues from a partially generated puzzle, to make it more
    * difficult.  As each value is removed, there is a check that the puzzle
@@ -609,18 +616,18 @@ class SudokuGenerator
     // dbo1 "Guess limit = %.2f, nCells = %d, nClues = %d, noGuesses = %d\n",
             // guessLimit, _stats.nCells, _stats.nClues, noGuesses);
 
-    // print('Start REMOVING:\n');
+    // debugPrint('Start REMOVING:\n');
 
     for (int n = 0; n < _boardArea; n++) {
         cell  = sequence[n];		// Pick a cell-index at random.
         value = puzzle[cell];		// Find what value is in there.
         if ((value == _vacant) || (value == _unusable)) {
-          // print('ITERATION $n: Cell $cell vacant/unusable $value');
+          // debugPrint('ITERATION $n: Cell $cell vacant/unusable $value');
           continue;			// Skip empty or unusable cells.
         }
         // Try removing this clue and its symmetry partners (if any).
         changeClues (puzzle, cell, symmetry, vacant);
-        // print('ITERATION $n: Removed $value from cell $cell');
+        // debugPrint('ITERATION $n: Removed $value from cell $cell');
 
         // Check the solution is still OK and calculate the difficulty roughly.
         int result = _solver.checkSolutionIsValid (puzzle, solution);
@@ -647,7 +654,7 @@ class SudokuGenerator
 
         // If the solution is not OK, replace the removed value(s).
         if (result < 0) {
-            // print('ITERATION $n: Replaced $value at cell $cell,'
+            // debugPrint('ITERATION $n: Replaced $value at cell $cell,'
             //       ' check returned $result');
             changeClues (puzzle, cell, symmetry, solution);
         }
@@ -655,7 +662,7 @@ class SudokuGenerator
         // If the solution is OK, check the difficulty (roughly).
         else {
             _stats.difficulty = difficultyLevel;
-            // print('ITER $n: ${_stats.difficulty},'
+            // debugPrint('ITER $n: ${_stats.difficulty},'
                   // ' reqd $required RATING ${_stats.ratingF}');
 
             if (_stats.difficulty == required) {
@@ -665,7 +672,7 @@ class SudokuGenerator
                         // tailOfRemoved.count(), n);
                 if ((required == Difficulty.Unlimited) &&
                      (_stats.rating > 50.0)) {
-                  print('STOPPING when rating > 50.0');
+                  debugPrint('STOPPING when rating > 50.0');
                   break;	// Set a limit on the amount of computation.
                 }
             }
@@ -682,7 +689,7 @@ class SudokuGenerator
             }
         }
     }
-    // print('REMOVED: ${tailOfRemoved.length} values, cells $tailOfRemoved');
+    // debugPrint('REMOVED: ${tailOfRemoved.length} values, cells $tailOfRemoved');
 
     // If the required difficulty was reached and was not Unlimited, replace
     // half the saved values.
@@ -717,10 +724,10 @@ class SudokuGenerator
     }
     s.nClues = nClues;
     s.nCells = nCells;
-    // print('STATS: CLUES $nClues CELLS $nCells PERCENT ${nClues*100.0/nCells}');
+    // debugPrint('STATS: CLUES $nClues CELLS $nCells PERCENT ${nClues*100.0/nCells}');
   }
 
-  /**
+  /*
    * Compile statistics re solution moves and calculate a difficulty rating
    * for the puzzle, based on the number of guesses required, the number of
    * iterations of the deducer over the whole board and the fraction of clues
@@ -740,26 +747,28 @@ class SudokuGenerator
     s.firstGuessAt = s.nCells - s.nClues + 1;
 
     s.nSingles = s.nSpots = s.nDeduces = s.nGuesses = 0;
-    _SudokuMoves.clear();
+    _sudokuMoves.clear();
     Move m;
     MoveType mType;
-    while (! _moves.isEmpty) {
+    while (_moves.isNotEmpty) {
         m       = _moves.removeAt(0);	// Take first move and move-type.
         mType   = _moveTypes.removeAt(0);
-        int val = m & lowMask;		// Was pairVal(m);
         int pos = m >> lowWidth;	// Was pairPos(m);
-        int row = _puzzleMap.cellPosY (pos);
-        int col = _puzzleMap.cellPosX (pos);
+
+        // The following values were used in commented-out debug-code below.
+        // int val = m & lowMask;	// Was pairVal(m);
+        // int row = _puzzleMap.cellPosY (pos);
+        // int col = _puzzleMap.cellPosX (pos);
 
         switch (mType) {
         case MoveType.Single:
             // dbo2 "  Single Pick %d %d row %d col %d\n", val, pos, row+1, col+1);
-            _SudokuMoves.add(pos);
+            _sudokuMoves.add(pos);
             s.nSingles++;
             break;
         case MoveType.Spot:
             // dbo2 "  Single Spot %d %d row %d col %d\n", val, pos, row+1, col+1);
-            _SudokuMoves.add(pos);
+            _sudokuMoves.add(pos);
             s.nSpots++;
             break;
         case MoveType.Deduce:
@@ -768,7 +777,7 @@ class SudokuGenerator
             break;
         case MoveType.Guess:
             // dbo2 "GUESS:        %d %d row %d col %d\n", val, pos, row+1, col+1);
-            _SudokuMoves.add(pos);
+            _sudokuMoves.add(pos);
             if (s.nGuesses < 1) {
                 s.firstGuessAt = s.nSingles + s.nSpots + 1;
             }
@@ -791,10 +800,10 @@ class SudokuGenerator
     // Calculate the difficulty level for empirical ranges of the rating.
     s.difficulty = calculateDifficulty (s.rating);
 
-    // print('AnalyseMOVES: Type ${_stats.type} ${_stats.order}: clues ${s.nClues} ${s.nCells} ${(s.nClues/s.nCells*100.0).toStringAsFixed(1)}%   ${s.nSingles}P ${s.nSpots}S ${s.nGuesses}G ${(s.nSingles + s.nSpots + s.nGuesses)}M ${s.nDeduces}D ${s.ratingF}R D=${s.difficulty} F=${s.firstGuessAt}\n');
+    // debugPrint('AnalyseMOVES: Type ${_stats.type} ${_stats.order}: clues ${s.nClues} ${s.nCells} ${(s.nClues/s.nCells*100.0).toStringAsFixed(1)}%   ${s.nSingles}P ${s.nSpots}S ${s.nGuesses}G ${(s.nSingles + s.nSpots + s.nGuesses)}M ${s.nDeduces}D ${s.ratingF}R D=${s.difficulty} F=${s.firstGuessAt}\n');
   }
 
-  /**
+  /*
    * Convert the internal difficulty rating of a puzzle into a difficulty level.
    *
    * @param rating        The internal difficulty rating.
@@ -830,7 +839,7 @@ class SudokuGenerator
     return d;
   }
 
-  /**
+  /*
    * Add or clear one clue or more in a puzzle, depending on the symmetry.
    *
    * @param to            The puzzle grid to be changed.
@@ -850,7 +859,7 @@ class SudokuGenerator
     }
   }
 
-  /**
+  /*
    * For a given cell, calculate the positions of cells that satisfy the
    * current symmetry requirement.
    *

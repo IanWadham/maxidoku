@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../globals.dart';
 import '../models/puzzle_map.dart';
 import 'cage_generator.dart';
 
-/****************************************************************************
+/* **************************************************************************
  *    Copyright 2015  Ian Wadham <iandw.au@gmail.com>                       *
  *                                                                          *
  *    This program is free software; you can redistribute it and/or         *
@@ -19,7 +21,7 @@ import 'cage_generator.dart';
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ****************************************************************************/
 
-/**
+/*
  * @class MathdokuKillerGenerator
  * @short Generator for Killer Sudoku and Mathdoku puzzles.
  *
@@ -31,9 +33,9 @@ class MathdokuKillerGenerator
 {
   final PuzzleMap _puzzleMap;	// The layout, rules and geometry of the puzzle.
 
-  const MathdokuKillerGenerator (PuzzleMap this._puzzleMap);
+  const MathdokuKillerGenerator (this._puzzleMap);
 
-  /**
+  /*
    * Generate a Mathdoku or Killer Sudoku puzzle.
    *
    * puzzle             The generated puzzle.
@@ -71,16 +73,16 @@ class MathdokuKillerGenerator
         numMultis++;
       }
       numTries++;
-      print('CageGen return = $n, numTries $numTries, numMultis $numMultis\n\n');
+      debugPrint('CageGen return = $n, numTries $numTries, numMultis $numMultis\n\n');
     }
     if (numTries >= maxTries) {
-      print('makeCages() FAILED after $numTries tries $numMultis multis');
+      debugPrint('makeCages() FAILED after $numTries tries $numMultis multis');
       // Failed, return empty Message (to try another set of solution values).
       return response;
     }
 
-    print('makeCages() required $numTries tries $numMultis multi-solutions');
-    print('MathdokuGen: Solution moves $solutionMoves');
+    debugPrint('makeCages() required $numTries tries $numMultis multi-solutions');
+    debugPrint('MathdokuGen: Solution moves $solutionMoves');
 
     // Insert the values of the single-cell cages as clues in the empty Puzzle.
     int nClues = 0;
