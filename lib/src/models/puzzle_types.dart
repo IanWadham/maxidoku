@@ -466,6 +466,7 @@ class PuzzleTypesText {
     SizeX 25
     SizeY 25
     SizeZ 1
+    NSymbols 25
     SpecificType PlainSudoku
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
