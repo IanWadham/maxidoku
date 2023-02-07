@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get_storage/get_storage.dart';
 
 import 'settings_service.dart';
 import '../globals.dart';
@@ -47,9 +46,9 @@ class SettingsController with ChangeNotifier {
 
   // Setters for settings - extended to store values persistently (on disk).
 
-  void set themeMode(ThemeMode? newThemeMode) => setThemeMode(newThemeMode);
+  set themeMode(ThemeMode? newThemeMode) => setThemeMode(newThemeMode);
 
-  void setThemeMode(ThemeMode? newThemeMode) {
+  setThemeMode(ThemeMode? newThemeMode) {
     // NOTE: DropDownButton in SettingsView REQUIRES the value to be nullable.
     if (newThemeMode == null) return;
     // Avoid repainting all affected widgets if nothing has changed.
@@ -59,35 +58,35 @@ class SettingsController with ChangeNotifier {
     notifyListeners();
   }
 
-  void set difficulty(Difficulty newDifficulty) => setDifficulty(newDifficulty);
+  set difficulty(Difficulty newDifficulty) => setDifficulty(newDifficulty);
 
-  void setDifficulty(Difficulty newDifficulty) {
+  setDifficulty(Difficulty newDifficulty) {
     _difficulty = newDifficulty;
     _service.storeDifficulty(difficultyKey, newDifficulty);
     notifyListeners();
   }
 
-  void set symmetry(Symmetry newSymmetry) => setSymmetry(newSymmetry);
+  set symmetry(Symmetry newSymmetry) => setSymmetry(newSymmetry);
 
-  void setSymmetry(Symmetry newSymmetry) {
+  setSymmetry(Symmetry newSymmetry) {
     _symmetry = newSymmetry;
     _service.storeSymmetry(symmetryKey, newSymmetry);
     notifyListeners();
   }
 
-  void   set selectedIndex(int index) {
+  set selectedIndex(int index) {
     _selectedIndex = index;
     _service.storeInt(selectedPuzzleKey, index);
     notifyListeners();
   }
 
-  void   set puzzleSpecID(String specID) {
+  set puzzleSpecID(String specID) {
     _puzzleSpecID = specID;
     _service.storeString(puzzleSpecIDKey, specID);
     // notifyListeners(); Maybe not needed? Not seen, but sets up Puzzle type.
   }
 
-  void   set mathdokuSize(int newSize) {
+  set mathdokuSize(int newSize) {
     _mathdokuSize = newSize;
     _service.storeInt(mathdokuSizeKey, newSize);
     // notifyListeners();Maybe not needed?
