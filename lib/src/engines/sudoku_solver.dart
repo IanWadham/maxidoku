@@ -256,6 +256,7 @@ class SudokuSolver
         int n = _states.last.guessNumber;
         // debugPrint('NStates $nStates top guesses $guesses guess number $n');
         if ((n >= guesses.length) || ((guesses[0]) == -1)) {
+            // Take a solution-state and a set of guesses from the stack.
             // debugPrint('POP: Out of guesses at level ${_states.length}\n');
             // debugPrint('\n\nREMOVE A STATE FROM THE STACK...');
             _states.removeLast();
@@ -269,9 +270,6 @@ class SudokuSolver
         }
         _states.last.guessNumber = n + 1;
         _currentBoard = List.from(_states.last.values);
-        // BoardContents b = _states.last.values;
-        // debugPrint('Test value b = $b');
-        // debugPrint('Current board $_currentBoard');
         _moves.add (guesses[n]);
         _moveTypes.add (MoveType.Guess);
         _currentBoard [pairPos (guesses[n])] = pairVal (guesses[n]);
@@ -287,18 +285,22 @@ class SudokuSolver
                 // pairPos (guesses[n])%_boardSize + 1);
         // _puzzleMap.printBoard(_currentBoard);
 
+        // Having applied a guess to one cell, try to deduce more cell-values.
         guesses = deduceValues (_currentBoard, gMode);
 
         if (guesses.isEmpty) {
-            // NOTE: We keep the stack of states.  It is needed by checkPuzzle()
-	    //       for the multiple-solutions test and deleted when its parent
+            // A solution has been reached... not necessarily unique.
+            // NOTE: We keep the stack of states.  It is needed for the
+            //       multiple-solutions test and deleted when its parent
 	    //       SudokuSolver object (i.e. this) is deleted.
+            // debugPrint('SOLUTION FOUND');
             return _currentBoard;
         }
 
+        // More guesses: add a solution-state and a set of guesses to the stack.
+        _states.add (State (guesses, 0, _currentBoard, _moves, _moveTypes));
         // debugPrint('\n\nADD ANOTHER STATE TO THE STACK... '
                       // '${guesses.length}  guesses');
-        _states.add (State (guesses, 0, _currentBoard, _moves, _moveTypes));
     }
 
     // No solution.
@@ -460,7 +462,7 @@ class SudokuSolver
   {
     guesses.clear();
     guesses.add (-1);
-    debugPrint('SOLUTION FAILED: RETURN at $failurePoint');
+    // debugPrint('NO SOLUTION AVAILABLE: RETURN at $failurePoint');
     // debugPrint('Guesses $guesses\n');
     // debugPrint('Guesses set by solutionFailed() $guesses\n');
     // _puzzleMap.printBoard(_currentBoard);
