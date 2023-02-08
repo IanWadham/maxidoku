@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import 'package:community_material_icon/community_material_icon.dart';
 
-import 'package:flutter/src/foundation/binding.dart';
-import 'package:flutter/scheduler.dart';
+// import 'package:flutter/src/foundation/binding.dart';
+// import 'package:flutter/scheduler.dart';
 import 'dart:async';
 import 'messages.dart';
 
@@ -14,7 +14,7 @@ import '../globals.dart';
 import '../models/puzzle.dart';
 
 // TO BE TESTED --- import 'board_view.dart';
-import 'painting_specs.dart';
+// import 'painting_specs.dart';
 
 import 'painting_specs_2d.dart';
 import 'puzzle_painter_2d.dart';
@@ -52,9 +52,9 @@ class PuzzleView extends StatelessWidget
 // and later handled by a postFrameCallback() procedure in the PuzzleBoardView's
 // Widget build(). PuzzleBoardView is a sub-Widget of the PuzzleView Widget.
 
-  bool  darkMode;		// Display in dark theme-mode colours or light.
+  final bool darkMode;		// Display in dark theme-mode colours or light.
 
-  PuzzleView(this.darkMode, {Key? key,}) : super(key: key);
+  const PuzzleView(this.darkMode, {Key? key,}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -187,8 +187,8 @@ class PuzzleView extends StatelessWidget
           Ink( // Give puzzle-background colour to row of IconButtons.
             color: background,
             child: Row(
-              children: actionIcons,
               mainAxisAlignment: MainAxisAlignment.center,
+              children: actionIcons,
             ),
           ),
           Expanded(
@@ -206,7 +206,7 @@ class PuzzleView extends StatelessWidget
   async
   {
     // Generate a puzzle of the requested level of difficulty.
-    print('GENERATE Puzzle: Play status ${puzzle.puzzlePlay}');
+    debugPrint('GENERATE Puzzle: Play status ${puzzle.puzzlePlay}');
     bool newPuzzleOK = (puzzle.puzzlePlay == Play.NotStarted) ||
                        (puzzle.puzzlePlay == Play.ReadyToStart);
     if (! newPuzzleOK) {
@@ -218,7 +218,7 @@ class PuzzleView extends StatelessWidget
       );
     }
     if (newPuzzleOK) {
-      Message m = puzzle.generatePuzzle();
+      puzzle.generatePuzzle();
     }
   }
 
@@ -226,7 +226,7 @@ class PuzzleView extends StatelessWidget
   async
   {
     // Validate a puzzle that has been tapped in or loaded by the user.
-    print('CHECK Puzzle: Play status ${puzzle.puzzlePlay}');
+    debugPrint('CHECK Puzzle: Play status ${puzzle.puzzlePlay}');
     int error = puzzle.checkPuzzle();
     switch(error) {
       case 0:
@@ -237,7 +237,7 @@ class PuzzleView extends StatelessWidget
           ' Would you like to make it into a finished puzzle, ready to'
           ' solve, or continue working on it?',
           okText:     'Finish Up',
-          cancelText: 'Continue'
+          cancelText: 'Continue',
         );
         if (finished) {
           // Convert the entered data into a Puzzle and re-display it.
@@ -288,7 +288,7 @@ class PuzzleView extends StatelessWidget
                  'You could lose your work so far. Do you really want to quit?',
                  );
     }
-    if (okToQuit) {
+    if (okToQuit && context.mounted) {
       Navigator.pop(context);
     }
   }
@@ -300,7 +300,13 @@ class PuzzleView extends StatelessWidget
 
 class PuzzleBoardView extends StatelessWidget with ChangeNotifier
 {
-  Offset hitPos    = Offset(-1.0, -1.0);
+  PuzzleBoardView({super.key});
+
+  // TODO - StatelessWidget is an immutable class, but ChangeNotifier mixin
+  //        is not. Also hitPos cannot be "final" and so the PuzzleBoardView
+  //        constructor cannot be "const". What to do?
+
+  Offset hitPos    = const Offset(-1.0, -1.0);
   late Puzzle        puzzle;	// Located by Provider's watch<Puzzle> function.
 
   @override
@@ -321,7 +327,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
     // Find out if the System (O/S) or Flutter colour Theme is dark or light.
     bool darkMode = (Theme.of(context).brightness == Brightness.dark);
     if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {
-      return Container(
+      return SizedBox(
         // We wish to fill the parent, in either Portrait or Landscape layout.
         height: (MediaQuery.of(context).size.height),
         width:  (MediaQuery.of(context).size.width),
@@ -334,7 +340,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
       );
     }
     else {
-      return Container(
+      return SizedBox(
         // We wish to fill the parent, in either Portrait or Landscape layout.
         height: (MediaQuery.of(context).size.height),
         width:  (MediaQuery.of(context).size.width),
@@ -370,8 +376,10 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         await infoMessage(context, 'Generate Puzzle', m.messageText);
         if (m.messageType == 'F') {
           // TODO - Improve the user-feedback when/if this happens...
-          print('BAIL OUT');
-          Navigator.pop(context);
+          debugPrint('BAIL OUT');
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
         }
       }
       if (retrying) {
@@ -379,7 +387,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         // N.B. Puzzle.generatePuzzle() will trigger a widget re-build and a
         //      repaint, returning control to executeAferBuild() (above) again.
         puzzle.delayedMessage = Message('', '');
-        m = puzzle.generatePuzzle();
+        puzzle.generatePuzzle();
       }
       else {
         // A puzzle was selected, generated and accepted, so start the clock!
@@ -421,8 +429,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
   // Handle the user's PointerDown actions on the puzzle-area and controls.
   bool _possibleHit(String D, Rect puzzleRect, Rect controlRect)
   {
-    // print ('_possibleHit$D at $hitPos');
-    bool modelChanged = false;
+    // debugPrint ('_possibleHit$D at $hitPos');
     bool puzzleHit = puzzleRect.contains(hitPos);
     if (puzzleHit && (D == '2D')) {
       // Hit is on puzzle-area: get integer co-ordinates of cell.
@@ -430,9 +437,9 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
       double cellSide = puzzleRect.width / puzzle.puzzleMap.sizeX;
       int x = (point.dx / cellSide).floor();
       int y = (point.dy / cellSide).floor();
-      // print('Hit is at puzzle-cell ($x, $y)');
+      // debugPrint('Hit is at puzzle-cell ($x, $y)');
       // If hitting this cell is a valid move, the Puzzle model will be updated.
-      modelChanged = puzzle.hitPuzzleArea(x, y);
+      puzzle.hitPuzzleArea(x, y);
     }
     else if (puzzleHit && (D == '3D')) {
       return true;		// Do the rest using 3D functions.
@@ -452,14 +459,13 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
         int x = (point.dx / cellSide).floor();
         int y = (point.dy / cellSide).floor();
         int selection = horizontal ? x : y;	// Get the selected control num.
-        modelChanged = puzzle.hitControlArea(selection);
+        puzzle.hitControlArea(selection);
       }
       else {
         // Not a hit. Don't repaint.
-        print('_possibleHit$D: NOT A HIT');
+        debugPrint('_possibleHit$D: NOT A HIT');
       }
     }
-    // print('MODEL CHANGED $modelChanged');
     // NOTE: If the hit led to a valid change in the puzzle model,
     //       notifyListeners() has been called and a repaint will
     //       be scheduled by Provider. If the attempted move was
@@ -480,12 +486,10 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
   {
     hitPos = details.localPosition;
     PaintingSpecs3D paintingSpecs = puzzle.paintingSpecs3D;
-    bool modelChanged = false;
     if (paintingSpecs.hit3DViewControl(hitPos)) {
       // If true, the 3D Puzzle View is to be rotated and re-painted,
       // but the Puzzle Model's contents are actually unchanged.
       puzzle.triggerRepaint();	// No Model change, but View must be repainted.
-      modelChanged = true;	// Force a repaint.
     }
     else if (_possibleHit('3D', paintingSpecs.puzzleRect,
                                 paintingSpecs.controlRect)) {
@@ -493,13 +497,12 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
       // Hit on controlRect is handled by _possibleHit() exactly as for 2D case.
       int n = paintingSpecs.whichSphere(hitPos);
       if (n >= 0) {
-        modelChanged = puzzle.hitPuzzleCellN(n);
+        puzzle.hitPuzzleCellN(n);
       }
       else {
-        print('_possibleHit3D: NO SPHERE HIT');
+        debugPrint('_possibleHit3D: NO SPHERE HIT');
       }
     }
-    // print('MODEL CHANGED $modelChanged');
     // NOTE: If the hit led to a valid change in the puzzle model,
     //       notifyListeners() has been called and a repaint will
     //       be scheduled by Provider. If the attempted move was

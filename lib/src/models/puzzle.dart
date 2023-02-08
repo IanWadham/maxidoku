@@ -120,7 +120,7 @@ class Puzzle with ChangeNotifier
 
     // Start by generating a puzzle and a delayed message immediately. The users
     // can tap an icon button or message reply if they wish to tap in a puzzle.
-    delayedMessage = generatePuzzle();
+    generatePuzzle();
 
     // NOTE - Flutter is already painting. Issuing a message right now causes
     //        a crash and calling notifyListeners() also causes a crash. The
@@ -176,7 +176,7 @@ class Puzzle with ChangeNotifier
     }
   }
 
-  Message generatePuzzle()
+  void generatePuzzle()
   // Generate a new puzzle of the type and size selected by the user.
   // This can be re-used, without going back to the puzzle selection screen.
   {
@@ -227,8 +227,9 @@ class Puzzle with ChangeNotifier
       // Generator/solver may have failed internally.
       debugPrint('IN Puzzle: Generator failed');
     }
+    // Stash the result-message in case PuzzleBoardView is currently painting.
     delayedMessage = response;
-    return response;
+    return;
   }
 
   void makeReadyToPlay()
@@ -320,29 +321,30 @@ class Puzzle with ChangeNotifier
     return true;
   }
 
-  bool hitPuzzleCellN(int n)
+  void  hitPuzzleCellN(int n)
   {
     // Step 1 in making a move: highlight a cell that is to receive a new value.
 
     if (! validCellSelection(n)) {
-      return false;
+      return;
     }
     selectedCell = n;
     notifyListeners();		// Trigger a repaint of the Puzzle View.
-    return true;
+    return;
   }
 
-  bool hitPuzzleArea(int x, int y)
+  void hitPuzzleArea(int x, int y)
   {
     // User has tapped on a puzzle-cell in 2D: use the generic handler (above).
-    return hitPuzzleCellN(_puzzleMap.cellIndex(x, y));
+    hitPuzzleCellN(_puzzleMap.cellIndex(x, y));
+    return;
   }
 
-  bool hitControlArea(int selection)
+  void hitControlArea(int selection)
   {
     if (puzzlePlay == Play.Solved) {
       // All done! Can use undo/redo to review moves, but cannot make new moves.
-      return false;
+      return;
     }
 
     // Step 2 in making a move: tap on the control area to choose a value
@@ -359,7 +361,7 @@ class Puzzle with ChangeNotifier
       notesMode = !notesMode;
       // debugPrint('Switched Notes to $notesMode');
       notifyListeners();	// Trigger a repaint of the Puzzle View.
-      return true;
+      return;
     }
     // The value selected is treated as a cell-value, a note or an erase.
     selectedControl = selection - (hideNotes ? 0 : 1);
@@ -367,10 +369,10 @@ class Puzzle with ChangeNotifier
 
     int cellToChange = selectedCell ?? -1;
     if (cellToChange < 0) {
-      return false;		// No cell selected: cannot make a move.
+      return;		// No cell selected: cannot make a move.
     }
     if (! validMove(cellToChange, selectedControl)) {
-      return false;
+      return;
     }
 
     CellValue symbol = selectedControl;
@@ -407,7 +409,7 @@ class Puzzle with ChangeNotifier
 
     // The move has been accepted and made.
     notifyListeners();		// Trigger a repaint of the Puzzle View.
-    return true;
+    return;
   }
 
   bool validCellSelection(int n)
