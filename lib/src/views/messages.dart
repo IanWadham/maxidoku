@@ -15,14 +15,14 @@ Future<bool> questionMessage(
   Widget okButton = TextButton(
     child: Text(okText),
     onPressed: () {
-      print('User pressed $okText button in questionMessage()');
+      debugPrint('User pressed $okText button in questionMessage()');
       Navigator.of(context).pop(true);	// Dismiss the dialog box.
     },
   );
   Widget cancelButton = TextButton(
     child: Text(cancelText),
     onPressed: () {
-      print('User pressed $cancelText button in questionMessage()');
+      debugPrint('User pressed $cancelText button in questionMessage()');
       Navigator.of(context).pop(false);	// Dismiss the dialog box.
     },
   );
@@ -75,7 +75,8 @@ async
     ],
   );
   // Show the info message.
-  bool? reply = await showDialog(
+  // bool? reply = await showDialog(
+  await showDialog(
     context: context,
     barrierDismissible: false,		// User must tap button, not background.
     builder: (BuildContext context) {

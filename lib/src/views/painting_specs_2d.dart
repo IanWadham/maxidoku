@@ -34,8 +34,8 @@ class PaintingSpecs2D extends PaintingSpecs
     sizeX    = _puzzleMap.sizeX;
     sizeY    = _puzzleMap.sizeY;
     sizeZ    = _puzzleMap.sizeZ;
-    debugPrint('nSymbols = $nSymbols,'
-          ' sizeX = $sizeX, sizeY = $sizeY, sizeZ = $sizeZ');
+    // debugPrint('PaintingSpecs2D; nSymbols = $nSymbols, '
+               // 'sizeX = $sizeX, sizeY = $sizeY, sizeZ = $sizeZ');
 
     calculatePaintAreas();
 
