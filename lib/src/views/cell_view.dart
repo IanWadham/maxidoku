@@ -13,11 +13,11 @@ class CellView extends StatefulWidget
   int cellValue = 1;
 
   @override
-  State<CellView> createState() => _CellState();
+  State<CellView> createState() => _CellViewState();
 
 } // End class CellView
 
-class _CellState extends State<CellView>
+class _CellViewState extends State<CellView>
 {
   @override
   // TODO - How to to turn on highlight and turn off OLD Cell highlight.
@@ -59,4 +59,4 @@ class _CellState extends State<CellView>
     );
   } // End Widget build
 
-} // End class _CellState
+} // End class _CellViewState
