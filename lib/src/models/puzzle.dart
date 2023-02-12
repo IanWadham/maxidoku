@@ -630,8 +630,11 @@ class Puzzle with ChangeNotifier
     return;
   }
 
-  bool undo() {
-    // Undo a move.
+  bool undo()
+  {
+    // Undo a move. This goes back to the start of the puzzle so that all
+    // _autoClearNotes() operations in the last move can be undone correctly.
+    // For further information, see the comments in _autoClearNotes() below.
     if (_indexUndoRedo <= 0) {
       debugPrint('NO MOVES available to Undo');
       return false;		// No moves left to undo - or none made yet.
@@ -644,9 +647,11 @@ class Puzzle with ChangeNotifier
     return result;
   }
 
-  bool redo() {
+  bool redo()
+  {
     // Redo a move. This goes right back to the start of the puzzle so that all
-    // _autoClearNotes() operations can also be re-done correctly.
+    // _autoClearNotes() operations can be re-done correctlyi at every step.
+    // For further information, see the comments in _autoClearNotes() below.
     if (_indexUndoRedo >= _cellChanges.length) {
       debugPrint('NO MOVES available to Redo');
       return false;		// No moves left to redo - or none made yet.
