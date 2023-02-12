@@ -122,12 +122,12 @@ class PuzzlePainter3D extends CustomPainter
       paintingSpecs.paintSymbol(canvas, ns, cellPos,
                 diam * 0.8, isNote: (ns > 1024), isCell: true);
     } // End list of circles.
-
+  
     // Display the time taken so far for solving the puzzle.
     // double topLeftX = paintingSpecs.puzzleRect.left;
     // double topLeftY = paintingSpecs.puzzleRect.top;
     // double tSize = topLeftX < topLeftY ? topLeftX : topLeftY;
-    // paintingSpecs.paintTextString(canvas, puzzle.solutionTimeDisplay,
+    // paintingSpecs.paintTextString(canvas, puzzle.userTimeDisplay,
                   // 0.75 * tSize, Offset(0, 0), boldLinePaint, backgroundPaint);
 
     return;

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
+import 'dart:async';		// Needed to compile Timer and _ticker.
 
 import '../settings/settings_controller.dart';
 
@@ -84,12 +85,18 @@ class Puzzle with ChangeNotifier
   // which is the length of the _cellChanges list. If 0, either no moves have
   // been made yet or all the moves have been undone. If equal to the number
   // of undoable moves, then all moves have been done or redone and Redo is
-  // not valid. 
+  // not valid.
   int  _indexUndoRedo  = 0;
 
   int  selectedControl = 1;
   int? selectedCell;		// Null means no valid cell to play.
   bool notesMode       = false;
+
+  // Clock starts whenever the user decides to start solving a Puzzle.
+  // Clock stops whenever he/she finishes solving the Puzzle or abandons it.
+  Stopwatch  _userTime = Stopwatch();
+  Timer?     _ticker = null;		// Null when there is no Timer running.
+  String     userTimeDisplay = '';	// Updated by Timer, once per second.
 
   bool createState(int index, bool darkMode)
   {
@@ -156,8 +163,8 @@ class Puzzle with ChangeNotifier
     notesMode       = false;
 
     _puzzlePlay = Play.NotStarted;
-    // _ticker?.cancel();
-    // _ticker     = null;
+    _ticker?.cancel();
+    _ticker     = null;
   }
 
   void setTheme(bool darkMode)
@@ -198,7 +205,7 @@ class Puzzle with ChangeNotifier
                                                      _sudokuMoves, _difficulty);
           if ((response.messageType != '') && (response.messageType != 'F')) {
             break;
-          } 
+          }
         }
         if (response.messageType == '') {
           // Used up max tries and found no valid puzzle.
@@ -256,6 +263,46 @@ class Puzzle with ChangeNotifier
 
     // Change the Puzzle Play status to receive solving moves.
     _puzzlePlay = Play.ReadyToStart;
+  }
+
+  void startClock()
+  {
+    // return;			// Hook for testing BoardView, CellView, etc.
+
+    // TODO - Test to make sure that this assert does not trigger.
+    assert(_ticker == null, 'ASSERT ERROR startClock(): _ticker is NOT null.');
+    debugPrint('START THE CLOCK!!!');
+    _userTime.reset();
+    _userTime.start();
+    // Start a 1-second ticker, but only if it is null (not already running).
+    _ticker ??= Timer.periodic(const Duration(seconds: 1), (_ticker)
+      {
+        // One tick per second.
+        Duration t = _userTime.elapsed;
+        userTimeDisplay = '${t.toString().split('.').first}'; // (h)h:mm:ss
+        if (t < Duration(hours: 1)) {
+          // Remove leading zero(s) and colon.
+          int xxx = userTimeDisplay.indexOf(':') + 1;
+          if (t < Duration(minutes: 10)) {
+            xxx++;
+          }
+          userTimeDisplay = userTimeDisplay.substring(xxx /* to end */);
+        }
+        notifyListeners();			// Display the time (if reqd).
+      }
+    );
+  }
+
+  void stopClock()
+  {
+    // return;			// Hook for testing BoardView, CellView, etc.
+
+    // TODO - Test to make sure that this assert does not trigger.
+    assert(_ticker != null, 'ASSERT ERROR stopClock(): _ticker IS NULL.');
+    _userTime.stop();
+    _ticker?.cancel();
+    _ticker = null;
+    debugPrint('STOP THE CLOCK!!!');
   }
 
   BoardContents _fillBoard()
@@ -402,9 +449,9 @@ class Puzzle with ChangeNotifier
       _puzzlePlay = _isPuzzleSolved();
 
       // Stop the clock when changing to Solved status.
-      // if (_puzzlePlay == Play.Solved) {
-        // stopClock();
-      // }
+      if (_puzzlePlay == Play.Solved) {
+        stopClock();
+      }
     }
 
     // The move has been accepted and made.
@@ -459,7 +506,7 @@ class Puzzle with ChangeNotifier
   }
 
   void move(int n, CellValue symbol)
-  { 
+  {
     // Register a move in the Model data and update the Puzzle cell's state.
     CellStatus currentStatus = _cellStatus[n];
     CellValue  currentValue  = _stateOfPlay[n];
@@ -662,12 +709,12 @@ class Puzzle with ChangeNotifier
     // This is needed if the Puzzle is terminated before it is solved. It avoids
     // an error when the Timer runs on and the Puzzle object no longer exists.
     debugPrint('Puzzle DISPOSED');
-/*
+
     if (_ticker != null) {
       stopClock();
     }
-    solutionTimeDisplay = '';
-*/
+    userTimeDisplay = '';
+
     super.dispose();
   }
 

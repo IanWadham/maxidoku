@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 
 import 'package:community_material_icon/community_material_icon.dart';
 
-// import 'package:flutter/src/foundation/binding.dart';
-// import 'package:flutter/scheduler.dart';
 import 'dart:async';
 import 'messages.dart';
 
@@ -14,7 +12,8 @@ import '../globals.dart';
 import '../models/puzzle.dart';
 
 // TO BE TESTED --- import 'board_view.dart';
-// import 'painting_specs.dart';
+
+import 'timer_widget.dart';
 
 import 'painting_specs_2d.dart';
 import 'puzzle_painter_2d.dart';
@@ -54,7 +53,9 @@ class PuzzleView extends StatelessWidget
 
   final bool darkMode;		// Display in dark theme-mode colours or light.
 
-  const PuzzleView(this.darkMode, {Key? key,}) : super(key: key);
+  /* const */ PuzzleView(this.darkMode, {Key? key,}) : super(key: key);
+
+  final bool timerVisible = true;
 
   @override
   Widget build(BuildContext context) {
@@ -78,8 +79,20 @@ class PuzzleView extends StatelessWidget
     double iconSize = MediaQuery.of(context).size.shortestSide;
     double nIcons = 10.0;
     iconSize = 0.4 * iconSize / nIcons;
+    // TODO: Work out required width of timer: visible or not visible.
+    //       Allow for padding, etc. Allow space for 99:59:59... ? Maybe
+    //       give the clock a pseudo-fixed font, based on puzzle digit sizes?
+    //       At least we must center the timer in a SizedBox, so that the
+    //       whole row of icons does not dart about as the text-width changes.
 
-    List<IconButton> actionIcons = [
+    // List<IconButton> actionIcons = [
+    List<Widget> actionIcons = [
+      SizedBox(
+        width: 3.0 * iconSize,
+        child: TimerWidget(
+          visible:  timerVisible,
+        ),
+      ),
       IconButton(
         icon: const Icon(CommunityMaterialIcons.exit_run), // exit_to_app),
         iconSize: iconSize,
@@ -188,7 +201,7 @@ class PuzzleView extends StatelessWidget
             color: background,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: actionIcons,
+              children: actionIcons, // [TimerWidget(), actionIcons,]
             ),
           ),
           Expanded(
@@ -298,7 +311,7 @@ class PuzzleView extends StatelessWidget
 } // End class PuzzleView
 
 
-class PuzzleBoardView extends StatelessWidget with ChangeNotifier
+class PuzzleBoardView extends StatelessWidget
 {
   PuzzleBoardView({super.key});
 
@@ -391,7 +404,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
       }
       else {
         // A puzzle was selected, generated and accepted, so start the clock!
-        // puzzle.startClock();
+        puzzle.startClock();
       }
       return;
     }
@@ -412,7 +425,7 @@ class PuzzleBoardView extends StatelessWidget with ChangeNotifier
     // TODO - Expand this message a bit. Make it more explanatory.
     }
     else if (playNow == Play.Solved) {
-      // puzzle.stopClock();
+      // puzzle.stopClock();	// REDUNDANT???? Hasn't Puzzle already done it.
       await infoMessage(context,
                         'CONGRATULATIONS!!!',
                         'Well done!!'
