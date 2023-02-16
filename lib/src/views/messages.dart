@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+// TODO - Use a better barrier colour than black54 (black with 54% opacity),
+//        use better backround and foreground colours for the message area
+//        and shape and size the message-area nicely, e.g. rounded corners.
+
 Future<bool> questionMessage(
   BuildContext context,
   String heading,
@@ -30,6 +34,9 @@ Future<bool> questionMessage(
   AlertDialog alert = AlertDialog(
     title:   Text(heading),
     content: Text(question),
+    // surfaceTintColor: Colors.transparent,
+    // backgroundColor:  Colors.transparent, // Ugh, background of message-area!
+    // shadowColor: Colors.transparent,
     actions: [
       cancelButton,
       okButton,
@@ -39,6 +46,9 @@ Future<bool> questionMessage(
   bool reply = await showDialog(
       context: context,
       barrierDismissible: false,	// User must tap button, not background.
+      barrierColor: Colors.transparent,
+      // barrierColor: Colors.purple.withOpacity(0.1),
+      // barrierColor: Colors.amber.withOpacity(0.2),
       builder: (BuildContext context)
       {
         return alert;
@@ -79,6 +89,8 @@ async
   await showDialog(
     context: context,
     barrierDismissible: false,		// User must tap button, not background.
+    barrierColor: Colors.transparent,
+    // barrierColor: Colors.purple.withOpacity(0.1),
     builder: (BuildContext context) {
       return alert;
     },
