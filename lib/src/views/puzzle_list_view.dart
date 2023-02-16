@@ -36,6 +36,8 @@ class PuzzleListView extends StatelessWidget
     return Scaffold(
       appBar: AppBar(
         title: const Text('Welcome to MultiDoku'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
         leading: null,
         actions: [
@@ -117,10 +119,26 @@ class PuzzleListView extends StatelessWidget
               Navigator.restorablePushNamed(context, SettingsView.routeName);
             },
           ),
+          // Packing to avoid Debug stripe covering last icon.
+          IconButton(
+            icon: const Icon(Icons.block),
+            onPressed: () {},
+          ),
         ],
       ),
-      body: MyListView(initialSelection: settings.selectedIndex,
-                              onChanged: handleSelection),
+
+// TODO - Sort out the highlighting of the last item selected AND automatically
+//        scrolling to it. Wanted teal not red, but teal text not conspicuous...
+// https://stackoverflow.com/questions/49153087/flutter-scrolling-to-a-widget-in-listview
+//        Lots of interesting answers, many of them a bit hackish...
+
+      body: ListTileTheme(
+        selectedColor: Colors.green, // red[700],
+        child: MyListView(
+          initialSelection: settings.selectedIndex,
+          onChanged: handleSelection,
+        ),
+      ),
     );
   }
 }

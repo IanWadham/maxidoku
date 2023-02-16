@@ -131,16 +131,16 @@ class MyApp extends StatelessWidget {
           //        So what colours are acceptable as a "seed" and does it make
           //        a difference which type of seed invocation is used?
           theme: ThemeData(
-            colorSchemeSeed: Colors.teal,
+            // colorSchemeSeed: Colors.teal,
             // primaryColor: Colors.teal,
             brightness:      Brightness.light,
-            // useMaterial3:    true,
+            useMaterial3:    true,
           ),
           darkTheme: ThemeData(
-            colorSchemeSeed: Colors.teal,
+            // colorSchemeSeed: Colors.teal,
             // primaryColor: Colors.teal,
             brightness:      Brightness.dark,
-            // useMaterial3:    true,
+            useMaterial3:    true,
           ),
           themeMode: settingsController.themeMode,
 
