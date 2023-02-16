@@ -4,7 +4,7 @@ import '../models/puzzle_map.dart';
 
 class BoardGridView extends StatefulWidget
 {
-  // Provides the lines on a Sudoku-type Puzzle grid.
+  // Provides the lines on a Sudoku-type 2D Puzzle grid.
   final PuzzleMap puzzleMap;
 
   const BoardGridView({Key? key, required this.puzzleMap})

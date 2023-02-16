@@ -5,19 +5,22 @@ import 'cell_view.dart';
 
 import '../models/puzzle_map.dart';
 
-class BoardView extends StatefulWidget
+// TODO - This only going to work on a 2D board.
+
+class BoardView2D extends StatefulWidget
 {
-  const BoardView({Key? key, required this.puzzleMap})
+  const BoardView2D(this.n, this.f, {Key? key})
         : super(key: key);
 
-  final PuzzleMap puzzleMap;
+  final int n;
+  final double f;
 
   @override
-  State<BoardView> createState() => _BoardState();
+  State<BoardView2D> createState() => _BoardState2D();
   
 } // End class BoardView
 
-class _BoardState extends State<BoardView>
+class _BoardState2D extends State<BoardView2D>
 {
   @override
   Widget build(BuildContext context)
@@ -28,16 +31,16 @@ class _BoardState extends State<BoardView>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          BoardGridView(puzzleMap: widget.puzzleMap),
+          // BoardGridView(puzzleMap: widget.puzzleMap),
           Column(
             children: [
-              for (int y = 0; y < widget.puzzleMap.sizeY; y++)
+              for (int y = 0; y < widget.n; y++)
                 Expanded(
                   child: Row(
                     children: [
-                      for (int x = 0; x < widget.puzzleMap.sizeX; x++)
+                      for (int x = 0; x < widget.n; x++)
                         Expanded(
-                          child: CellView(x, y),
+                          child: CellView(x, y, widget.f),
                         ),
                     ],
                   ),
@@ -48,4 +51,4 @@ class _BoardState extends State<BoardView>
       ),
     );
   } // End Widget build
-} // End class _BoardState
+} // End class _BoardState2D

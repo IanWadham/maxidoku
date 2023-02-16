@@ -4,13 +4,12 @@ import '../models/puzzle_map.dart';
 
 class CellView extends StatefulWidget
 {
-  final int x;
-  final int y;
+  final int x;			// X-coordinate.
+  final int y;			// Y-coordinate.
+  final double f;		// Font height.
 
-  CellView(this.x, this.y, {Key? key})
+  CellView(this.x, this.y, this.f, {Key? key})
       : super(key: key);
-
-  int cellValue = 1;
 
   @override
   State<CellView> createState() => _CellViewState();
@@ -19,6 +18,8 @@ class CellView extends StatefulWidget
 
 class _CellViewState extends State<CellView>
 {
+  int _cellValue = 1;
+
   @override
   // TODO - How to to turn on highlight and turn off OLD Cell highlight.
   // TODO - How to draw various types of Cell, including unusable, Given, normal
@@ -38,20 +39,20 @@ class _CellViewState extends State<CellView>
         // NOTE: Don't need to multiply by a pixelRatio - not painting images.
       
         // TODO: 0.7 should be a symbolic constant.
-        double fontHeight = 0.7 * constraints.maxHeight;
+        double fontHeight = widget.f;
 
         return AspectRatio(
           aspectRatio: 1.0,
           child: TextButton(
             child: Text(
-              widget.cellValue.toString(),
+              _cellValue.toString(),
               style: TextStyle(
                 fontSize: fontHeight, fontWeight: FontWeight.bold
               )
             ),
             onPressed: () async {
               debugPrint('PRESSED CELL ${widget.x},${widget.y}');
-              setState(() { widget.cellValue++; });
+              setState(() { _cellValue++; });
             },
           ),
         );

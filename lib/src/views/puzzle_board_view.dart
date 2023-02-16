@@ -21,6 +21,8 @@ import 'puzzle_painter_2d.dart';
 import 'painting_specs_3d.dart';
 import 'puzzle_painter_3d.dart';
 
+import 'board_view.dart';
+
 class PuzzleBoardView extends StatelessWidget
 {
   PuzzleBoardView({super.key});
@@ -63,10 +65,18 @@ class PuzzleBoardView extends StatelessWidget
       );
     }
     else {
+      Size boardSize = MediaQuery.of(context).size;
+      double d = boardSize.shortestSide;
+      int    n = puzzle.puzzleMap.sizeY;
+      double fontHeight = 0.7 * (d / n);
+      return  BoardView2D(n, fontHeight);
+/* ***************************
       return SizedBox(
         // We wish to fill the parent, in either Portrait or Landscape layout.
         height: (MediaQuery.of(context).size.height),
         width:  (MediaQuery.of(context).size.width),
+        child:  BoardView2D(puzzleMap: puzzle.puzzleMap),
+ ***************************
         child:  Listener(
           onPointerDown: _possibleHit2D,
           child: CustomPaint(
@@ -74,6 +84,7 @@ class PuzzleBoardView extends StatelessWidget
           ),
         ),
       );
+   ************************** */
     }
   } // End Widget build()
 
