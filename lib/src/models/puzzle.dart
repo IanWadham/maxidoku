@@ -127,7 +127,8 @@ class Puzzle with ChangeNotifier
 
     // Start by generating a puzzle and a delayed message immediately. The users
     // can tap an icon button or message reply if they wish to tap in a puzzle.
-    generatePuzzle();
+    // ???????? generatePuzzle();
+    _init();			// Clear relevant parts of the Puzzle state.
 
     // NOTE - Flutter is already painting. Issuing a message right now causes
     //        a crash and calling notifyListeners() also causes a crash. The
@@ -267,7 +268,7 @@ class Puzzle with ChangeNotifier
 
   void startClock()
   {
-    // return;			// Hook for testing BoardView, CellView, etc.
+    return;	// Hook to disable Timer when testing BoardView, CellView, etc.
 
     // TODO - Test to make sure that this assert does not trigger.
     assert(_ticker == null, 'ASSERT ERROR startClock(): _ticker is NOT null.');
@@ -295,7 +296,7 @@ class Puzzle with ChangeNotifier
 
   void stopClock()
   {
-    // return;			// Hook for testing BoardView, CellView, etc.
+    return;	// Hook to disable Timer when testing BoardView, CellView, etc.
 
     // TODO - Test to make sure that this assert does not trigger.
     assert(_ticker != null, 'ASSERT ERROR stopClock(): _ticker IS NULL.');
@@ -358,6 +359,7 @@ class Puzzle with ChangeNotifier
     solver.cleanUp();
     _cellChanges.clear();			// No moves made yet.
     _puzzlePlay = Play.ReadyToStart;
+    startClock();
     notifyListeners();
   }
 
