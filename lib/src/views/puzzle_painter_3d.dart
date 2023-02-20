@@ -60,7 +60,7 @@ class PuzzlePainter3D extends CustomPainter
     Paint highlight        = paintingSpecs.highlight;
 
     // Paint the background of the canvas.
-    canvas.drawRect(const Offset(0, 0) & size, backgroundPaint);
+    ////////// canvas.drawRect(const Offset(0, 0) & size, backgroundPaint);
 
     paintingSpecs.calculateScale();
 
@@ -141,7 +141,7 @@ class PuzzlePainter3D extends CustomPainter
   }
 
   @override
-  // Can do everything required in _possibleHit2D().
+  // Can do everything required in _possibleHit3D().
   bool? hitTest(Offset position)
   {
     return null;

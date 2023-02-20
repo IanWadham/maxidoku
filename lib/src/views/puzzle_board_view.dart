@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +11,8 @@ import '../settings/settings_view.dart';
 
 import '../globals.dart';
 import '../models/puzzle.dart';
+import '../models/puzzle_3d.dart';
+import 'round_cell_view.dart';
 
 // TO BE TESTED --- import 'board_view.dart';
 
@@ -33,6 +36,7 @@ class PuzzleBoardView extends StatelessWidget
 
   Offset hitPos    = const Offset(-1.0, -1.0);
   late Puzzle        puzzle;	// Located by Provider's watch<Puzzle> function.
+  late Puzzle3D      puzzle3D;
 
   @override
   // This widget tree contains the puzzle-area and puzzle-controls (symbols).
@@ -44,6 +48,15 @@ class PuzzleBoardView extends StatelessWidget
     // In 3D puzzles, the repaint can be due to rotation, with no data change.
 
     puzzle = context.watch<Puzzle>();
+    // TODO - Don't repeat puzzle3D actions on every build(). Put them
+    //        somewhere else perhaps.
+    puzzle3D = Puzzle3D(puzzle.puzzleMap);
+    puzzle3D.calculate3dLayout();
+    // double boardSide = MediaQuery.of(context).size.shortestSide;
+    double boardSide = 400.0;
+    Rect boardSpace = const Offset(0.0, 0.0) & Size(boardSide, boardSide);
+    debugPrint('Context size ${MediaQuery.of(context).size} board space $boardSpace');
+    List<RoundCell> roundCells = puzzle3D.calculateProjection(boardSpace);
 
     // Enable messages to the user after major changes of puzzle-status.
     WidgetsBinding.instance.addPostFrameCallback((_)
@@ -51,20 +64,37 @@ class PuzzleBoardView extends StatelessWidget
 
     // Find out if the System (O/S) or Flutter colour Theme is dark or light.
     bool darkMode = (Theme.of(context).brightness == Brightness.dark);
-    if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {
+    List<Positioned> roundCellViews = [];
+    if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {	// 3D Puzzle.
+      for (RoundCell c in roundCells) {
+        if (c.used) {
+// Cells 6. 13 and 20 are at the top, bottom and centre of the view.
+// if ((c.id == 6) || (c.id == 20) || (c.id == 13)) {
+          Rect r = Rect.fromCenter(
+                     center: boardSpace.center + c.centre,
+                     width:  c.diameter,
+                     height: c.diameter);
+          // debugPrint('ID ${c.id} Centre ${c.centre} diameter ${c.diameter} $r');
+          roundCellViews.add(
+            Positioned.fromRect(
+              rect:  r,
+              child: RoundCellView(c.id),
+            )
+          );
+// }
+        }
+      }
+      // We wish to fill the parent, in either Portrait or Landscape layout.
+      debugPrint('Board Side $boardSide;');
       return SizedBox(
-        // We wish to fill the parent, in either Portrait or Landscape layout.
-        height: (MediaQuery.of(context).size.height),
-        width:  (MediaQuery.of(context).size.width),
-        child:  Listener(
-          onPointerDown: _possibleHit3D,
-          child: CustomPaint(
-            painter: PuzzlePainter3D(puzzle, darkMode),
-          ),
+        width: boardSide,
+        height: boardSide,
+        child: Stack(
+          children: roundCellViews,
         ),
       );
     }
-    else {
+    else {		// 2D Sudoku variant, Killer Sudoku or Mathdoku puzzle.
       Size boardSize = MediaQuery.of(context).size;
       double d = boardSize.shortestSide;
       int    n = puzzle.puzzleMap.sizeY;

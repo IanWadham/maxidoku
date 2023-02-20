@@ -48,7 +48,7 @@ class PuzzleView extends StatelessWidget
 
   /* const */ PuzzleView(this.darkMode, {Key? key,}) : super(key: key);
 
-  final bool timerVisible = true;
+  final bool timerVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -186,20 +186,24 @@ class PuzzleView extends StatelessWidget
       ),
     ]; // End list of action icons
 
-    // Paint the puzzle with the action icons in a row at the top.
+    // Paint the puzzle with the action icons and timer in a row at the top.
     return Scaffold(		// Omit AppBar, to maximize real-estate.
+      // Give puzzle-background colour to whole screen, including icon buttons.
+      backgroundColor: background,
       body: Column(
         children: <Widget> [
-          Ink( // Give puzzle-background colour to row of IconButtons.
-            color: background,
+          InkWell(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: actionIcons, // [TimerWidget(), actionIcons,]
             ),
           ),
-          Expanded(
-            child: PuzzleBoardView(),
-          ),
+          // TODO - Temporary. Lay out PuzzleBoardView (empty square), Control
+          //                   Bar and spacing, taking account of Portrait and
+          //                   Landscape modes.
+          const Spacer(),
+          PuzzleBoardView(),
+          const Spacer(),
         ],
       ), // End body: Column(
     ); // End return Scaffold(

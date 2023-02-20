@@ -77,7 +77,7 @@ class PuzzlePainter2D extends CustomPainter
     highlight.strokeWidth      = cellSide * paintingSpecs.highlightInset;
 
     // Now paint the background of the canvas.
-    canvas.drawRect(const Offset(0, 0) & size, backgroundPaint);
+    // canvas.drawRect(const Offset(0, 0) & size, backgroundPaint);
 
     // Paint the backgrounds of puzzle-cells, as required by the puzzle-type.
     int nCells   = sizeX * sizeY;
