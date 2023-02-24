@@ -11,6 +11,7 @@ import 'views/puzzle_view.dart';
 import 'views/puzzle_list_view.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
+import 'settings/game_theme.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
@@ -168,18 +169,25 @@ class MyApp extends StatelessWidget {
                     // several places in the Puzzle Class code where it calls
                     // notifyListeners() and these are watched for by Provider.
 
-                    bool darkMode =
+                    bool isDarkMode =
                          (Theme.of(context).brightness == Brightness.dark);
 
-// IDW TODO - Should have separate Provider for Palette and Dark/Light changes,
-//            and maybe for other purposes (see examples in TicTacToe game).
-
-                    return ChangeNotifierProvider(
-                      create: (context) =>		// The Model to watch.
-                              Puzzle(index, settingsController, darkMode),
-                      lazy:   false,			// Create Puzzle NOW, to
+                    return MultiProvider(
+                      providers: [
+                        // Access to model of game in Puzzle class.
+                        ChangeNotifierProvider(
+                          create: (context) =>		// The Model to watch.
+                              Puzzle(index, settingsController, isDarkMode),
+                          lazy:   false,		// Create Puzzle NOW, to
                                                         // avoid startup crash.
-                      child:  PuzzleView(darkMode),	// Top widget of screen.
+                        ),
+                        Provider(
+                          // Access to Game Theme colours.
+                          create: (context) => GameTheme(isDarkMode),
+                          lazy:   false,
+                        ),
+                      ],
+                      child: PuzzleView(isDarkMode),	// Top widget of screen.
                     );
 
                   case PuzzleListView.routeName:
