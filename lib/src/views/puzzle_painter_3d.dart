@@ -8,9 +8,9 @@ import 'painting_specs_3d.dart';
 class PuzzlePainter3D extends CustomPainter
 {
   final Puzzle puzzle;
-  final bool   darkMode;
+  final bool   isDarkMode;
 
-  PuzzlePainter3D(this.puzzle, this.darkMode);
+  PuzzlePainter3D(this.puzzle, this.isDarkMode);
 
   // NOTE: PuzzlePainter3D does not use the Listenable? repaint parameter of
   //       CustomerPainter, nor does it re-implement CustomPainter with
@@ -46,7 +46,7 @@ class PuzzlePainter3D extends CustomPainter
     // debugPrint('3D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
 
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
-    paintingSpecs.setPuzzleThemeMode(darkMode);
+    paintingSpecs.setPuzzleThemeMode(isDarkMode);
 
     // Paints (and brushes/pens) for areas and lines.
     Paint backgroundPaint  = paintingSpecs.backgroundPaint;
@@ -76,6 +76,8 @@ class PuzzlePainter3D extends CustomPainter
     highlight.strokeWidth = diam * paintingSpecs.highlightInset;
 
     int nCircles  = paintingSpecs.rotated.length;
+// TODO - Bug. If whole puzzle is rotated, highlight reappears on WRONG CELL.
+//             Need to find the sphere that has the correct id.
     int highlightedCell = puzzle.selectedCell ?? -1;
     for (int n = 0; n < nCircles; n++) {
       if (! paintingSpecs.rotated[n].used) {

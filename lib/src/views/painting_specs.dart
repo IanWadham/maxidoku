@@ -146,11 +146,11 @@ abstract class PaintingSpecs
 
   void calculatePainting();		// VIRTUAL.
 
-  void setPuzzleThemeMode(bool darkMode)
+  void setPuzzleThemeMode(bool isDarkMode)
   {
-    // debugPrint('ENTERED setPuzzleThemeMode: darkMode $darkMode themeMask ${_themeMask.toRadixString(16)}');
-    _themeMask = darkMode ? _darkThemeMask : _lightThemeMask;
-    // debugPrint('DID setPuzzleThemeMode: darkMode $darkMode themeMask ${_themeMask.toRadixString(16)}');
+    // debugPrint('ENTERED setPuzzleThemeMode: isDarkMode $isDarkMode themeMask ${_themeMask.toRadixString(16)}');
+    _themeMask = isDarkMode ? _darkThemeMask : _lightThemeMask;
+    // debugPrint('DID setPuzzleThemeMode: isDarkMode $isDarkMode themeMask ${_themeMask.toRadixString(16)}');
     _setTheme();
   }
 

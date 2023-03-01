@@ -9,9 +9,9 @@ import 'painting_specs_2d.dart';
 class PuzzlePainter2D extends CustomPainter
 {
   final Puzzle puzzle;
-  final bool   darkMode;
+  final bool   isDarkMode;
 
-  PuzzlePainter2D(this.puzzle, this.darkMode);
+  PuzzlePainter2D(this.puzzle, this.isDarkMode);
 
   // NOTE: PuzzlePainter2D does not use the Listenable? repaint parameter of
   //       CustomerPainter, nor does it re-implement CustomPainter with
@@ -51,7 +51,7 @@ class PuzzlePainter2D extends CustomPainter
     // print('2D: nSymbols $nSymbols, hideNotes $hideNotes, nControls $nControls');
 
     paintingSpecs.calculatePuzzleLayout(size, hideNotes);
-    paintingSpecs.setPuzzleThemeMode(darkMode);
+    paintingSpecs.setPuzzleThemeMode(isDarkMode);
 
     topLeft  = paintingSpecs.puzzleRect.topLeft;
     cellSide = paintingSpecs.cellSide;
