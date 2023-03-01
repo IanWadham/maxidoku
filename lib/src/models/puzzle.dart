@@ -7,8 +7,8 @@ import '../globals.dart';
 import 'puzzle_map.dart';
 import 'puzzle_types.dart';
 
-import '../views/painting_specs_2d.dart';
-import '../views/painting_specs_3d.dart';
+// OBSOLETE import '../views/painting_specs_2d.dart';
+// OBSOLETE import '../views/painting_specs_3d.dart';
 
 import '../engines/sudoku_generator.dart';
 import '../engines/sudoku_solver.dart';
@@ -25,18 +25,20 @@ class CellChange
 class Puzzle with ChangeNotifier
 {
   // Constructor.
-  Puzzle(int index, this.settings, bool darkMode)
+  // TODO - Don't need isDarkMode here any more.
+  Puzzle(int index, this.settings, bool isDarkMode)
   {
-    createState(index, darkMode);
+    createState(index, isDarkMode);
   }
 
   final SettingsController settings;
 
-  Message delayedMessage = Message('', '');
-
   late PuzzleMap _puzzleMap;
   PuzzleMap get puzzleMap => _puzzleMap;
 
+  Message delayedMessage = Message('', '');
+
+/* OBSOLETE
   late PaintingSpecs2D _paintingSpecs2D;
   late PaintingSpecs3D _paintingSpecs3D;
   late int background;
@@ -48,6 +50,7 @@ class Puzzle with ChangeNotifier
   set portrait(bool b)                => (_puzzleMap.sizeZ == 1) ?
                                          _paintingSpecs2D.portrait = b :
                                          _paintingSpecs3D.portrait = b;
+*/
 
   // The status of puzzle-play. Determines what moves are allowed and their
   // meaning. In NotStarted status, the puzzle is set to be empty and can be
@@ -67,6 +70,7 @@ class Puzzle with ChangeNotifier
   // Current values of each cell, which may be +ve integers or bitmaps of Notes.
   BoardContents    _stateOfPlay = [];
   BoardContents get stateOfPlay => _stateOfPlay;
+  BoardContents get solution => _solution;	// TODO - Testing ONLY...
 
   // The required difficulty and symmetry of the puzzle to be generated.
   // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
@@ -98,11 +102,13 @@ class Puzzle with ChangeNotifier
   Timer?     _ticker = null;		// Null when there is no Timer running.
   String     userTimeDisplay = '';	// Updated by Timer, once per second.
 
-  bool createState(int index, bool darkMode)
+  // TODO - OBSOLETE parameter "isDarkMode".
+  bool createState(int index, bool isDarkMode)
   {
     // Create the layout, clues and model for the puzzle type the user selected.
     debugPrint('Create Puzzle: index $index hash $hashCode');
 
+    // TODO - Could do the string-handling in PuzzleMap and just pass it index.
     // Get a list of puzzle specifications in textual form.
     PuzzleTypesText puzzleList = PuzzleTypesText();
 
@@ -112,23 +118,26 @@ class Puzzle with ChangeNotifier
     // Parse it and create the corresponding Puzzle Map, with an empty board.
     _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
 
+/* OBSOLETE
     // Precalculate and save the operations for paint(Canvas canvas, Size size).
     // These are held in unit form and scaled up when the canvas-size is known.
     if (_puzzleMap.sizeZ == 1) {
       _paintingSpecs2D = PaintingSpecs2D(_puzzleMap, settings);
-      _paintingSpecs2D.setPuzzleThemeMode(darkMode); // Init light/dark theme.
+      _paintingSpecs2D.setPuzzleThemeMode(isDarkMode); // Init light/dark theme.
       _paintingSpecs2D.calculatePainting();
     }
     else {
       _paintingSpecs3D = PaintingSpecs3D(_puzzleMap, settings);
-      _paintingSpecs3D.setPuzzleThemeMode(darkMode); // Init light/dark theme.
+      _paintingSpecs3D.setPuzzleThemeMode(isDarkMode); // Init light/dark theme.
       _paintingSpecs3D.calculatePainting();
     }
+*/
 
     // Start by generating a puzzle and a delayed message immediately. The users
     // can tap an icon button or message reply if they wish to tap in a puzzle.
     // ???????? generatePuzzle();
     _init();			// Clear relevant parts of the Puzzle state.
+    generatePuzzle();
 
     // NOTE - Flutter is already painting. Issuing a message right now causes
     //        a crash and calling notifyListeners() also causes a crash. The
@@ -159,30 +168,33 @@ class Puzzle with ChangeNotifier
 
     _indexUndoRedo  = 0;
 
-    selectedCell    = null;
+    selectedCell    = null;	// TODO - Could be 0.
     selectedControl = 1;
     notesMode       = false;
 
     _puzzlePlay = Play.NotStarted;
+    // TODO - Belongs in a new GameTimer class.
     _ticker?.cancel();
     _ticker     = null;
   }
 
-  void setTheme(bool darkMode)
+/* OBSOLETE
+  void setTheme(bool isDarkMode)
   {
     if (_puzzleMap.sizeZ == 1) {
-      _paintingSpecs2D.setPuzzleThemeMode(darkMode); // Switch light/dark theme.
+      _paintingSpecs2D.setPuzzleThemeMode(isDarkMode); // Switch light/dark.
       background = _paintingSpecs2D.backgroundPaint.color.value;
       foreground = _paintingSpecs2D.boldLinePaint.color.value;
       return;
     }
     else {
-      _paintingSpecs3D.setPuzzleThemeMode(darkMode); // Switch light/dark theme.
+      _paintingSpecs3D.setPuzzleThemeMode(isDarkMode); // Switch light/dark.
       background = _paintingSpecs3D.backgroundPaint.color.value;
       foreground = _paintingSpecs3D.boldLinePaint.color.value;
       return;
     }
   }
+*/
 
   void generatePuzzle()
   // Generate a new puzzle of the type and size selected by the user.
@@ -215,7 +227,7 @@ class Puzzle with ChangeNotifier
                                  ' about 200 tries.';
         }
         else {
-          _paintingSpecs2D.markCageBoundaries(_puzzleMap);
+          // OBSOLETE _paintingSpecs2D.markCageBoundaries(_puzzleMap);
         }
         break;
       default:
