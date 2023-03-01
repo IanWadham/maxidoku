@@ -60,6 +60,10 @@ class Puzzle3D
   double    _rotateX     = 0.0;			// Deg to rotate view around X.
   double    _rotateY     = 0.0;			// Deg to rotate view around Y.
 
+  double    _rangeX      = 0.0;			// Unscaled width of layout.
+  double    _rangeY      = 0.0;			// Unscaled height of layout.
+  double    _maxRange    = 0.0;
+
   var homeRotM           = Matrix.identity();
   var rotationM          = Matrix.identity();
 
@@ -67,28 +71,28 @@ class Puzzle3D
   List<Sphere> spheres = [];
   List<Sphere> rotated = [];
 
-  late int    _sizeX;
-  late int    _sizeY;
-  late int    _sizeZ;
-
   @override
   void calculate3dLayout()
   {
     // Pre-calculate puzzle background details (fixed when puzzle-play starts).
     // NOTE: This class gets size* values from PuzzleMap via the _map variable.
 
-    _sizeX    = _map.sizeX;
-    _sizeY    = _map.sizeY;
-    _sizeZ    = _map.sizeZ;
+    int sizeX    = _map.sizeX;
+    int sizeY    = _map.sizeY;
+    int sizeZ    = _map.sizeZ;
 
     _rawDiameter = _map.diameter/100.0;	// Usually set to about 3.5.
-    _rotateX  = _map.rotateX + 0.0;
-    _rotateY  = _map.rotateY + 0.0;
+    _rotateX     = _map.rotateX + 0.0;
+    _rotateY     = _map.rotateY + 0.0;
+    // debugPrint('X range $minX $maxX, Y range $minY $maxY');
+    // debugPrint('rangeX $rangeX rangeY $rangeY maxRange $maxRange');
+    // debugPrint('Sphere IDs: minX $minXn maxX $maxXn minY $minYn maxY $maxYn'); 
+
 
     // Place the origin in the centre of the puzzle - used as rotation centre.
-    newOrigin[0] = ((_sizeX - 1) * spacing) / 2;
-    newOrigin[1] = ((_sizeY - 1) * spacing) / 2;
-    newOrigin[2] = ((_sizeZ - 1) * spacing) / 2;
+    newOrigin[0] = ((sizeX - 1) * spacing) / 2;
+    newOrigin[1] = ((sizeY - 1) * spacing) / 2;
+    newOrigin[2] = ((sizeZ - 1) * spacing) / 2;
 
     // Create a list of spheres and assign 3D co-ordinates to their centres, as
     // required by the puzzle type and map.
@@ -115,19 +119,43 @@ class Puzzle3D
 
   void rotateCentresOfSpheres()
   {
+    double minX = 0.0; double minY = 0.0;
+    double maxX = 0.0; double maxY = 0.0;
+int minXn = -1;
+int maxXn = -1;
+int minYn = -1;
+int maxYn = -1;
+
     rotated.clear();
 
     // Apply the matrix-rotation to the centre of each pseudo-sphere.
     for (int n = 0; n < spheres.length; n++) {
+      // TODO - How can we avoid calculating unused spheres? They all have to
+      //        go into the "rotated" list in order of "n".
       Coords sphereN = rotationM.rotated3(spheres[n].xyz);
+
       // Coords XYZ = sphereN.clone();		// For debug-message.
       // String s = '[';
       // s = s + XYZ[0].toStringAsFixed(2) + ', ';
       // s = s + XYZ[1].toStringAsFixed(2) + ', ';
       // s = s + XYZ[2].toStringAsFixed(2) + ']';
       // debugPrint('Sphere $n: from ${spheres[n].xyz} to $s');
+
       rotated.add(Sphere(n, spheres[n].used, sphereN, _rawDiameter));
+
+      Offset centre = Offset(rotated[n].xyz[0], -rotated[n].xyz[1]);
+      if (centre.dx < minX) {minX = centre.dx; minXn = rotated[n].id; }
+      if (centre.dy < minY) {minY = centre.dy; minYn = rotated[n].id; }
+      if (centre.dx > maxX) {maxX = centre.dx; maxXn = rotated[n].id; }
+      if (centre.dy > maxY) {maxY = centre.dy; maxYn = rotated[n].id; }
     }
+
+    _rangeX = maxX - minX + _rawDiameter;
+    _rangeY = maxY - minY + _rawDiameter;
+    _maxRange = (_rangeX > _rangeY) ? _rangeX : _rangeY;
+    debugPrint('X range $minX $maxX, Y range $minY $maxY');
+    debugPrint('rangeX $_rangeX rangeY $_rangeY maxRange $_maxRange');
+    debugPrint('Sphere IDs: minX $minXn maxX $maxXn minY $minYn maxY $maxYn'); 
 
     // Sort the centres of the spheres into Z order, so that, when painting the
     // Canvas, the furthest-away spheres are painted first and the nearest last.
@@ -140,37 +168,14 @@ class Puzzle3D
 
     // Calculate the scale required to fit all circles within the puzzle-area.
     int nCircles = rotated.length;
-    double minX = 0.0; double minY = 0.0;
-    double maxX = 0.0; double maxY = 0.0;
-int minXn = -1;
-int maxXn = -1;
-int minYn = -1;
-int maxYn = -1;
-    for (int n = 0; n < rotated.length; n++) {
-      if (! rotated[n].used) {
-        continue;		// Ignore UNUSED cells.
-      }
-      Offset centre = Offset(rotated[n].xyz[0], -rotated[n].xyz[1]);
-      if (centre.dx < minX) {minX = centre.dx; minXn = rotated[n].id; }
-      if (centre.dy < minY) {minY = centre.dy; minYn = rotated[n].id; }
-      if (centre.dx > maxX) {maxX = centre.dx; maxXn = rotated[n].id; }
-      if (centre.dy > maxY) {maxY = centre.dy; maxYn = rotated[n].id; }
-    }
-
-    double rangeX = maxX - minX;
-    double rangeY = maxY - minY;
-    double maxRange = (rangeX > rangeY) ? rangeX : rangeY;
-    debugPrint('X range $minX $maxX, Y range $minY $maxY');
-    debugPrint('rangeX $rangeX rangeY $rangeY maxRange $maxRange');
-    debugPrint('Sphere IDs: minX $minXn maxX $maxXn minY $minYn maxY $maxYn'); 
 
     // Spheres started with diameter 2: now inflated as per PuzzleMap specs.
-    double scale  = 0.95 * puzzleRect.height / (maxRange + _rawDiameter);
-    debugPrint('Scaled ranges ${scale * rangeX} ${scale * rangeY} puzzleRect ${puzzleRect.size}');
-    debugPrint('Incl diam ${scale * (rangeX + _rawDiameter)} ${scale * (rangeY + _rawDiameter)} puzzleRect ${puzzleRect.size}');
+    double scale  = 0.95 * puzzleRect.height / (_maxRange + _rawDiameter);
+    debugPrint('Scaled ranges ${scale * _rangeX} ${scale * _rangeY} puzzleRect ${puzzleRect.size}');
     Offset origin = puzzleRect.center;
-    Offset centering = Offset((puzzleRect.width  - scale * rangeX)/2.0,
-                              (puzzleRect.height - scale * rangeY)/2.0);
+    Offset centering = Offset((puzzleRect.width  - scale * _rangeX)/2.0,
+                              (puzzleRect.height - scale * _rangeY)/2.0);
+    debugPrint('Centering $centering');
     centering = Offset(0.0, 0.0);
     debugPrint('Centering $centering');
     for (int n = 0; n < rotated.length; n++) {
