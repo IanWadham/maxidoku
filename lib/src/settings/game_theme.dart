@@ -56,7 +56,7 @@ class GameTheme {
     Color(0xfffff0be),		// Colour of rims of 3D spheres.
     Color(0xffffb000),		// Colour of Given cells or clues.
     Colors.lime.shade400,	// Colour of Special cells.
-    Colors.red,			// Colour of Error cells.
+    Colors.red.shade200,	// Colour of Error cells.
     Colors.brown.shade400,	// Colour of lines between cells.
     Colors.brown.shade600,	// Colour of symbols and group outlines.
     Colors.lime.shade700,		// Colour for cage outlines.
