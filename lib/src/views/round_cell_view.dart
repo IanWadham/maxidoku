@@ -1,52 +1,55 @@
-      // Draw a "sphere" widget, for use in 3D MultiDoku puzzles.
-      // TODO - How to paint a 3x3x3  array of these widgets on a board widgwt.
-      //        ***** Use a Stack for the whole board, have Positioned widgets
-      //              of any size at any position. Give the Positioned widget
-      //              all this stuff as contents, defined as a StatelessWidget.
-      //              Get the Sizes and Centres from Puzzle3D model.
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../settings/game_theme.dart';
+
+// Paint a "sphere" widget, for use in 3D MultiDoku puzzles.
+//
+// When painted, it is enclosed in a Positioned widget of the same size and
+// a list of positioned RoundCellViews is then painted as children of a Stack
+// widget. The result is seen as a loose 3D array of tap-sensitive spheres.
 
 class RoundCellView extends StatelessWidget
 {
   // const RoundCellView(this.id, this.centre, this.diameter);
   const RoundCellView(this.id);
 
-  final int    id;	// Keep PuzzleMap index: cell list gets shuffled.
-  // final Offset centre;
-  // final double diameter;
+  // Keep the PuzzleMap index: the cell-list gets re-ordered after 3D rotations.
+  final int id;
 
   @override
   build(BuildContext context) {
-    // return Positioned.fromRect(
-      // rect: Rect.fromCenter(
-        // center: centre,
-        // width:  diameter,
-        // height: diameter,
-      // ),
-      // child: DecoratedBox(
-      return DecoratedBox(
+    GameTheme gameTheme = context.read<GameTheme>();
+
+    return GestureDetector(
+      onTap: () {
+        // TODO - Need to handle taps... Need to display symbols...
+        debugPrint('Tapped sphere $id.');
+      },
+      child: DecoratedBox(
         decoration: ShapeDecoration(	// Decorate a box of ANY shape.
-          shape: CircleBorder(	// Shows outline of circular box.
+          shape: CircleBorder(		// Show outline of circular box.
             side: BorderSide(
-              width: 1,
-              color: Colors.brown.shade400,
+              width: 1,			// TODO - Fixed or dep. on sphere size?
+              color: gameTheme.thinLineColor,
+              // width: 2,		// TODO - How to do the circular cursor?
+              // color: Colors.red,
             ), 
           ),
-          gradient: RadialGradient(
+          // Flutter's Gradient parameters are fractions of the Box/Circle size.
+          gradient: RadialGradient(	// Shade a circle to look like a sphere.
             center: Alignment.center,
             radius: 0.5,		// Diameter = width or height of box.
             colors: <Color>[
-              // background		// Multidoku puzzle background colour.
-              Colors.amber.shade100,	// Multidoku puzzle background colour.
-              Colors.amber.shade300,	// MultiDoku 3D puzzle cell colour.
+              gameTheme.innerSphereColor,
+              gameTheme.outerSphereColor,
             ],
-            stops: <double>[0.2, 1.0],// Shades circle, bright spot in centre.
-            tileMode: TileMode.decal,	// Leaves transparency after stop 1.0.
-            // Default TileMode.clamp fills rest of rect box with 2nd color.
+            stops: <double>[0.2, 1.0],	// Shades circle, bright spot in centre.
+            tileMode: TileMode.decal,	// Use transparency after circle-edge.
+            // Default TileMode.clamp fills rest of rect box with second color.
           ),
-        ),
-      ); 
-    // );
+        ), // End ShapeDecoration.
+      ), // End DecoratedBox.
+    ); // End GestureDetector.
   }
-}
+} // End RoundCellView class.
