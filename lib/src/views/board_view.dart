@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
+// import '../globals.dart';
 import 'board_grid_view.dart';
 import 'cell_view.dart';
 
 import '../models/puzzle_map.dart';
 
-// TODO - This only going to work on a 2D board.
-
 class BoardView2D extends StatefulWidget
 {
-  const BoardView2D(this.n, this.f, {Key? key})
+  const BoardView2D(this._map, this.cellBackground, this.f, {Key? key})
         : super(key: key);
 
-  final int n;
+  final PuzzleMap _map;
   final double f;
+  final List<int> cellBackground;
 
   @override
   State<BoardView2D> createState() => _BoardState2D();
@@ -25,22 +25,27 @@ class _BoardState2D extends State<BoardView2D>
   @override
   Widget build(BuildContext context)
   {
+    PuzzleMap map = widget._map;
+    int n = map.sizeY;
     return AspectRatio(
       aspectRatio: 1.0,
       // A Stack widget arranges its children to fit the space available.
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // BoardGridView(puzzleMap: widget.puzzleMap),
           Column(
             children: [
-              for (int y = 0; y < widget.n; y++)
+              for (int y = 0; y < n; y++)
                 Expanded(
                   child: Row(
                     children: [
-                      for (int x = 0; x < widget.n; x++)
+                      for (int x = 0; x < n; x++)
                         Expanded(
-                          child: CellView(x, y, widget.f),
+                          child: CellView(
+                                   x, y,
+                                   map.cellIndex(x, y),
+                                   widget.cellBackground[map.cellIndex(x, y)],
+                                   widget.f),
                         ),
                     ],
                   ),
@@ -48,6 +53,9 @@ class _BoardState2D extends State<BoardView2D>
             ],
           ),
         ],
+        // TODO - Can this be "stacked" to fit on top of the board-cells OK?
+        // Draw grid lines and cages too (if applicable).
+        // BoardGridView(puzzleMap: map),
       ),
     );
   } // End Widget build
