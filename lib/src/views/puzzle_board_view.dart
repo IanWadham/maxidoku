@@ -11,6 +11,7 @@ import '../settings/settings_view.dart';
 
 import '../globals.dart';
 import '../models/puzzle.dart';
+import '../models/puzzle_map.dart';
 import '../models/puzzle_3d.dart';
 import 'round_cell_view.dart';
 
@@ -18,25 +19,29 @@ import 'round_cell_view.dart';
 
 // import 'timer_widget.dart';
 
+/* OBSOLETE
 import 'painting_specs_2d.dart';
 import 'puzzle_painter_2d.dart';
 
 import 'painting_specs_3d.dart';
 import 'puzzle_painter_3d.dart';
+*/
 
 import 'board_view.dart';
+import 'board_grid_view.dart';
 
 class PuzzleBoardView extends StatelessWidget
 {
-  PuzzleBoardView({super.key});
+  PuzzleBoardView(/* {super.key}, */ this.boardSide);
 
   // TODO - StatelessWidget is an immutable class, but puzzle and hitPos cannot
   //        be "final" and so the PuzzleBoardView constructor cannot be "const".
   //        What to do?
 
+  final double boardSide;
+
   Offset hitPos    = const Offset(-1.0, -1.0);
   late Puzzle        puzzle;	// Located by Provider's watch<Puzzle> function.
-  late Puzzle3D      puzzle3D;
 
   @override
   // This widget tree contains the puzzle-area and puzzle-controls (symbols).
@@ -48,28 +53,34 @@ class PuzzleBoardView extends StatelessWidget
     // In 3D puzzles, the repaint can be due to rotation, with no data change.
 
     puzzle = context.watch<Puzzle>();
-    // TODO - Don't repeat puzzle3D actions on every build(). Put them
-    //        somewhere else perhaps.
-    puzzle3D = Puzzle3D(puzzle.puzzleMap);
-    puzzle3D.calculate3dLayout();
-    // double boardSide = MediaQuery.of(context).size.shortestSide;
-    double boardSide = 400.0;
+    PuzzleMap map = puzzle.puzzleMap;
+
+    // Set painting requirements for UNUSABLE, VACANT and SPECIAL cells.
+    List<int> cellBackground = [...map.emptyBoard];
+    for (int index in map.specialCells) {
+      cellBackground[index] = SPECIAL;	// Used in XSudoku and 3D puzzles.
+    }
+
     Rect boardSpace = const Offset(0.0, 0.0) & Size(boardSide, boardSide);
     debugPrint('Context size ${MediaQuery.of(context).size} board space $boardSpace');
-    List<RoundCell> roundCells = puzzle3D.calculateProjection(boardSpace);
 
     // Enable messages to the user after major changes of puzzle-status.
     WidgetsBinding.instance.addPostFrameCallback((_)
                             {executeAfterBuild(context);});
 
     // Find out if the System (O/S) or Flutter colour Theme is dark or light.
-    bool darkMode = (Theme.of(context).brightness == Brightness.dark);
-    List<Positioned> roundCellViews = [];
+    bool isDarkMode = (Theme.of(context).brightness == Brightness.dark);
+
     if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {	// 3D Puzzle.
+      Puzzle3D puzzle3D = Puzzle3D(map);
+      puzzle3D.calculate3dLayout();
+
+      List<Positioned> roundCellViews = [];
+      List<RoundCell> roundCells = puzzle3D.calculateProjection(boardSpace);
       for (RoundCell c in roundCells) {
         if (c.used) {
-// Cells 6. 13 and 20 are at the top, bottom and centre of the view.
-// if ((c.id == 6) || (c.id == 20) || (c.id == 13)) {
+// Cells 6. 13 and 20 are at the bottom, centre and top of the view.
+// if ((c.id == 6) || (c.id == 13) || (c.id == 20)) {
           Rect r = Rect.fromCenter(
                      center: boardSpace.center + c.centre,
                      width:  c.diameter,
@@ -86,6 +97,10 @@ class PuzzleBoardView extends StatelessWidget
       }
       // We wish to fill the parent, in either Portrait or Landscape layout.
       debugPrint('Board Side $boardSide;');
+      // return LayoutBuilder(
+        // builder: (BuildContext context, BoxConstraints constraints) {
+          // print('Board Constraints $constraints');
+          // return Stack(
       return SizedBox(
         width: boardSide,
         height: boardSide,
@@ -95,11 +110,20 @@ class PuzzleBoardView extends StatelessWidget
       );
     }
     else {		// 2D Sudoku variant, Killer Sudoku or Mathdoku puzzle.
-      Size boardSize = MediaQuery.of(context).size;
-      double d = boardSize.shortestSide;
       int    n = puzzle.puzzleMap.sizeY;
-      double fontHeight = 0.7 * (d / n);
-      return  BoardView2D(n, fontHeight);
+      double fontHeight = 0.6 * (boardSide / n);
+      return SizedBox(
+        width: boardSide,
+        height: boardSide,
+        child: Stack(
+          children: [
+            BoardView2D(map, cellBackground, fontHeight),
+            BoardGridView2D(
+              boardSide,
+              puzzleMap: map),
+          ],
+        ),
+      );
 /* ***************************
       return SizedBox(
         // We wish to fill the parent, in either Portrait or Landscape layout.
@@ -110,7 +134,7 @@ class PuzzleBoardView extends StatelessWidget
         child:  Listener(
           onPointerDown: _possibleHit2D,
           child: CustomPaint(
-            painter: PuzzlePainter2D(puzzle, darkMode),
+            painter: PuzzlePainter2D(puzzle, isDarkMode),
           ),
         ),
       );
@@ -237,6 +261,7 @@ class PuzzleBoardView extends StatelessWidget
     return false;
   }
 
+/* OBSOLETE
   // Handle the user's PointerDown actions on a 2D puzzle-area and controls.
   void _possibleHit2D(PointerEvent details)
   {
@@ -244,7 +269,9 @@ class PuzzleBoardView extends StatelessWidget
     PaintingSpecs2D paintingSpecs = puzzle.paintingSpecs2D;
     _possibleHit('2D', paintingSpecs.puzzleRect, paintingSpecs.controlRect);
   }
+*/
 
+/* OBSOLETE
   // Handle the user's PointerDown actions on a 3D puzzle-area and controls.
   void _possibleHit3D(PointerEvent details)
   {
@@ -272,5 +299,6 @@ class PuzzleBoardView extends StatelessWidget
     //       be scheduled by Provider. If the attempted move was
     //       invalid, there is no model-change and no repaint.
   }
+*/
 
 } // End class PuzzleBoardView extends StatelessWidget
