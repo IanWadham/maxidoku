@@ -58,10 +58,11 @@ class _CellViewState extends State<CellView>
         }
         else {
           // Add a live, tappable spot to the 2D Sudoku grid.
-          Color cellBackground = widget.cellBg == SPECIAL ?
-                                 gameTheme.specialCellColor :
-                                 gameTheme.emptyCellColor;
-          double fontHeight = widget.f;
+          Color  cellBackground = widget.cellBg == SPECIAL ?
+                                  gameTheme.specialCellColor :
+                                  gameTheme.emptyCellColor;
+          Color  textColour     = gameTheme.boldLineColor;
+          double fontHeight     = widget.f;
 
           Gradient? cellGradient = null;
 
@@ -111,7 +112,9 @@ class _CellViewState extends State<CellView>
                   _cellValue == 0 ? '' : _cellValue.toString(),
                   // textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: fontHeight, fontWeight: FontWeight.bold, //height:1.6,
+                    fontSize:   fontHeight,
+                    fontWeight: FontWeight.bold,
+                    color:      textColour,
                   ),
                   ),
                 ), // ),

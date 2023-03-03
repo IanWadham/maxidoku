@@ -34,10 +34,11 @@ class _ControlBarState extends State<PuzzleControlBar>
     double cellSide = widget.controlSide;
     String symbols  = '.123456789ABCDEFGHIJKLMNOP';
 
-    GameTheme gameTheme = context.read<GameTheme>();
+    GameTheme gameTheme  = context.read<GameTheme>();
     Color cellBackground = gameTheme.emptyCellColor;
-    Color cellDivider = gameTheme.thinLineColor;
-    Color controlsFrame = gameTheme.boldLineColor;
+    Color textColour     = gameTheme.boldLineColor;
+    Color cellDivider    = gameTheme.thinLineColor;
+    Color controlsFrame  = gameTheme.boldLineColor;
 
     List<Positioned> controls = [];
     Offset topLeft = Offset.zero;
@@ -67,7 +68,9 @@ class _ControlBarState extends State<PuzzleControlBar>
                 child: Text(
                   n < 2 ? '' : symbols[n - 1],
                   style: TextStyle(
-                    fontSize: fontHeight, fontWeight: FontWeight.bold,
+                    fontSize:   fontHeight,
+                    fontWeight: FontWeight.bold,
+                    color:      textColour,
                   ),
                 ),
               ),

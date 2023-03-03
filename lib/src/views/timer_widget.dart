@@ -10,9 +10,11 @@ class TimerWidget extends StatelessWidget
   // so this widget will not display anything then...
 
   TimerWidget({required this.visible,		// User's setting...
+               this.textColor,
                Key? key}) : super(key: key);
 
-  final bool visible;
+  final bool   visible;
+  final Color? textColor;	// If null, default to Flutter-theme color.
 
   late Puzzle puzzle;		// Located by Provider's watch<Puzzle> function.
 
@@ -24,8 +26,11 @@ class TimerWidget extends StatelessWidget
 
     if (visible) {
       return Text(userTime,	// Show the timer, if it has started, else ''.
+                  maxLines:  1,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold,
+                                   color:      textColor,
+                   ),
                  );
     }
     else {
