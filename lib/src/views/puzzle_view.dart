@@ -51,7 +51,7 @@ class PuzzleView extends StatelessWidget
 
   PuzzleView(this.isDarkMode, {Key? key,}) : super(key: key);
 
-  final bool timerVisible = false;
+  final bool timerVisible = false;	// TODO - Make this a Setting...
 
   Size   screenSize    = Size(0.0, 0.0);
   double edgeFactor    = 0.025;
@@ -79,32 +79,21 @@ class PuzzleView extends StatelessWidget
 
     // Set up Puzzle's theme in dark/light mode and get the icon button colours.
     // OBSOLETE puzzle.setTheme(isDarkMode);
-    // TODO - Get colours out of Puzzle class...
-    // Color background = Color(puzzle.background);
-    // Color foreground = Color(puzzle.foreground);
     Color background = gameTheme.backgroundColor;
     Color foreground = gameTheme.boldLineColor;
-
-    // TODO - Decide widths of all-around margins and padding between boxes.
-    // TODO - Decide dimensions of square puzzle-area and control-bar.
 
     // Provide some layout hints for Flutter, including 3D layout if applicable.
     calculateLayoutHints(map, portrait);
 
-    // TODO: Work out required width of timer: visible or not visible.
-    //       Allow for padding, etc. Allow space for 99:59:59... ? Maybe
-    //       give the clock a pseudo-fixed font, based on puzzle digit sizes?
-    //       At least we must center the timer in a SizedBox, so that the
-    //       whole row of icons does not dart about as the text-width changes.
-
-    // TODO - Can we put this list away somewhere and access list.length above?
+    // TODO - Can we put Icon list away somewhere and access list.length above?
 
     // Create the list of timer widget and action-icons.
     List<Widget> actionIcons = [
-      SizedBox(
-        width: 4.0 * iconSize,
+      SizedBox(	// If the timer is invisible, shrink it and center the icons.
+        width: timerVisible ? 4.0 * iconSize : 1,
         child: TimerWidget(
-          visible:  timerVisible,
+          visible:   timerVisible,
+          textColor: foreground,
         ),
       ),
       IconButton(
@@ -138,17 +127,6 @@ class PuzzleView extends StatelessWidget
             context, SettingsView.routeName);
         },
       ),
-      // IconButton(
-        // icon: const Icon(Icons.file_download),
-        // iconSize: iconSize,
-        // tooltip: 'Restore puzzle',
-        // color:   foreground,
-        // onPressed: () {
-          // // Navigate to the settings page.
-          // Navigator.restorablePushNamed(
-            // context, SettingsView.routeName);
-        // },
-      // ),
       IconButton(
         icon: const Icon(CommunityMaterialIcons.lightbulb_on_outline),
         iconSize: iconSize,
@@ -185,31 +163,7 @@ class PuzzleView extends StatelessWidget
           generatePuzzle(puzzle, context);
         },
       ),
-      // IconButton(
-        // icon: const Icon(Icons.check_circle_outline_outlined),
-        // iconSize: iconSize,
-        // tooltip: 'Check that the puzzle you have entered is valid',
-        // color:   foreground,
-        // onPressed: () async {
-          // checkPuzzle(puzzle, context);
-        // },
-      // ),
-      // IconButton(
-        // icon: const Icon(Icons.restart_alt_outlined),
-        // iconSize: iconSize,
-        // tooltip: 'Start solving this puzzle again',
-        // color:   foreground,
-        // onPressed: () {
-          // // Navigate to the settings page.
-          // Navigator.restorablePushNamed(
-            // context, SettingsView.routeName);
-        // },
-      // ),
     ]; // End list of action icons
-
-          // TODO - Temporary. Lay out PuzzleBoardView (empty square), Control
-          //                   Bar and spacing, taking account of Portrait and
-          //                   Landscape modes.
 
     // Paint the puzzle with the action icons and timer in a row at the top.
     // In Portrait mode, the control bar is horizontal, under the puzzle board.
@@ -231,13 +185,8 @@ class PuzzleView extends StatelessWidget
               ),
               const Spacer(),
               PuzzleBoardView(boardSide),
-              const Spacer(),
+              Padding(padding: EdgeInsets.only(top: edgePadding * 4.0)),
               PuzzleControlBar(controlSide, nSymbols, horizontal: true),
-              // Container(
-                // color: Colors.amber.shade600,
-                // height: controlSide,
-                // width:  controlSide * (map.nSymbols + 2.0),
-              // ),
               const Spacer(),
             ],
           ), // End body: Column(
@@ -258,12 +207,11 @@ class PuzzleView extends StatelessWidget
             ),
             Spacer(),
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget> [
-                const Spacer(),
                 PuzzleBoardView(boardSide),
-                const Spacer(),
+                Padding(padding: EdgeInsets.only(left: edgePadding)),
                 PuzzleControlBar(controlSide, nSymbols, horizontal: false),
-                const Spacer(),
               ],
             ), // End Row(.
             Spacer(),
@@ -281,12 +229,10 @@ class PuzzleView extends StatelessWidget
     shortSide           = shortSide - 2.0 * edgePadding;
     longSide            = longSide  - 2.0 * edgePadding;
     double nIcons       = 10.0;
-    iconSize            = 0.6  * shortSide / nIcons;
+    iconSize            = 0.5  * shortSide / nIcons;
     print('short $shortSide, nIcons $nIcons, iconSize $iconSize');
     nSymbols            = map.nSymbols;
-    controlSide         = 0.95 * shortSide / (nSymbols + 2.0);
-    controlSide         = (controlSide > longSide / 11.0) ? longSide / 11.0
-                                                          : controlSide;
+
     if (portrait) {
       // Vertical layout: icons, board, empty space, control bar.
       boardSide = longSide - (2.0 * iconSize) - edgePadding - controlSide;
@@ -302,13 +248,16 @@ class PuzzleView extends StatelessWidget
         boardSide = testValue;
       }
     }
+    if (nSymbols <= 6) {
+      boardSide = nSymbols * (boardSide / 6.0);
+    }
+    controlSide = boardSide / (nSymbols + 2.0);;
 /*
     if (map.specificType == SudokuType.Roxdoku) {	// 3D Puzzle.
       // Calculate the dimensions of the puzzle's arrangement of spheres.
     }
 */
   }
-
 
   // PROCEDURES FOR ICON ACTIONS AND USER MESSAGES.
 
