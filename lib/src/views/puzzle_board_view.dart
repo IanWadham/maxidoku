@@ -17,16 +17,6 @@ import 'round_cell_view.dart';
 
 // TO BE TESTED --- import 'board_view.dart';
 
-// import 'timer_widget.dart';
-
-/* OBSOLETE
-import 'painting_specs_2d.dart';
-import 'puzzle_painter_2d.dart';
-
-import 'painting_specs_3d.dart';
-import 'puzzle_painter_3d.dart';
-*/
-
 import 'board_view.dart';
 import 'board_grid_view.dart';
 
@@ -41,19 +31,24 @@ class PuzzleBoardView extends StatelessWidget
   final double boardSide;
 
   Offset hitPos    = const Offset(-1.0, -1.0);
-  late Puzzle        puzzle;	// Located by Provider's watch<Puzzle> function.
+
+  // Located by Provider's watch<>() or read<>() function.
+  late Puzzle          puzzle;
+  late PuzzlePlayer    puzzlePlayer;
 
   @override
   // This widget tree contains the puzzle-area and puzzle-controls (symbols).
   Widget build(BuildContext context) {
 
-    // Locate the puzzle's model and repaint this widget tree when the model
+    // Locate the puzzle's models and repaint this widget tree when a model
     // changes and emits notifyListeners(). Changes can be due to user-moves
     // (taps) or actions on icon-buttons such as Undo/Redo, Generate and Hint.
     // In 3D puzzles, the repaint can be due to rotation, with no data change.
 
-    puzzle = context.watch<Puzzle>();
-    PuzzleMap map = puzzle.puzzleMap;
+    puzzle          = context.watch<Puzzle>();
+    puzzlePlayer    = puzzle.puzzlePlayer;
+
+    PuzzleMap map   = puzzle.puzzleMap;
 
     // Set painting requirements for UNUSABLE, VACANT and SPECIAL cells.
     List<int> cellBackground = [...map.emptyBoard];
@@ -179,7 +174,7 @@ class PuzzleBoardView extends StatelessWidget
       }
       else {
         // A puzzle was selected, generated and accepted, so start the clock!
-        puzzle.startClock();
+        // TODO - DISABLED...   puzzle.puzzlePlayer._puzzleTimer.startClock();
       }
       return;
     }
@@ -187,8 +182,8 @@ class PuzzleBoardView extends StatelessWidget
     // Check to see if there was any major change during the last repaint of
     // the Puzzle. If so, issue appropriate messages. Flutter does not allow
     // them to be issued or automatically queued during a repaint.
-    Play playNow = puzzle.puzzlePlay;
-    if (puzzle.isPlayUnchanged()) {
+    Play playNow = puzzlePlayer.puzzlePlay;
+    if (puzzlePlayer.isPlayUnchanged()) {
       return;
     }
     // Play-status of Puzzle has changed. Need to issue a message to the user?
@@ -227,7 +222,7 @@ class PuzzleBoardView extends StatelessWidget
       int y = (point.dy / cellSide).floor();
       // debugPrint('Hit is at puzzle-cell ($x, $y)');
       // If hitting this cell is a valid move, the Puzzle model will be updated.
-      puzzle.hitPuzzleArea(x, y);
+      puzzlePlayer.hitPuzzleArea(x, y);
     }
     else if (puzzleHit && (D == '3D')) {
       return true;		// Do the rest using 3D functions.
@@ -237,8 +232,8 @@ class PuzzleBoardView extends StatelessWidget
         // Hit is on control-area: get current number of controls.
         // Use the same control-area actions for both 2D and 3D puzzles.
         int nSymbols = puzzle.puzzleMap.nSymbols;
-        int nCells = (puzzle.puzzlePlay == Play.NotStarted) ||
-                     (puzzle.puzzlePlay == Play.BeingEntered) ?
+        int nCells = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
+                     (puzzlePlayer.puzzlePlay == Play.BeingEntered) ?
                      nSymbols + 1 : nSymbols + 2;
         bool horizontal = controlRect.width > controlRect.height;
         double cellSide = horizontal ? controlRect.width / nCells
@@ -247,7 +242,7 @@ class PuzzleBoardView extends StatelessWidget
         int x = (point.dx / cellSide).floor();
         int y = (point.dy / cellSide).floor();
         int selection = horizontal ? x : y;	// Get the selected control num.
-        puzzle.hitControlArea(selection);
+        puzzlePlayer.hitControlArea(selection);
       }
       else {
         // Not a hit. Don't repaint.
@@ -260,16 +255,6 @@ class PuzzleBoardView extends StatelessWidget
     //       invalid, there is no model-change and no repaint.
     return false;
   }
-
-/* OBSOLETE
-  // Handle the user's PointerDown actions on a 2D puzzle-area and controls.
-  void _possibleHit2D(PointerEvent details)
-  {
-    hitPos = details.localPosition;
-    PaintingSpecs2D paintingSpecs = puzzle.paintingSpecs2D;
-    _possibleHit('2D', paintingSpecs.puzzleRect, paintingSpecs.controlRect);
-  }
-*/
 
 /* OBSOLETE
   // Handle the user's PointerDown actions on a 3D puzzle-area and controls.

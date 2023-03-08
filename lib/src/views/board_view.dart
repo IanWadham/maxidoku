@@ -53,9 +53,6 @@ class _BoardState2D extends State<BoardView2D>
             ],
           ),
         ],
-        // TODO - Can this be "stacked" to fit on top of the board-cells OK?
-        // Draw grid lines and cages too (if applicable).
-        // BoardGridView(puzzleMap: map),
       ),
     );
   } // End Widget build

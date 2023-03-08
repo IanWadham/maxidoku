@@ -11,6 +11,8 @@ import '../settings/game_theme.dart';
 
 import '../globals.dart';
 import '../models/puzzle.dart';
+// import '../models/puzzle_generator.dart';
+// import '../models/puzzle_player.dart';
 import '../models/puzzle_map.dart';
 
 import 'puzzle_board_view.dart';
@@ -69,16 +71,17 @@ class PuzzleView extends StatelessWidget
     screenSize = MediaQuery.of(context).size;
 
     // Find the Puzzle object (the model), which has been created by Provider.
-    Puzzle puzzle = context.read<Puzzle>();
-    PuzzleMap map = puzzle.puzzleMap;
-    GameTheme gameTheme = context.read<GameTheme>();
+    Puzzle          puzzle          = context.read<Puzzle>();
+
+    GameTheme       gameTheme       = context.read<GameTheme>();
+
+    PuzzleMap       map             = puzzle.puzzleMap;
 
     // Save the orientation, for later use by PuzzlePainters and paint().
     // A setter in Puzzle saves "portrait" in either 2D or 3D PaintingSpecs.
     bool portrait = (orientation == Orientation.portrait);
 
     // Set up Puzzle's theme in dark/light mode and get the icon button colours.
-    // OBSOLETE puzzle.setTheme(isDarkMode);
     Color background = gameTheme.backgroundColor;
     Color foreground = gameTheme.boldLineColor;
 
@@ -133,7 +136,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Get a hint',
         color:   foreground,
         onPressed: () {
-          puzzle.hint();
+          puzzle.puzzlePlayer.hint();
         },
       ),
       IconButton(
@@ -142,7 +145,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Undo a move',
         color:   foreground,
         onPressed: () {
-          puzzle.undo();
+          puzzle.puzzlePlayer.undo();
         },
       ),
       IconButton(
@@ -151,7 +154,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Redo a move',
         color:   foreground,
         onPressed: () {
-          puzzle.redo();
+          puzzle.puzzlePlayer.redo();
         },
       ),
       IconButton(
@@ -160,7 +163,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Generate a new puzzle',
         color:   foreground,
         onPressed: () {
-          generatePuzzle(puzzle, context);
+          generatePuzzle(context);
         },
       ),
     ]; // End list of action icons
@@ -261,13 +264,16 @@ class PuzzleView extends StatelessWidget
 
   // PROCEDURES FOR ICON ACTIONS AND USER MESSAGES.
 
-  void generatePuzzle(Puzzle puzzle, BuildContext context)
+  void generatePuzzle(context)
   async
   {
+    Puzzle       puzzle       = context.read<Puzzle>();
+    PuzzlePlayer puzzlePlayer = puzzle.puzzlePlayer;
+
     // Generate a puzzle of the requested level of difficulty.
-    debugPrint('GENERATE Puzzle: Play status ${puzzle.puzzlePlay}');
-    bool newPuzzleOK = (puzzle.puzzlePlay == Play.NotStarted) ||
-                       (puzzle.puzzlePlay == Play.ReadyToStart);
+    debugPrint('GENERATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
+    bool newPuzzleOK = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
+                       (puzzlePlayer.puzzlePlay == Play.ReadyToStart);
     if (! newPuzzleOK) {
       newPuzzleOK = await questionMessage(
         context,
@@ -280,13 +286,14 @@ class PuzzleView extends StatelessWidget
       puzzle.generatePuzzle();
     }
   }
-
-  void checkPuzzle(Puzzle puzzle, BuildContext context)
+/* ************************************* TEMPORARILY DISABLED
+  // TODO - Get tapping-in a puzzle working again....
+  void checkPuzzle(PuzzleGenerator puzzleGenerator, BuildContext context)
   async
   {
     // Validate a puzzle that has been tapped in or loaded by the user.
-    debugPrint('CHECK Puzzle: Play status ${puzzle.puzzlePlay}');
-    int error = puzzle.checkPuzzle();
+    debugPrint('CHECK Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
+    int error = puzzleGenerator.checkPuzzle();
     switch(error) {
       case 0:
         bool finished = await questionMessage(
@@ -300,7 +307,7 @@ class PuzzleView extends StatelessWidget
         );
         if (finished) {
           // Convert the entered data into a Puzzle and re-display it.
-          puzzle.convertDataToPuzzle();
+          puzzleGenerator.convertDataToPuzzle();
           // TODO - Suggest saving the puzzle to a file before playing it.
         }
         return;
@@ -332,14 +339,17 @@ class PuzzleView extends StatelessWidget
       default:
     }
   }
-
+*/
   void exitScreen(BuildContext context, Puzzle puzzle)
   async
   {
+    Puzzle       puzzle       = context.read<Puzzle>();
+    PuzzlePlayer puzzlePlayer = puzzle.puzzlePlayer;
+
     // Quit the Puzzle screen, maybe leaving a puzzle unfinished.
-    bool okToQuit = (puzzle.puzzlePlay == Play.NotStarted) ||
-                    (puzzle.puzzlePlay == Play.ReadyToStart) ||
-                    (puzzle.puzzlePlay == Play.Solved);
+    bool okToQuit = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
+                    (puzzlePlayer.puzzlePlay == Play.ReadyToStart) ||
+                    (puzzlePlayer.puzzlePlay == Play.Solved);
     if (! okToQuit) {
       okToQuit = await questionMessage(
                  context,

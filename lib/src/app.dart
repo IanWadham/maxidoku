@@ -177,7 +177,7 @@ class MyApp extends StatelessWidget {
                         // Access to model of game in Puzzle class.
                         ChangeNotifierProvider(
                           create: (context) =>		// The Model to watch.
-                              Puzzle(index, settingsController, isDarkMode),
+                              Puzzle(index, settingsController),
                           lazy:   false,		// Create Puzzle NOW, to
                                                         // avoid startup crash.
                         ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/puzzle.dart';
+import '../models/game_timer.dart';
 
 class TimerWidget extends StatelessWidget
 {
@@ -16,13 +16,15 @@ class TimerWidget extends StatelessWidget
   final bool   visible;
   final Color? textColor;	// If null, default to Flutter-theme color.
 
-  late Puzzle puzzle;		// Located by Provider's watch<Puzzle> function.
+  // ??? late Puzzle puzzle;	// Located by Provider's watch function.
 
   @override
   Widget build(BuildContext context) {
 
-    Puzzle puzzle   = context.watch<Puzzle>();
-    String userTime = puzzle.userTimeDisplay;
+    // TODO GameTimer is now its own class and will have its own Provider.
+    // ************* DISABLED...    Puzzle puzzle   = context.watch<Puzzle>();
+    // ************* DISABLED...    String userTime = puzzle.userTimeDisplay;
+    String userTime = ' ';
 
     if (visible) {
       return Text(userTime,	// Show the timer, if it has started, else ''.

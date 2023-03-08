@@ -97,8 +97,8 @@ class _CellViewState extends State<CellView>
                 debugPrint('Tapped cell ${widget.x}, ${widget.y}');
                 Puzzle puzzle = context.read<Puzzle>();
                 setState(() {
-                _cellValue = puzzle.solution[widget.index];
-                _cellStatus = puzzle.cellStatus[widget.index];
+                _cellValue = puzzle.puzzlePlayer.solution[widget.index];
+                _cellStatus = puzzle.puzzlePlayer.cellStatus[widget.index];
                 print('_cellValue $_cellValue _cellStatus $_cellStatus'); });
               },
               child: DecoratedBox(

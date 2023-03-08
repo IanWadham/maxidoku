@@ -32,7 +32,7 @@ class _ControlBarState extends State<PuzzleControlBar>
   {
     int    nCells   = widget.nSymbols + 2; // TODO - Dep. on Play/Enter/more(?).
     double cellSide = widget.controlSide;
-    String symbols  = '.123456789ABCDEFGHIJKLMNOP';
+    String symbols  = '.123456789ABCDEFGHIJKLMNOPQRSTUVWXY';
 
     GameTheme gameTheme  = context.read<GameTheme>();
     Color cellBackground = gameTheme.emptyCellColor;
@@ -45,9 +45,22 @@ class _ControlBarState extends State<PuzzleControlBar>
     Offset bottomRight = Offset(cellSide, cellSide);
     double fontHeight = 0.6 * cellSide;
     Gradient? cellGradient = null;
-
+/*
+    // Add a frame to go around all the controls.
+    // TODO - If added to Stack, this seems to disable Gestures and onTap().
+    Rect allControls = Rect.fromPoints(Offset.zero, bottomRight);
+    controls.add(
+      Positioned.fromRect(
+        rect: allControls,
+        child: ControlGridView(cellSide, nCells, widget.horizontal),
+      ),
+    );
+*/
+    Offset inset = Offset(4.0, 4.0);
+    print('NCELLS = $nCells');
+    int firstSymbol = nCells <= 11 ? 0 : 9;	// Start at A for bigger boards.
     for (int n = 0; n < nCells; n++) {
-      Rect r = Rect.fromPoints(topLeft, bottomRight);
+      Rect r = Rect.fromPoints(topLeft + inset, bottomRight - inset);
       controls.add(
         Positioned.fromRect(
           rect:  r,
@@ -66,7 +79,7 @@ class _ControlBarState extends State<PuzzleControlBar>
               position: DecorationPosition.background,
               child: Align (alignment: Alignment.center,
                 child: Text(
-                  n < 2 ? '' : symbols[n - 1],
+                  n < 2 ? '' : symbols[firstSymbol + n - 1],
                   style: TextStyle(
                     fontSize:   fontHeight,
                     fontWeight: FontWeight.bold,
@@ -85,26 +98,34 @@ class _ControlBarState extends State<PuzzleControlBar>
 /*
     // Add a frame to go around all the controls.
     // TODO - If added to Stack, this seems to disable Gestures and onTap().
+    // TODO - Put all the controls in their own Stack. Enclose that Stack
+    //        with another Stack to which the frame and dividers are added.
     Rect allControls = Rect.fromPoints(Offset.zero, bottomRight);
-    controls.add(
+    controls.add( // BAD
       Positioned.fromRect(
         rect: allControls,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(width: 4.0, color: controlsFrame),
-          ),
-        ),
+        child: ControlGridView(cellSide, nCells, widget.horizontal),
       ),
     );
 */
+    Rect allControls = Rect.fromPoints(Offset.zero, bottomRight);
     return SizedBox(
       width:  widget.horizontal ? nCells * cellSide : cellSide,
       height: widget.horizontal ? cellSide          : nCells * cellSide,
       child: Stack(
-        // TODO - Draw nCells coloured boxes, draw border rect, add symbols.
-        //        Add cursor, Positioned but able to change its position to
-        //        go to whatever cell is tapped (and update the model). 
-        children: controls,
+        children: [
+          Positioned.fromRect(
+            rect:  allControls,
+            child: ControlGridView(cellSide, nCells, widget.horizontal),
+          ),
+          // Positioned.fromRect(
+          /* rect:  allControls,
+          child: */ Stack(
+            children:
+              controls,
+          ),
+          // ),
+        ],
       ),
     );
   } // End Widget build().
@@ -116,3 +137,84 @@ class _ControlBarState extends State<PuzzleControlBar>
   }
 
 } // End class _BoardState2D.
+
+class ControlGridView extends StatelessWidget
+{
+  // Provides the frame and dividers in a Multidoku control bar.
+  final double cellSide;
+  final int    nCells;
+  final bool   horizontal;
+
+  ControlGridView(this.cellSide, this.nCells, this.horizontal);
+
+  @override
+  Widget build(BuildContext context)
+  {
+    final gameTheme = context.watch<GameTheme>();
+    return RepaintBoundary(
+      child: CustomPaint(
+        painter: ControlGridPainter(cellSide, nCells, horizontal,
+                                    gameTheme.thinLineColor,
+                                    gameTheme.boldLineColor),
+      ),
+    );
+  }
+
+}
+
+class ControlGridPainter extends CustomPainter
+{
+  final double cellSide;
+  final int    nCells;
+  final bool   horizontal;
+  final Color  thinLineColor;
+  final Color  boldLineColor;
+
+  ControlGridPainter(this.cellSide, this.nCells, this.horizontal,
+                     this.thinLineColor, this.boldLineColor);
+
+  @override
+  void paint(Canvas canvas, Size size)
+  {
+    Paint thinLinePaint = Paint()	// Style for lines between cells.
+      ..color = thinLineColor
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    Paint boldLinePaint = Paint()	// Style for symbols and group outlines.
+      ..color = boldLineColor
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    // Calculated widths of lines, depending on canvas size and puzzle size.
+    thinLinePaint.strokeWidth  = cellSide / 30.0;
+    boldLinePaint.strokeWidth  = cellSide / 15.0;
+    print('Canvas size $size, thin ${thinLinePaint.strokeWidth} thick ${boldLinePaint.strokeWidth}');
+
+    // WILL BE NEEDED LATER...
+    // highlight.strokeWidth      = cellSide * paintingSpecs.highlightInset;
+
+    // Paint dividers between cells.
+    for (int n = 1; n < nCells; n++) {
+      double pos = cellSide * n;
+      Offset start = horizontal ? Offset(pos, 0.0) : Offset(0.0, pos);
+      Offset end   = horizontal ? Offset(pos, cellSide) : Offset(cellSide, pos);
+      canvas.drawLine(start, end, thinLinePaint);
+    }
+
+    // Paint surrounding frame.
+    Rect r = Offset.zero & size;
+    print('Rect $r');
+    // r = r.deflate(cellSide / 30.0);
+    r = r.inflate(cellSide / 10.0);
+    print('Inflated Rect $r');
+    canvas.drawRect(r, boldLinePaint);
+  }
+
+  @override
+  bool shouldRepaint(ControlGridPainter oldDelegate)
+  {
+    return false;
+  }
+}

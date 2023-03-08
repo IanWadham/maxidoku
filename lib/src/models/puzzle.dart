@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
-import 'dart:async';		// Needed to compile Timer and _ticker.
 
 import '../settings/settings_controller.dart';
 
@@ -7,12 +6,228 @@ import '../globals.dart';
 import 'puzzle_map.dart';
 import 'puzzle_types.dart';
 
-// OBSOLETE import '../views/painting_specs_2d.dart';
-// OBSOLETE import '../views/painting_specs_3d.dart';
+import 'game_timer.dart';
 
 import '../engines/sudoku_generator.dart';
 import '../engines/sudoku_solver.dart';
 import '../engines/mathdoku_generator.dart';
+
+class Puzzle with ChangeNotifier
+{
+  // Constructor.
+  Puzzle(int index, this.settings)
+  {
+    createState(index);
+  }
+
+  final SettingsController settings;
+
+  late PuzzleMap    _puzzleMap;
+  late PuzzlePlayer _puzzlePlayer;
+
+  PuzzleMap    get puzzleMap    => _puzzleMap;
+  PuzzlePlayer get puzzlePlayer => _puzzlePlayer;
+
+  Message delayedMessage = Message('', '');
+
+  bool createState(int index)
+  {
+    // Create the layout, clues and model for the puzzle type the user selected.
+    debugPrint('Create Puzzle: index $index hash $hashCode');
+
+    // TODO - Could do the string-handling in PuzzleMap and just pass it index.
+    // Get a list of puzzle specifications in textual form.
+    PuzzleTypesText puzzleList = PuzzleTypesText();
+
+    // Get a specification of a puzzle, using the index selected by the user.
+    List<String> puzzleMapSpec = puzzleList.puzzleTypeText(index);
+
+    // Parse it and create the corresponding Puzzle Map, with an empty board.
+    _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
+
+    _puzzlePlayer = PuzzlePlayer(_puzzleMap);
+    _puzzlePlayer.initialise();	// Clear relevant parts of the Puzzle state.
+
+    // Start by generating a puzzle and a delayed message immediately. The users
+    // can tap an icon button or message reply if they wish to tap in a puzzle.
+    generatePuzzle();		// ???????? generatePuzzle();
+    // NOTE - Flutter is already painting. Issuing a message right now causes
+    //        a crash and calling notifyListeners() also causes a crash. The
+    //        delayed message will be handled in PuzzleView.executeAfterBuild().
+    return true;
+  }
+
+  void generatePuzzle()
+  {
+    PuzzleGenerator generator = PuzzleGenerator();
+
+    // Generate a puzzle of the required layout type, difficulty and symmetry.
+    // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
+    // The result-message either informs the user about the puzzle generated or
+    // asks whether to Accept or Retry, if the requirements have not been met.
+    // The message is stashed, in case the Puzzle View is currently painting.
+
+    delayedMessage = generator.generatePuzzle(
+                                 _puzzleMap, _puzzlePlayer,
+                                 settings.difficulty, settings.symmetry);
+  }
+
+} // End Puzzle class.
+
+class PuzzleGenerator with ChangeNotifier
+{
+  // Generate a puzzle of the required layout type, difficulty and symmetry.
+  // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
+
+  PuzzleGenerator();
+
+  // Below are the results of generating a puzzle. Note that these lists are
+  // the only Properties of the Puzzle Generator. It consumes (briefly) an
+  // enormous share of CPU time and memory, so everything is done inside
+  // functions and procedures, here or in Engine objects, so that all memory
+  // should get released after all the calculation is done or the generator
+  // has made a number of attempts to meet the user's requirementsr. Then it
+  // is time to ask them to accept the best result so far - or try again.
+
+  // That situation is more likely to arise if the Difficulty and Symmetry
+  // are high or the puzzle-type is large and complex.
+
+  BoardContents _puzzleGiven  = [];	// Starting state of generated puzzle.
+  BoardContents _solution     = [];	// Finishing state of generated puzzle.
+  List<int>     _sudokuMoves  = [];	// Move-list: for hints.
+
+  Message generatePuzzle(PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer,
+                         Difficulty difficulty, Symmetry symmetry)
+  // Generate a new puzzle of the type and size selected by the user.
+  {
+    puzzlePlayer.initialise();	// Clear relevant parts of the Puzzle state.
+
+    Message response = Message('', '');
+    SudokuType puzzleType = puzzleMap.specificType;
+    switch (puzzleType) {
+      case SudokuType.Mathdoku:
+      case SudokuType.KillerSudoku:
+	// Generate variants of Killer Sudoku or Mathdoku (aka Kenken TM) types.
+        MathdokuKillerGenerator mg = MathdokuKillerGenerator(puzzleMap);
+	int maxTries = 10;
+        debugPrint('GENERATE $puzzleType, $difficulty');
+        for (int numTries = 1; numTries <= maxTries; numTries++) {
+          // Try up to 10 different starting-solutions.
+          _solution = _fillBoard(puzzleMap);
+          response  = mg.generateMathdokuKillerTypes(_puzzleGiven, _solution,
+                                                     _sudokuMoves, difficulty);
+          if ((response.messageType != '') && (response.messageType != 'F')) {
+            break;
+          }
+        }
+        if (response.messageType == '') {
+          // Used up max tries and found no valid puzzle.
+          response.messageType = 'F';		// Warning.
+          response.messageText = 'Attempts to generate a puzzle failed after'
+                                 ' about 200 tries.';
+        }
+        else {
+          // OBSOLETE _paintingSpecs2D.markCageBoundaries(_puzzleMap);
+        }
+        break;
+      default:
+	// Generate Sudoku (2D) and Roxdoku (3D) types - and all their variants.
+        SudokuGenerator srg = SudokuGenerator(puzzleMap);
+        debugPrint('GENERATE $puzzleType, $difficulty, $symmetry');
+	response = srg.generateSudokuRoxdoku(_puzzleGiven, _solution,
+                                             _sudokuMoves,
+                                             difficulty, symmetry);
+        // print('_puzzleGiven = $_puzzleGiven');
+        // print('_solution    = $_solution   ');
+        // print('_sudokuMoves = $_sudokuMoves');
+        break;
+    }
+    if (response.messageType != 'F') {	// Succeeded - up to a point maybe...
+      puzzlePlayer.makeReadyToPlay(_puzzleGiven, _solution, _sudokuMoves);
+      notifyListeners();		// Trigger a repaint of the Puzzle View.
+
+      // Release PuzzleGenerator storage.
+      _puzzleGiven.clear();
+      _solution.clear();
+      _sudokuMoves.clear();
+      print('_puzzleGiven = $_puzzleGiven');
+      print('_solution    = $_solution   ');
+      print('_sudokuMoves = $_sudokuMoves');
+    }
+    else {				// FAILED. Please try again.
+      // Generator/solver may have failed internally.
+      debugPrint('IN Puzzle: Generator failed');
+    }
+    return response;
+  }
+
+  BoardContents _fillBoard(PuzzleMap puzzleMap)
+  {
+    // This is in a function so that "solver" will release resources as soon
+    // as possible, in cases when the Mathdoku/Killer-Sudoku generator runs.
+    // Both generators use it to fill the board with values that satisfy the
+    // constraints of the type of puzzle selected. These values will become
+    // the solution to the puzzle that is generatedi from them.
+
+    SudokuSolver solver = SudokuSolver(puzzleMap: puzzleMap);
+    return solver.createFilledBoard();	// createFilledBoard() does cleanup().
+  }
+
+  /*
+   * Check that a puzzle is soluble, has the desired solution and has only one
+   * solution.  This method can be used to check puzzles loaded from a file or
+   * entered manually, in which case the solution parameter can be omitted. It
+   * is also used to check a puzzle tapped in by the user.
+   *
+   * @return              The result of the check, with values as follows:
+   * @retval >= 0         The difficulty of the puzzle, approximately, after
+   *                      one solver run.  If there are guesses, the
+   *                      difficulty can vary from one run to another,
+   *                      depending on which guesses are randomly chosen.
+   * @retval -1           No solution.
+   * @retval -2           Wrong solution.
+   * @retval -3           More than one solution.
+   */
+/* ********************* TEMPORARILY DISABLED BACK IN PuzzleView...
+  int checkPuzzle(PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer)
+  {
+    // Check that a puzzle tapped in or loaded by user has a proper solution.
+    debugPrint('ENTERED checkPuzzle().');
+    SudokuSolver solver = SudokuSolver(puzzleMap: puzzleMap);
+    BoardContents stateOfPlay = puzzlePlayer.stateOfPlay;
+    int error = 0;
+    error = solver.checkSolutionIsValid (stateOfPlay, _solution);
+    if (error != 0) {
+      return error;
+    }
+    // TODO - It would be nice if we could return a Difficulty index >= 0.
+    error = solver.checkSolutionIsUnique(stateOfPlay, _solution);
+    solver.cleanUp();
+    return error;
+  }
+*/
+/* ************************************** MOVED TO PuzzlePlayer...
+  void convertDataToPuzzle(PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer)
+  {
+    debugPrint('ENTERED convertDataToPuzzle().');
+    // TODO - Add a setter or a method to PuzzlePlayer?...
+    //        Maybe this whole method should be in PuzzlePlayer ???????
+    _puzzleGiven = [..._stateOfPlay];
+    for (int n = 0; n < _puzzleGiven.length; n++) {
+      if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
+        _cellStatus[n] = GIVEN;
+      }
+    }
+    SudokuSolver solver = SudokuSolver(puzzleMap: puzzleMap);
+    _solution = solver.solveBoard (_puzzleGiven, GuessingMode.Random);
+    solver.cleanUp();
+    _cellChanges.clear();			// No moves made yet.
+    _puzzlePlay = Play.ReadyToStart;
+    ///////// ?????????? _puzzleTimer.startClock();
+    notifyListeners();
+  }
+*/
+} // End PuzzleGenerator class.
 
 class CellChange
 {
@@ -22,35 +237,11 @@ class CellChange
   CellChange(this.cellIndex, this.after);
 }
 
-class Puzzle with ChangeNotifier
+class PuzzlePlayer with ChangeNotifier
 {
-  // Constructor.
-  // TODO - Don't need isDarkMode here any more.
-  Puzzle(int index, this.settings, bool isDarkMode)
-  {
-    createState(index, isDarkMode);
-  }
+  PuzzleMap _puzzleMap;
 
-  final SettingsController settings;
-
-  late PuzzleMap _puzzleMap;
-  PuzzleMap get puzzleMap => _puzzleMap;
-
-  Message delayedMessage = Message('', '');
-
-/* OBSOLETE
-  late PaintingSpecs2D _paintingSpecs2D;
-  late PaintingSpecs3D _paintingSpecs3D;
-  late int background;
-  late int foreground;
-
-  PaintingSpecs2D get paintingSpecs2D => _paintingSpecs2D;
-  PaintingSpecs3D get paintingSpecs3D => _paintingSpecs3D;
-
-  set portrait(bool b)                => (_puzzleMap.sizeZ == 1) ?
-                                         _paintingSpecs2D.portrait = b :
-                                         _paintingSpecs3D.portrait = b;
-*/
+  PuzzlePlayer(this._puzzleMap);
 
   // The status of puzzle-play. Determines what moves are allowed and their
   // meaning. In NotStarted status, the puzzle is set to be empty and can be
@@ -65,17 +256,12 @@ class Puzzle with ChangeNotifier
 
   // The full solution of the puzzle, +ve integers. Stays fixed during play.
   BoardContents    _solution    = [];
-  final List<int>  _sudokuMoves = [];	// Move-list for Sudoku hints.
+  List<int>        _sudokuMoves = [];	// Move-list for Sudoku hints.
 
   // Current values of each cell, which may be +ve integers or bitmaps of Notes.
   BoardContents    _stateOfPlay = [];
   BoardContents get stateOfPlay => _stateOfPlay;
   BoardContents get solution => _solution;	// TODO - Testing ONLY...
-
-  // The required difficulty and symmetry of the puzzle to be generated.
-  // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
-  Difficulty _difficulty = Difficulty.Easy;
-  Symmetry   _symmetry   = Symmetry.RANDOM_SYM;
 
   // The current status of each cell.
   // Possible values are UNUSABLE, VACANT, GIVEN, CORRECT, ERROR and NOTES.
@@ -96,56 +282,17 @@ class Puzzle with ChangeNotifier
   int? selectedCell;		// Null means no valid cell to play.
   bool notesMode       = false;
 
-  // Clock starts whenever the user decides to start solving a Puzzle.
-  // Clock stops whenever he/she finishes solving the Puzzle or abandons it.
-  Stopwatch  _userTime = Stopwatch();
-  Timer?     _ticker = null;		// Null when there is no Timer running.
-  String     userTimeDisplay = '';	// Updated by Timer, once per second.
+  // The View's interface to the Game Timer.
+  // The time appears (optionally) in the PuzzleView screen once per second.
+  // The clock is started by user's response to a message in PuzzleBoardView.
+  // It stops when the user finishes the puzzle or abandons it. It is reset to
+  // zero by PuzzlePlayer.initialise().
 
-  // TODO - OBSOLETE parameter "isDarkMode".
-  bool createState(int index, bool isDarkMode)
-  {
-    // Create the layout, clues and model for the puzzle type the user selected.
-    debugPrint('Create Puzzle: index $index hash $hashCode');
+  GameTimer  _puzzleTimer    =  GameTimer();
+  String get userTimeDisplay => _puzzleTimer.userTimeDisplay;
+  void       startClock()    => _puzzleTimer.startClock();
 
-    // TODO - Could do the string-handling in PuzzleMap and just pass it index.
-    // Get a list of puzzle specifications in textual form.
-    PuzzleTypesText puzzleList = PuzzleTypesText();
-
-    // Get a specification of a puzzle, using the index selected by the user.
-    List<String> puzzleMapSpec = puzzleList.puzzleTypeText(index);
-
-    // Parse it and create the corresponding Puzzle Map, with an empty board.
-    _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
-
-/* OBSOLETE
-    // Precalculate and save the operations for paint(Canvas canvas, Size size).
-    // These are held in unit form and scaled up when the canvas-size is known.
-    if (_puzzleMap.sizeZ == 1) {
-      _paintingSpecs2D = PaintingSpecs2D(_puzzleMap, settings);
-      _paintingSpecs2D.setPuzzleThemeMode(isDarkMode); // Init light/dark theme.
-      _paintingSpecs2D.calculatePainting();
-    }
-    else {
-      _paintingSpecs3D = PaintingSpecs3D(_puzzleMap, settings);
-      _paintingSpecs3D.setPuzzleThemeMode(isDarkMode); // Init light/dark theme.
-      _paintingSpecs3D.calculatePainting();
-    }
-*/
-
-    // Start by generating a puzzle and a delayed message immediately. The users
-    // can tap an icon button or message reply if they wish to tap in a puzzle.
-    // ???????? generatePuzzle();
-    _init();			// Clear relevant parts of the Puzzle state.
-    generatePuzzle();
-
-    // NOTE - Flutter is already painting. Issuing a message right now causes
-    //        a crash and calling notifyListeners() also causes a crash. The
-    //        delayed message will be handled in PuzzleView.executeAfterBuild().
-    return true;
-  }
-
-  void _init()
+  void initialise()
   {
     // Initialize the lists of cells, using deep copies. The solution is empty
     // in case the user taps in a puzzle: it gets filled if they generate one.
@@ -155,107 +302,33 @@ class Puzzle with ChangeNotifier
     // before, but without having to go back to the Puzzle List screen.
 
     _puzzleGiven = [..._puzzleMap.emptyBoard];
-    _solution    = [];		// Needs to be empty if tapping in a puzzle.
+    _solution    = [];		// Needs to be empty when tapping in a puzzle.
     _stateOfPlay = [..._puzzleMap.emptyBoard];
     _cellStatus  = [..._puzzleMap.emptyBoard];
 
     _cellChanges.clear();	// No moves to undo/redo yet.
     _sudokuMoves.clear();	// No hints available yet.
 
-    // Get the user's chosen/default Difficulty and Symmetry from Settings.
-    _difficulty = settings.difficulty;
-    _symmetry   = settings.symmetry;
-
     _indexUndoRedo  = 0;
 
-    selectedCell    = null;	// TODO - Could be 0.
+    selectedCell    = null;	// TODO - Could be 0/
     selectedControl = 1;
     notesMode       = false;
 
     _puzzlePlay = Play.NotStarted;
-    // TODO - Belongs in a new GameTimer class.
-    _ticker?.cancel();
-    _ticker     = null;
+
+    _puzzleTimer.init();
   }
 
-/* OBSOLETE
-  void setTheme(bool isDarkMode)
-  {
-    if (_puzzleMap.sizeZ == 1) {
-      _paintingSpecs2D.setPuzzleThemeMode(isDarkMode); // Switch light/dark.
-      background = _paintingSpecs2D.backgroundPaint.color.value;
-      foreground = _paintingSpecs2D.boldLinePaint.color.value;
-      return;
-    }
-    else {
-      _paintingSpecs3D.setPuzzleThemeMode(isDarkMode); // Switch light/dark.
-      background = _paintingSpecs3D.backgroundPaint.color.value;
-      foreground = _paintingSpecs3D.boldLinePaint.color.value;
-      return;
-    }
-  }
-*/
-
-  void generatePuzzle()
-  // Generate a new puzzle of the type and size selected by the user.
-  // This can be re-used, without going back to the puzzle selection screen.
-  {
-    _init();			// Clear relevant parts of the Puzzle state.
-
-    Message response = Message('', '');
-    SudokuType puzzleType = _puzzleMap.specificType;
-    switch (puzzleType) {
-      case SudokuType.Mathdoku:
-      case SudokuType.KillerSudoku:
-	// Generate variants of Killer Sudoku or Mathdoku (aka Kenken TM) types.
-        MathdokuKillerGenerator mg = MathdokuKillerGenerator(_puzzleMap);
-	int maxTries = 10;
-        debugPrint('GENERATE $puzzleType, $_difficulty');
-        for (int numTries = 1; numTries <= maxTries; numTries++) {
-          // Try up to 10 different starting-solutions.
-          _solution = _fillBoard();
-          response  = mg.generateMathdokuKillerTypes(_puzzleGiven, _solution,
-                                                     _sudokuMoves, _difficulty);
-          if ((response.messageType != '') && (response.messageType != 'F')) {
-            break;
-          }
-        }
-        if (response.messageType == '') {
-          // Used up max tries and found no valid puzzle.
-          response.messageType = 'F';		// Warning.
-          response.messageText = 'Attempts to generate a puzzle failed after'
-                                 ' about 200 tries.';
-        }
-        else {
-          // OBSOLETE _paintingSpecs2D.markCageBoundaries(_puzzleMap);
-        }
-        break;
-      default:
-	// Generate Sudoku (2D) and Roxdoku (3D) types - and all their variants.
-        SudokuGenerator srg = SudokuGenerator(_puzzleMap);
-        debugPrint('GENERATE $puzzleType, $_difficulty, $_symmetry');
-	response = srg.generateSudokuRoxdoku(_puzzleGiven, _solution,
-                                             _sudokuMoves,
-                                             _difficulty, _symmetry);
-        break;
-    }
-    if (response.messageType != 'F') {	// Succeeded - up to a point maybe...
-      makeReadyToPlay();
-      notifyListeners();		// Trigger a repaint of the Puzzle View.
-    }
-    else {				// FAILED. Please try again.
-      // Generator/solver may have failed internally.
-      debugPrint('IN Puzzle: Generator failed');
-    }
-    // Stash the result-message in case PuzzleBoardView is currently painting.
-    delayedMessage = response;
-    return;
-  }
-
-  void makeReadyToPlay()
+  void makeReadyToPlay(BoardContents puzzleGiven,
+                       BoardContents solution,
+                       List<int>     sudokuMoves)
   {
     selectedCell = null;	// Set invalid index for first selected cell.
-    _stateOfPlay = [..._puzzleGiven];
+    _puzzleGiven = [...puzzleGiven];
+    _stateOfPlay = [...puzzleGiven];
+    _solution    = [...solution];
+    _sudokuMoves = [...sudokuMoves];
 
     // Set the first VACANT cell to be highlighted. If all cells are Given
     // or unusable, the selectedCell stays null and is not highlighted, so no
@@ -276,103 +349,6 @@ class Puzzle with ChangeNotifier
 
     // Change the Puzzle Play status to receive solving moves.
     _puzzlePlay = Play.ReadyToStart;
-  }
-
-  void startClock()
-  {
-    return;	// Hook to disable Timer when testing BoardView, CellView, etc.
-
-    // TODO - Test to make sure that this assert does not trigger.
-    assert(_ticker == null, 'ASSERT ERROR startClock(): _ticker is NOT null.');
-    debugPrint('START THE CLOCK!!!');
-    _userTime.reset();
-    _userTime.start();
-    // Start a 1-second ticker, but only if it is null (not already running).
-    _ticker ??= Timer.periodic(const Duration(seconds: 1), (_ticker)
-      {
-        // One tick per second.
-        Duration t = _userTime.elapsed;
-        userTimeDisplay = '${t.toString().split('.').first}'; // (h)h:mm:ss
-        if (t < Duration(hours: 1)) {
-          // Remove leading zero(s) and colon.
-          int xxx = userTimeDisplay.indexOf(':') + 1;
-          if (t < Duration(minutes: 10)) {
-            xxx++;
-          }
-          userTimeDisplay = userTimeDisplay.substring(xxx /* to end */);
-        }
-        notifyListeners();			// Display the time (if reqd).
-      }
-    );
-  }
-
-  void stopClock()
-  {
-    return;	// Hook to disable Timer when testing BoardView, CellView, etc.
-
-    // TODO - Test to make sure that this assert does not trigger.
-    assert(_ticker != null, 'ASSERT ERROR stopClock(): _ticker IS NULL.');
-    _userTime.stop();
-    _ticker?.cancel();
-    _ticker = null;
-    debugPrint('STOP THE CLOCK!!!');
-  }
-
-  BoardContents _fillBoard()
-  {
-    // This is in a function so that "solver" will release resources as soon
-    // as possible, in cases when the Mathdoku/Killer-Sudoku generator runs.
-    SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
-    return solver.createFilledBoard();	// createFilledBoard() does cleanup().
-  }
-
-  /*
-   * Check that a puzzle is soluble, has the desired solution and has only one
-   * solution.  This method can be used to check puzzles loaded from a file or
-   * entered manually, in which case the solution parameter can be omitted. It
-   * is also used to check a puzzle tapped in by the user.
-   *
-   * @return              The result of the check, with values as follows:
-   * @retval >= 0         The difficulty of the puzzle, approximately, after
-   *                      one solver run.  If there are guesses, the
-   *                      difficulty can vary from one run to another,
-   *                      depending on which guesses are randomly chosen.
-   * @retval -1           No solution.
-   * @retval -2           Wrong solution.
-   * @retval -3           More than one solution.
-   */
-  int checkPuzzle()
-  {
-    // Check that a puzzle tapped in or loaded by user has a proper solution.
-    debugPrint('ENTERED checkPuzzle().');
-    SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
-    int error = 0;
-    error = solver.checkSolutionIsValid (_stateOfPlay, _solution);
-    if (error != 0) {
-      return error;
-    }
-    // TODO - It would be nice if we could return a Difficulty index >= 0.
-    error = solver.checkSolutionIsUnique(_stateOfPlay, _solution);
-    solver.cleanUp();
-    return error;
-  }
-
-  void convertDataToPuzzle()
-  {
-    debugPrint('ENTERED convertDataToPuzzle().');
-    _puzzleGiven = [..._stateOfPlay];
-    for (int n = 0; n < _puzzleGiven.length; n++) {
-      if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
-        _cellStatus[n] = GIVEN;
-      }
-    }
-    SudokuSolver solver = SudokuSolver(puzzleMap: _puzzleMap);
-    _solution = solver.solveBoard (_puzzleGiven, GuessingMode.Random);
-    solver.cleanUp();
-    _cellChanges.clear();			// No moves made yet.
-    _puzzlePlay = Play.ReadyToStart;
-    startClock();
-    notifyListeners();
   }
 
   bool triggerRepaint()
@@ -464,7 +440,7 @@ class Puzzle with ChangeNotifier
 
       // Stop the clock when changing to Solved status.
       if (_puzzlePlay == Play.Solved) {
-        stopClock();
+        /////////// ????????????? _puzzleTimer.stopClock();
       }
     }
 
@@ -705,9 +681,9 @@ class Puzzle with ChangeNotifier
     // cells and most have < 100 cells.
   {
     int noteBit = 1 << newValue;
-    List<int> groupList = puzzleMap.groupList(n);
+    List<int> groupList = _puzzleMap.groupList(n);
     for (int g in groupList) {
-      for (int cell in puzzleMap.group(g)) {
+      for (int cell in _puzzleMap.group(g)) {
         if ((cell != n) && (_cellStatus[cell] == NOTES)) {
           if ((_stateOfPlay[cell] & noteBit) != 0) {
             // Use an exclusive-OR to clear the required bit.
@@ -723,18 +699,15 @@ class Puzzle with ChangeNotifier
   }
 
   @override
-  void dispose()
+  void dispose() // TODO - Probably belongs in GameTimer.
   {
     // This is needed if the Puzzle is terminated before it is solved. It avoids
     // an error when the Timer runs on and the Puzzle object no longer exists.
     debugPrint('Puzzle DISPOSED');
 
-    if (_ticker != null) {
-      stopClock();
-    }
-    userTimeDisplay = '';
+    ////////// ??????????????  _puzzleTimer.stopClock();
 
     super.dispose();
   }
 
-} // End puzzle class.
+} // End PuzzlePlayer class.
