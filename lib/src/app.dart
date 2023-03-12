@@ -16,63 +16,6 @@ import 'settings/game_theme.dart';
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
 
-/* IDW GoRouter disabled for now.
-  static final _router = GoRouter(
-    routes: [
-      GoRoute(
-          path: '/',
-          builder: (context, state) =>
-              const MainMenuScreen(key: Key('main menu')),
-          routes: [
-            GoRoute(
-                path: 'play',
-                pageBuilder: (context, state) => buildMyTransition<void>(
-                      child: const LevelSelectionScreen(
-                          key: Key('level selection')),
-                      color: context.watch<Palette>().backgroundLevelSelection,
-                    ),
-                routes: [
-                  GoRoute(
-                    path: 'session/:level',
-                    pageBuilder: (context, state) {
-                      final levelNumber = int.parse(state.params['level']!);
-                      final level = gameLevels
-                          .singleWhere((e) => e.number == levelNumber);
-                      return buildMyTransition<void>(
-                        child: PlaySessionScreen(
-                          level,
-                          key: const Key('play session'),
-                        ),
-                        color: context.watch<Palette>().backgroundPlaySession,
-                      );
-                    },
-                  ),
-                  GoRoute(
-                    path: 'won',
-                    pageBuilder: (context, state) {
-                      final map = state.extra! as Map<String, dynamic>;
-                      final score = map['score'] as Score;
-
-                      return buildMyTransition<void>(
-                        child: WinGameScreen(
-                          score: score,
-                          key: const Key('win game'),
-                        ),
-                        color: context.watch<Palette>().backgroundPlaySession,
-                      );
-                    },
-                  )
-                ]),
-            GoRoute(
-              path: 'settings',
-              builder: (context, state) =>
-                  const SettingsScreen(key: Key('settings')),
-            ),
-          ]),
-    ],
-  );
-*/ // IDW End GoRouter disabled for now.
-
   const MyApp({
     Key? key,
     required this.settingsController,
@@ -160,6 +103,13 @@ class MyApp extends StatelessWidget {
                     // Show selected puzzle board.
                     String puzzleSpecID = settingsController.puzzleSpecID;
                     int    index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
+                    Puzzle puzzle = Puzzle(index, settingsController);
+
+// TODO - Maybe. Create the Puzzle object NOW, use Provider just to locate it
+//               anywhere in the widget tree. Use two more ChangeNotifier
+//               Providers to listen for cell and control-bar taps. Use value:
+//               parameter in Puzzle Provider below. Where to put cell and
+//               control-bar Providers in the widget tree??????...
 
                     // Use Provider to monitor the state of the Puzzle model
                     // and then repaint the Puzzle View after any change of any
@@ -175,11 +125,17 @@ class MyApp extends StatelessWidget {
                     return MultiProvider(
                       providers: [
                         // Access to model of game in Puzzle class.
-                        ChangeNotifierProvider(
-                          create: (context) =>		// The Model to watch.
-                              Puzzle(index, settingsController),
-                          lazy:   false,		// Create Puzzle NOW, to
+                        // ?????? ChangeNotifierProvider(
+                        Provider.value(
+                          value: puzzle,
+
+                          // ?????? create: (context) => Puzzle(index, settingsController),
+                          // ?????? lazy:   false,		// Create Puzzle NOW, to
                                                         // avoid startup crash.
+                        ),
+                        ChangeNotifierProvider(
+                          create: (context) => PuzzlePlayer(puzzle.puzzleMap),
+                          lazy:   false,
                         ),
                         Provider(
                           // Access to Game Theme colours.
