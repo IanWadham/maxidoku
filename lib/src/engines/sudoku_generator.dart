@@ -133,12 +133,12 @@ class SudokuGenerator
     // int        _overlap = 0;			///< The degree of overlap in a
 						///< Samurai board (=_blockSize
 						///< or 1 for a TinySamurai).
-    // int        _nGroups = 27;			///< The total number of rows,
+    // int        _nGroups = 27;		///< The total number of rows,
 						///< columns, blocks, diagonals,
 						///< etc. in the puzzle.
-    // int        _groupSize = 9;			///< The number of cells in each
+    // int        _groupSize = 9;		///< The number of cells in each
 						///< group (= _order).
-    // List<int>  _cellIndex = [];			///< A first-level index from a
+    // List<int>  _cellIndex = [];		///< A first-level index from a
 						///< cell to the list of groups
 						///< to which it belongs.
     // List<int>  _cellGroups = [];		///< A second-level index from
@@ -377,6 +377,8 @@ class SudokuGenerator
     }
 
     // Return the result-message (created above) for display by the PuzzleView.
+    // Response Message type: "" or 'F' = internal failure, try again, 'I' =
+    // informative, everything OK, or 'Q' = question, user decides what to do.
     return response;
   }
 

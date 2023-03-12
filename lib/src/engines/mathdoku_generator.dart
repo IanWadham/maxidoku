@@ -56,6 +56,7 @@ class MathdokuKillerGenerator
                                        Difficulty    difficultyRequired)
   {
     Message response = Message('', '');
+    // TODO - Enable hideOperators?..... ?????????????????????????????????
     // ???? bool hideOperators = _puzzleMap.hideOperators;;
     int  maxTries      = 20;
 
@@ -65,7 +66,11 @@ class MathdokuKillerGenerator
     int  numTries = 0;
     int  numMultis = 0;
     int  n = 0;
+
     while ((n <= 0) && (numTries < maxTries)) {
+      // Generate random cages covering the existing solution. Return n > 0 if
+      // those cages provide a puzzle with a single solution. Return n = 0 if
+      // they provide no solution or n < 0 if multiple solutions.
       // ???? n = cageGen.makeCages
                  // ???? (solutionMoves, hideOperators, difficultyRequired);
       n = cageGen.makeCages(solutionMoves, difficultyRequired);
@@ -73,15 +78,17 @@ class MathdokuKillerGenerator
         numMultis++;
       }
       numTries++;
-      debugPrint('CageGen return = $n, numTries $numTries, numMultis $numMultis\n\n');
+      debugPrint('CageGen return = $n, numTries $numTries, '
+                 'numMultis $numMultis\n\n');
     }
-    if (numTries >= maxTries) {
+
+    if ((n <= 0) && (numTries >= maxTries)) {
       debugPrint('makeCages() FAILED after $numTries tries $numMultis multis');
-      // Failed, return empty Message (to try another set of solution values).
+      // Return empty Message (maybe to try another set of solution values).
       return response;
     }
 
-    debugPrint('makeCages() required $numTries tries $numMultis multi-solutions');
+    debugPrint('makeCages() took $numTries tries $numMultis multi-solutions');
     debugPrint('MathdokuGen: Solution moves $solutionMoves');
 
     // Insert the values of the single-cell cages as clues in the empty Puzzle.
@@ -93,11 +100,13 @@ class MathdokuKillerGenerator
         puzzle[index] = solution[index];
       }
     }
+
     int movesToGo = solution.length - nClues;
     response.messageType = 'I';
     response.messageText = 'The difficulty level of this puzzle is'
                            ' ${difficultyTexts[difficultyRequired.index]}. It'
                            ' has $nClues clues and $movesToGo moves to go.';
+    // Success.
     return response;
   }
 
