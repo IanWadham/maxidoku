@@ -54,6 +54,8 @@ class PuzzleView extends StatelessWidget
   PuzzleView(this.isDarkMode, {Key? key,}) : super(key: key);
 
   final bool timerVisible = false;	// TODO - Make this a Setting...
+  late  Puzzle puzzle;
+  late  PuzzlePlayer puzzlePlayer;
 
   Size   screenSize    = Size(0.0, 0.0);
   double edgeFactor    = 0.025;
@@ -66,12 +68,13 @@ class PuzzleView extends StatelessWidget
   @override
   Widget build(BuildContext context) {
 
+    // Find the Puzzle and PuzzlePlayer objects (models), as set up by Providers.
+    puzzle       = context.read<Puzzle>();
+    puzzlePlayer = context.read<PuzzlePlayer>();
+
     // Set portrait/landscape, depending on the device or window-dimensions.
     Orientation orientation = MediaQuery.of(context).orientation;
     screenSize = MediaQuery.of(context).size;
-
-    // Find the Puzzle object (the model), which has been created by Provider.
-    Puzzle          puzzle          = context.read<Puzzle>();
 
     GameTheme       gameTheme       = context.read<GameTheme>();
 
@@ -105,7 +108,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Return to list of puzzles',
         color:   foreground,
         onPressed: () {
-          exitScreen(context, puzzle);
+          exitScreen(context);
         },
       ),
       IconButton(
@@ -136,7 +139,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Get a hint',
         color:   foreground,
         onPressed: () {
-          puzzle.puzzlePlayer.hint();
+          puzzlePlayer.hint();
         },
       ),
       IconButton(
@@ -145,7 +148,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Undo a move',
         color:   foreground,
         onPressed: () {
-          puzzle.puzzlePlayer.undo();
+          puzzlePlayer.undo();
         },
       ),
       IconButton(
@@ -154,7 +157,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Redo a move',
         color:   foreground,
         onPressed: () {
-          puzzle.puzzlePlayer.redo();
+          puzzlePlayer.redo();
         },
       ),
       IconButton(
@@ -267,9 +270,6 @@ class PuzzleView extends StatelessWidget
   void generatePuzzle(context)
   async
   {
-    Puzzle       puzzle       = context.read<Puzzle>();
-    PuzzlePlayer puzzlePlayer = puzzle.puzzlePlayer;
-
     // Generate a puzzle of the requested level of difficulty.
     debugPrint('GENERATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
     bool newPuzzleOK = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
@@ -283,7 +283,7 @@ class PuzzleView extends StatelessWidget
       );
     }
     if (newPuzzleOK) {
-      puzzle.generatePuzzle();
+      puzzle.generatePuzzle(puzzlePlayer);
     }
   }
 /* ************************************* TEMPORARILY DISABLED
@@ -340,13 +340,10 @@ class PuzzleView extends StatelessWidget
     }
   }
 */
-  void exitScreen(BuildContext context, Puzzle puzzle)
+  void exitScreen(BuildContext context)
   async
   {
-    Puzzle       puzzle       = context.read<Puzzle>();
-    PuzzlePlayer puzzlePlayer = puzzle.puzzlePlayer;
-
-    // Quit the Puzzle screen, maybe leaving a puzzle unfinished.
+    // Quit the PuzzleView screen, maybe leaving a puzzle unfinished.
     bool okToQuit = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
                     (puzzlePlayer.puzzlePlay == Play.ReadyToStart) ||
                     (puzzlePlayer.puzzlePlay == Play.Solved);

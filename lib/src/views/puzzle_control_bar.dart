@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../globals.dart';	// TODO - Add symbol-text proportions (0.7 etc)i
 import '../settings/game_theme.dart';
+import '../models/puzzle.dart';
 
 // import 'cell_view.dart';
 
@@ -27,9 +28,13 @@ class PuzzleControlBar extends StatefulWidget
 
 class _ControlBarState extends State<PuzzleControlBar>
 {
+  late PuzzlePlayer _puzzlePlayer;
+
   @override
   Widget build(BuildContext context)
   {
+    _puzzlePlayer = context.read<PuzzlePlayer>();
+
     int    nCells   = widget.nSymbols + 2; // TODO - Dep. on Play/Enter/more(?).
     double cellSide = widget.controlSide;
     String symbols  = '.123456789ABCDEFGHIJKLMNOPQRSTUVWXY';
@@ -134,9 +139,10 @@ class _ControlBarState extends State<PuzzleControlBar>
   {
     // TODO - Link up with the Puzzle model.
     print('Handle tap on control cell $n');
+    _puzzlePlayer.hitControlArea(n);
   }
 
-} // End class _BoardState2D.
+}
 
 class ControlGridView extends StatelessWidget
 {

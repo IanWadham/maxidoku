@@ -12,7 +12,7 @@ import '../engines/sudoku_generator.dart';
 import '../engines/sudoku_solver.dart';
 import '../engines/mathdoku_generator.dart';
 
-class Puzzle with ChangeNotifier
+class Puzzle
 {
   // Constructor.
   Puzzle(int index, this.settings)
@@ -45,19 +45,16 @@ class Puzzle with ChangeNotifier
     // Parse it and create the corresponding Puzzle Map, with an empty board.
     _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
 
-    _puzzlePlayer = PuzzlePlayer(_puzzleMap);
-    _puzzlePlayer.initialise();	// Clear relevant parts of the Puzzle state.
-
     // Start by generating a puzzle and a delayed message immediately. The users
     // can tap an icon button or message reply if they wish to tap in a puzzle.
-    generatePuzzle();		// ???????? generatePuzzle();
+    // ???????generatePuzzle();		// ???????? generatePuzzle();
     // NOTE - Flutter is already painting. Issuing a message right now causes
     //        a crash and calling notifyListeners() also causes a crash. The
     //        delayed message will be handled in PuzzleView.executeAfterBuild().
     return true;
   }
 
-  void generatePuzzle()
+  void generatePuzzle(PuzzlePlayer puzzlePlayer)
   {
     PuzzleGenerator generator = PuzzleGenerator();
 
@@ -68,13 +65,13 @@ class Puzzle with ChangeNotifier
     // The message is stashed, in case the Puzzle View is currently painting.
 
     delayedMessage = generator.generatePuzzle(
-                                 _puzzleMap, _puzzlePlayer,
+                                 _puzzleMap, puzzlePlayer,
                                  settings.difficulty, settings.symmetry);
   }
 
 } // End Puzzle class.
 
-class PuzzleGenerator with ChangeNotifier
+class PuzzleGenerator // ???????????  with ChangeNotifier
 {
   // Generate a puzzle of the required layout type, difficulty and symmetry.
   // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
@@ -100,7 +97,9 @@ class PuzzleGenerator with ChangeNotifier
                          Difficulty difficulty, Symmetry symmetry)
   // Generate a new puzzle of the type and size selected by the user.
   {
-    puzzlePlayer.initialise();	// Clear relevant parts of the Puzzle state.
+    // Clear the Puzzle state. Make THIS._puzzleGiven (above) an empty board.
+    puzzlePlayer.initialise();
+    _puzzleGiven = [...puzzleMap.emptyBoard];
 
     Message response = Message('', '');
     SudokuType puzzleType = puzzleMap.specificType;
@@ -121,13 +120,12 @@ class PuzzleGenerator with ChangeNotifier
           }
         }
         if (response.messageType == '') {
-          // Used up max tries and found no valid puzzle.
+          // Used up max tries with no valid puzzle - 10 solutions x 20 tries.
+          // TODO - There IS no puzzle to Accept... Try again or go back to menu
+          //        or change the Difficulty... ???????
           response.messageType = 'F';		// Warning.
           response.messageText = 'Attempts to generate a puzzle failed after'
                                  ' about 200 tries.';
-        }
-        else {
-          // OBSOLETE _paintingSpecs2D.markCageBoundaries(_puzzleMap);
         }
         break;
       default:
@@ -137,26 +135,25 @@ class PuzzleGenerator with ChangeNotifier
 	response = srg.generateSudokuRoxdoku(_puzzleGiven, _solution,
                                              _sudokuMoves,
                                              difficulty, symmetry);
-        // print('_puzzleGiven = $_puzzleGiven');
-        // print('_solution    = $_solution   ');
-        // print('_sudokuMoves = $_sudokuMoves');
         break;
     }
+
+    debugPrint('_puzzleGiven = $_puzzleGiven');
+    debugPrint('_solution    = $_solution   ');
+    // debugPrint('_sudokuMoves = $_sudokuMoves');
+
     if (response.messageType != 'F') {	// Succeeded - up to a point maybe...
       puzzlePlayer.makeReadyToPlay(_puzzleGiven, _solution, _sudokuMoves);
-      notifyListeners();		// Trigger a repaint of the Puzzle View.
+      // notifyListeners();		// Trigger a repaint of the Puzzle View.
+      // TODO - Do this in PuzzlePlayer...
 
       // Release PuzzleGenerator storage.
       _puzzleGiven.clear();
       _solution.clear();
       _sudokuMoves.clear();
-      print('_puzzleGiven = $_puzzleGiven');
-      print('_solution    = $_solution   ');
-      print('_sudokuMoves = $_sudokuMoves');
     }
     else {				// FAILED. Please try again.
-      // Generator/solver may have failed internally.
-      debugPrint('IN Puzzle: Generator failed');
+      debugPrint('In PuzzleGenerator class: Puzzle generation failed');
     }
     return response;
   }
@@ -206,27 +203,7 @@ class PuzzleGenerator with ChangeNotifier
     return error;
   }
 */
-/* ************************************** MOVED TO PuzzlePlayer...
-  void convertDataToPuzzle(PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer)
-  {
-    debugPrint('ENTERED convertDataToPuzzle().');
-    // TODO - Add a setter or a method to PuzzlePlayer?...
-    //        Maybe this whole method should be in PuzzlePlayer ???????
-    _puzzleGiven = [..._stateOfPlay];
-    for (int n = 0; n < _puzzleGiven.length; n++) {
-      if ((_puzzleGiven[n] > 0) && (_puzzleGiven[n] != UNUSABLE)) {
-        _cellStatus[n] = GIVEN;
-      }
-    }
-    SudokuSolver solver = SudokuSolver(puzzleMap: puzzleMap);
-    _solution = solver.solveBoard (_puzzleGiven, GuessingMode.Random);
-    solver.cleanUp();
-    _cellChanges.clear();			// No moves made yet.
-    _puzzlePlay = Play.ReadyToStart;
-    ///////// ?????????? _puzzleTimer.startClock();
-    notifyListeners();
-  }
-*/
+
 } // End PuzzleGenerator class.
 
 class CellChange
@@ -241,7 +218,10 @@ class PuzzlePlayer with ChangeNotifier
 {
   PuzzleMap _puzzleMap;
 
-  PuzzlePlayer(this._puzzleMap);
+  PuzzlePlayer(this._puzzleMap)
+  {
+    initialise();
+  }
 
   // The status of puzzle-play. Determines what moves are allowed and their
   // meaning. In NotStarted status, the puzzle is set to be empty and can be
@@ -262,6 +242,11 @@ class PuzzlePlayer with ChangeNotifier
   BoardContents    _stateOfPlay = [];
   BoardContents get stateOfPlay => _stateOfPlay;
   BoardContents get solution => _solution;	// TODO - Testing ONLY...
+
+  int cellValue(int n)
+  {
+    return _stateOfPlay[n];
+  }
 
   // The current status of each cell.
   // Possible values are UNUSABLE, VACANT, GIVEN, CORRECT, ERROR and NOTES.
@@ -362,6 +347,7 @@ class PuzzlePlayer with ChangeNotifier
   {
     // Step 1 in making a move: highlight a cell that is to receive a new value.
 
+    print('Selected cell $n');
     if (! validCellSelection(n)) {
       return;
     }
@@ -392,23 +378,25 @@ class PuzzlePlayer with ChangeNotifier
 
     bool hideNotes = (puzzlePlay == Play.NotStarted) ||
                      (puzzlePlay == Play.BeingEntered);
-    // debugPrint('hitControlArea: selection $selection, hideNotes $hideNotes');
+    debugPrint('hitControlArea: selection $selection, hideNotes $hideNotes');
     if ((! hideNotes) && (selection == 0)) {
       // If solving, switch Notes mode and change colour of highlight.
       notesMode = !notesMode;
-      // debugPrint('Switched Notes to $notesMode');
+      debugPrint('Switched Notes to $notesMode');
       notifyListeners();	// Trigger a repaint of the Puzzle View.
       return;
     }
     // The value selected is treated as a cell-value, a note or an erase.
     selectedControl = selection - (hideNotes ? 0 : 1);
-    // debugPrint('hitControlArea: Selected control $selectedControl');
+    debugPrint('hitControlArea: Selected control $selectedControl');
 
     int cellToChange = selectedCell ?? -1;
     if (cellToChange < 0) {
       return;		// No cell selected: cannot make a move.
     }
+    debugPrint('Check valid move: cell $cellToChange control $selectedControl');
     if (! validMove(cellToChange, selectedControl)) {
+      print('Invalid move');
       return;
     }
 
@@ -497,6 +485,8 @@ class PuzzlePlayer with ChangeNotifier
 
   void move(int n, CellValue symbol)
   {
+    debugPrint('PuzzlePlayer move: cell $n symbol $symbol');
+
     // Register a move in the Model data and update the Puzzle cell's state.
     CellStatus currentStatus = _cellStatus[n];
     CellValue  currentValue  = _stateOfPlay[n];
@@ -547,6 +537,7 @@ class PuzzlePlayer with ChangeNotifier
           _autoClearNotes(n, newValue);
         }
       }
+      debugPrint('New value $newValue, new status $newStatus');
     }
 
     // TODO - Need to test newValue == currentValue, i.e. that cell did change?

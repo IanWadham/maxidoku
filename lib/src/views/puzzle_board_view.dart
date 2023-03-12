@@ -45,10 +45,10 @@ class PuzzleBoardView extends StatelessWidget
     // (taps) or actions on icon-buttons such as Undo/Redo, Generate and Hint.
     // In 3D puzzles, the repaint can be due to rotation, with no data change.
 
-    puzzle          = context.watch<Puzzle>();
-    puzzlePlayer    = puzzle.puzzlePlayer;
+    puzzle        = context.read<Puzzle>();
+    puzzlePlayer  = context.read<PuzzlePlayer>();
 
-    PuzzleMap map   = puzzle.puzzleMap;
+    PuzzleMap map = puzzle.puzzleMap;
 
     // Set painting requirements for UNUSABLE, VACANT and SPECIAL cells.
     List<int> cellBackground = [...map.emptyBoard];
@@ -159,6 +159,9 @@ class PuzzleBoardView extends StatelessWidget
         await infoMessage(context, 'Generate Puzzle', m.messageText);
         if (m.messageType == 'F') {
           // TODO - Improve the user-feedback when/if this happens...
+          // TODO - After 200 tries, Mathdoku/Killer returns type F because
+          //        the Puzzle board is still empty. This can easily happen.
+          //        Just choose a small board-size and a high Difficulty.
           debugPrint('BAIL OUT');
           if (context.mounted) {
             Navigator.pop(context);
@@ -170,7 +173,7 @@ class PuzzleBoardView extends StatelessWidget
         // N.B. Puzzle.generatePuzzle() will trigger a widget re-build and a
         //      repaint, returning control to executeAferBuild() (above) again.
         puzzle.delayedMessage = Message('', '');
-        puzzle.generatePuzzle();
+        puzzle.generatePuzzle(puzzlePlayer);
       }
       else {
         // A puzzle was selected, generated and accepted, so start the clock!
