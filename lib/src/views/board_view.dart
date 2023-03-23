@@ -1,51 +1,43 @@
 import 'package:flutter/material.dart';
 
-// import '../globals.dart';
 import 'board_grid_view.dart';
-import 'cell_view.dart';
+import 'symbol_view.dart';
 
 import '../models/puzzle_map.dart';
 
-class BoardView2D extends StatefulWidget
+class BoardView2D extends StatelessWidget
 {
-  const BoardView2D(this._map, this.cellBackground, this.f, {Key? key})
+  const BoardView2D(this._map, this._cellSide, {Key? key})
         : super(key: key);
 
   final PuzzleMap _map;
-  final double f;
-  final List<int> cellBackground;
+  final double    _cellSide;	// Height and width of each cell.
 
-  @override
-  State<BoardView2D> createState() => _BoardState2D();
-  
-} // End class BoardView
-
-class _BoardState2D extends State<BoardView2D>
-{
   @override
   Widget build(BuildContext context)
   {
-    PuzzleMap map = widget._map;
-    int n = map.sizeY;
+    // PuzzleMap map = _map;
+    int sizeY = _map.sizeY;
+    int sizeX = _map.sizeX;
+    int index = 0;
+
     return AspectRatio(
       aspectRatio: 1.0,
-      // A Stack widget arranges its children to fit the space available.
+      // This Stack arranges its children to fit a grid in the space available.
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Column(
+          Row(
             children: [
-              for (int y = 0; y < n; y++)
+              for (int x = 0; x < sizeX; x++)
                 Expanded(
-                  child: Row(
+                  child: Column(
+                    // In Multidoku cells go into the grid a column at a time.
                     children: [
-                      for (int x = 0; x < n; x++)
+                      // So Y varies faster than X in this convention.
+                      for (int y = 0; y < sizeY; y++)
                         Expanded(
-                          child: CellView(
-                                   x, y,
-                                   map.cellIndex(x, y),
-                                   widget.cellBackground[map.cellIndex(x, y)],
-                                   widget.f),
+                          child: SymbolView(_map, index++, _cellSide),
                         ),
                     ],
                   ),
