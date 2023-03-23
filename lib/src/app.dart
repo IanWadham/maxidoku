@@ -100,50 +100,50 @@ class MyApp extends StatelessWidget {
                     return SettingsView(controller: settingsController);
 
                   case PuzzleView.routeName:
-                    // Show selected puzzle board.
+                    // Show the selected puzzle board.
                     String puzzleSpecID = settingsController.puzzleSpecID;
                     int    index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
+
                     Puzzle puzzle = Puzzle(index, settingsController);
+                    PuzzlePlayer puzzlePlayer =
+                                 PuzzlePlayer(puzzle.puzzleMap, puzzle);
 
-// TODO - Maybe. Create the Puzzle object NOW, use Provider just to locate it
-//               anywhere in the widget tree. Use two more ChangeNotifier
-//               Providers to listen for cell and control-bar taps. Use value:
-//               parameter in Puzzle Provider below. Where to put cell and
-//               control-bar Providers in the widget tree??????...
+                    // TODO - Compute-bound, possibly for a few seconds,
+                    //        almost always < 1 sec. What to do?
+                    // Generate a puzzle of the required type and difficulty.
+                    // Deliver the results to the PuzzlePlayer object.
 
-                    // Use Provider to monitor the state of the Puzzle model
-                    // and then repaint the Puzzle View after any change of any
-                    // kind: such as taps on the CustomPaint Canvas by the user
-                    // when making Puzzle moves or taps on buttons to Undo/Redo
-                    // moves, get a Hint or generate a new Puzzle. There are
-                    // several places in the Puzzle Class code where it calls
-                    // notifyListeners() and these are watched for by Provider.
+                    puzzle.generatePuzzle(puzzlePlayer);
 
                     bool isDarkMode =
                          (Theme.of(context).brightness == Brightness.dark);
 
+                    // Use Providers to monitor the state of the puzzle-model
+                    // and then repaint puzzle-views, after any change of any
+                    // kind: such as taps on puzzle or control cells by the user
+                    // when making puzzle moves or taps on buttons to undo/redo
+                    // moves, get a hint or generate a new puzzle. There are
+                    // several places in the puzzle-model classes where they
+                    // call notifyListeners(). The Providers listen for them.
+
                     return MultiProvider(
                       providers: [
                         // Access to model of game in Puzzle class.
-                        // ?????? ChangeNotifierProvider(
-                        Provider.value(
+                        ChangeNotifierProvider.value(
                           value: puzzle,
-
-                          // ?????? create: (context) => Puzzle(index, settingsController),
-                          // ?????? lazy:   false,		// Create Puzzle NOW, to
-                                                        // avoid startup crash.
                         ),
-                        ChangeNotifierProvider(
-                          create: (context) => PuzzlePlayer(puzzle.puzzleMap),
-                          lazy:   false,
+                        // Access to model of gameplay in PuzzlePlayer class.
+                        ChangeNotifierProvider.value(
+                          value: puzzlePlayer,
                         ),
+                        // Access to Game Theme colours.
                         Provider(
-                          // Access to Game Theme colours.
                           create: (context) => GameTheme(isDarkMode),
                           lazy:   false,
                         ),
                       ],
-                      child: PuzzleView(isDarkMode),	// Top widget of screen.
+                      // Top widget of puzzle screen.
+                      child: PuzzleView(isDarkMode),
                     );
 
                   case PuzzleListView.routeName:
