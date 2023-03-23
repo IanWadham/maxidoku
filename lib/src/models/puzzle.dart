@@ -12,7 +12,10 @@ import '../engines/sudoku_generator.dart';
 import '../engines/sudoku_solver.dart';
 import '../engines/mathdoku_generator.dart';
 
-class Puzzle
+import '../layouts/board_layout_2d.dart';
+// import '../layouts/board_layout_3d.dart';
+
+class Puzzle with ChangeNotifier
 {
   // Constructor.
   Puzzle(int index, this.settings)
@@ -22,13 +25,36 @@ class Puzzle
 
   final SettingsController settings;
 
-  late PuzzleMap    _puzzleMap;
-  late PuzzlePlayer _puzzlePlayer;
+  late PuzzleMap     _puzzleMap;
+  late BoardLayout2D _boardLayout2D;
+  // ?????? late BoardLayout3D _boardLayout3D;
 
-  PuzzleMap    get puzzleMap    => _puzzleMap;
-  PuzzlePlayer get puzzlePlayer => _puzzlePlayer;
+  // Layout data for 2D Puzzles: stays empty in 3D, set ONCE in Puzzle lifetime.
+  List<int>       _edgesEW = [];	// East-West edges of cells in 2D.
+  List<int>       _edgesNS = [];	// North-South edges of cells in 2D.
+  BoardContents   _cellColorCodes = [];	// Codes for colours to paint cells.
+  List<List<int>> _cagePerimeters = [];	// Cage-layouts for Mathdoku and Killer.
+
+  // TODO - Insert 3D layout data here...
+
+  PuzzleMap       get puzzleMap      => _puzzleMap;
+  List<int>       get edgesEW        => _edgesEW;
+  List<int>       get edgesNS        => _edgesNS;
+  BoardContents   get cellColorCodes => _cellColorCodes;
+  List<List<int>> get cagePerimeters => _cagePerimeters;
 
   Message delayedMessage = Message('', '');
+
+  int _firstTimeCount = 2;	// Skip 2 notifyListeners() during first build.
+
+  bool firstBuild()
+  {
+    if (_firstTimeCount <= 0) {
+      return false;
+    }
+    _firstTimeCount--;
+    return true;		// Avoid errors in first build of PuzzleView.
+  }
 
   bool createState(int index)
   {
@@ -45,12 +71,24 @@ class Puzzle
     // Parse it and create the corresponding Puzzle Map, with an empty board.
     _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
 
-    // Start by generating a puzzle and a delayed message immediately. The users
+    // The only time the Board Layout is calculated in the lifetime of a Puzzle.
+    if (_puzzleMap.sizeZ == 1) {
+      BoardLayout2D _boardLayout2D = BoardLayout2D(_puzzleMap);
+      _boardLayout2D.calculateLayout(_edgesEW, _edgesNS, _cellColorCodes);
+    }
+    else {
+      // BoardLayout3D _boardLayout3D = BoardLayout3D(_puzzleMap);
+      // _boardLayout3D.calculateLayout();
+    }
+
+    // Start by generating a puzzle and a delayed message. Maybe the users
     // can tap an icon button or message reply if they wish to tap in a puzzle.
-    // ???????generatePuzzle();		// ???????? generatePuzzle();
+    // _puzzlePlayer = PuzzlePlayer(_puzzleMap, this)
+    // generatePuzzle(puzzlePlayer);		// ???????? generatePuzzle();
+
     // NOTE - Flutter is already painting. Issuing a message right now causes
-    //        a crash and calling notifyListeners() also causes a crash. The
-    //        delayed message will be handled in PuzzleView.executeAfterBuild().
+    //        a crash and calling notifyListeners() also causes Flutter errors.
+    //        The delayed message will appear in PuzzleView.executeAfterBuild().
     return true;
   }
 
@@ -67,11 +105,22 @@ class Puzzle
     delayedMessage = generator.generatePuzzle(
                                  _puzzleMap, puzzlePlayer,
                                  settings.difficulty, settings.symmetry);
+
+    if(_puzzleMap.cageCount() > 0) {
+      BoardLayout2D _boardLayout2D = BoardLayout2D(_puzzleMap);
+      _cagePerimeters.clear();	// Get the cage-layouts for Mathdoku and Killer.
+      _boardLayout2D.calculateCagesLayout(_puzzleMap, _cagePerimeters);
+    }
+
+    if (firstBuild()) {
+      return;		// Avoid notifyListeners() during Flutter's first build.
+    }
+    notifyListeners();	// Else make sure PuzzleView issues the delayedMessage.
   }
 
 } // End Puzzle class.
 
-class PuzzleGenerator // ???????????  with ChangeNotifier
+class PuzzleGenerator
 {
   // Generate a puzzle of the required layout type, difficulty and symmetry.
   // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
@@ -144,8 +193,7 @@ class PuzzleGenerator // ???????????  with ChangeNotifier
 
     if (response.messageType != 'F') {	// Succeeded - up to a point maybe...
       puzzlePlayer.makeReadyToPlay(_puzzleGiven, _solution, _sudokuMoves);
-      // notifyListeners();		// Trigger a repaint of the Puzzle View.
-      // TODO - Do this in PuzzlePlayer...
+      // PuzzlePlayer calls notifyListeners() and the puzzle clues appear...
 
       // Release PuzzleGenerator storage.
       _puzzleGiven.clear();
@@ -217,8 +265,9 @@ class CellChange
 class PuzzlePlayer with ChangeNotifier
 {
   PuzzleMap _puzzleMap;
+  Puzzle    _puzzle;
 
-  PuzzlePlayer(this._puzzleMap)
+  PuzzlePlayer(this._puzzleMap, this._puzzle)
   {
     initialise();
   }
@@ -334,6 +383,10 @@ class PuzzlePlayer with ChangeNotifier
 
     // Change the Puzzle Play status to receive solving moves.
     _puzzlePlay = Play.ReadyToStart;
+    if (_puzzle.firstBuild()) {
+      return;		// Avoid notifyListeners() during Flutter's first build.
+    }
+    notifyListeners();  // Else ensure the board and initial clues get painted.
   }
 
   bool triggerRepaint()
@@ -430,6 +483,9 @@ class PuzzlePlayer with ChangeNotifier
       if (_puzzlePlay == Play.Solved) {
         /////////// ????????????? _puzzleTimer.stopClock();
       }
+
+      // Need to select a message and display it in PuzzleBoardView.
+      _puzzle.notifyListeners();
     }
 
     // The move has been accepted and made.
