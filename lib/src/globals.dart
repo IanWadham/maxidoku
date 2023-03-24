@@ -124,6 +124,24 @@ enum    GuessingMode {Random, NotRandom}
 // The maximum digit that can be used in a Mathdoku or Killer Sudoku puzzle.
 const int MaxMathOrder = 9;
 
+// CELL CONSTANTS --- Proportional values for painting cells
+//                    in the puzzle's board and control bar.
+
+const double topMargin         = 0.2;	// Proportion of top margin.
+const double bottomMargin      = 0.2;	// Proportion of bottom margin.
+const double bottomNotesMargin = 0.15;	// Proportion of bottom Notes margin.
+
+// The proportion of the cell taken up by a single Sudoku symbol.
+const double symbolFraction    = 1.0 - topMargin - bottomMargin;
+
+const double thinGridFactor    = 30.0;	// Divisor for thin grid-line's width.
+const double boldGridFactor    = 15.0;	// Divisor for thick grid-line's width.
+const double cageGridFactor    = 20.0;	// Divisor for cage-outline's width.
+const double cageInsetFactor   = 12.0;	// Divisor for cage-outline's inset.
+const double labelInsetFactor  = 20.0;	// Divisor for cage-label's inset.
+const double labelTextFactor   =  6.0;	// Divisor for cage-label's text-size.
+
+
 class Message
 {
   String     messageType;
