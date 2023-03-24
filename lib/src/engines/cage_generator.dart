@@ -330,7 +330,7 @@ class CageGenerator
 
       // bool doPrint = true;               // Print progressive layouts.
       // doPrint = (_unusedCells.isEmpty);  // Print final layout only.
-      // if (kDebugMode) _printLayout(doPrint, cage);
+      // _printLayout(doPrint, cage);
 
       List<int> flagsList = [];
       for (int cell in _unusedCells) {

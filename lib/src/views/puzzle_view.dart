@@ -172,8 +172,8 @@ class PuzzleView extends StatelessWidget
     ]; // End list of action icons
 
     // Paint the puzzle with the action icons and timer in a row at the top.
-    // In Portrait mode, the control bar is horizontal, under the puzzle board.
-    // In Landscape mode. it is vertical and to the right of the puzzle board.
+    // In Portrait mode, put a horizantal control-bar under the puzzle board.
+    // In Landscape mode. put it vertically to the right of the puzzle board.
 
     if (portrait) {		// Portrait mode.
       return Scaffold(		// Omit AppBar, to maximize real-estate.
@@ -216,7 +216,7 @@ class PuzzleView extends StatelessWidget
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget> [
                 PuzzleBoardView(boardSide),
-                Padding(padding: EdgeInsets.only(left: edgePadding)),
+                Padding(padding: EdgeInsets.only(left: edgePadding * 4.0)),
                 PuzzleControlBar(controlSide, nSymbols, horizontal: false),
               ],
             ), // End Row(.

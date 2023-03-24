@@ -45,26 +45,20 @@ class PuzzleBoardView extends StatelessWidget
     // (taps) or actions on icon-buttons such as Undo/Redo, Generate and Hint.
     // In 3D puzzles, the repaint can be due to rotation, with no data change.
 
-    puzzle        = context.read<Puzzle>();
+    puzzle        = context.watch<Puzzle>();
     puzzlePlayer  = context.read<PuzzlePlayer>();
 
     PuzzleMap map = puzzle.puzzleMap;
 
-    // Set painting requirements for UNUSABLE, VACANT and SPECIAL cells.
-    List<int> cellBackground = [...map.emptyBoard];
-    for (int index in map.specialCells) {
-      cellBackground[index] = SPECIAL;	// Used in XSudoku and 3D puzzles.
-    }
-
     Rect boardSpace = const Offset(0.0, 0.0) & Size(boardSide, boardSide);
     debugPrint('Context size ${MediaQuery.of(context).size} board space $boardSpace');
+
+    // Find out if the System (O/S) or Flutter colour Theme is dark or light.
+    bool isDarkMode = (Theme.of(context).brightness == Brightness.dark);
 
     // Enable messages to the user after major changes of puzzle-status.
     WidgetsBinding.instance.addPostFrameCallback((_)
                             {executeAfterBuild(context);});
-
-    // Find out if the System (O/S) or Flutter colour Theme is dark or light.
-    bool isDarkMode = (Theme.of(context).brightness == Brightness.dark);
 
     if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {	// 3D Puzzle.
       Puzzle3D puzzle3D = Puzzle3D(map);
@@ -75,7 +69,6 @@ class PuzzleBoardView extends StatelessWidget
       for (RoundCell c in roundCells) {
         if (c.used) {
 // Cells 6. 13 and 20 are at the bottom, centre and top of the view.
-// if ((c.id == 6) || (c.id == 13) || (c.id == 20)) {
           Rect r = Rect.fromCenter(
                      center: boardSpace.center + c.centre,
                      width:  c.diameter,
@@ -87,7 +80,6 @@ class PuzzleBoardView extends StatelessWidget
               child: RoundCellView(c.id),
             )
           );
-// }
         }
       }
       // We wish to fill the parent, in either Portrait or Landscape layout.
@@ -106,39 +98,29 @@ class PuzzleBoardView extends StatelessWidget
     }
     else {		// 2D Sudoku variant, Killer Sudoku or Mathdoku puzzle.
       int    n = puzzle.puzzleMap.sizeY;
-      double fontHeight = 0.6 * (boardSide / n);
+      double cellSide = boardSide / n;
       return SizedBox(
         width: boardSide,
         height: boardSide,
         child: Stack(
           children: [
-            BoardView2D(map, cellBackground, fontHeight),
+            // TODO - Merge BoardView2D code into BoardGridView2D. Colour cellBG
+            //        into grid before building (transparent) CellViewa
+            //        (SymbolViews-to-be). Would need to move the Stack( and
+            //        children: lines in there too.
             BoardGridView2D(
               boardSide,
               puzzleMap: map),
+            BoardView2D(map, cellSide),
           ],
         ),
       );
-/* ***************************
-      return SizedBox(
-        // We wish to fill the parent, in either Portrait or Landscape layout.
-        height: (MediaQuery.of(context).size.height),
-        width:  (MediaQuery.of(context).size.width),
-        child:  BoardView2D(puzzleMap: puzzle.puzzleMap),
- ***************************
-        child:  Listener(
-          onPointerDown: _possibleHit2D,
-          child: CustomPaint(
-            painter: PuzzlePainter2D(puzzle, isDarkMode),
-          ),
-        ),
-      );
-   ************************** */
     }
   } // End Widget build()
 
   Future<void> executeAfterBuild(BuildContext context) async
   {
+    debugPrint('ENTERED executeAfterBuild...');
     if (puzzle.delayedMessage.messageType != '') {
       // The user selected a new puzzle from the menu-screen or icon-button
       // or asked for a retry to get a more difficult puzzle (see below). The
