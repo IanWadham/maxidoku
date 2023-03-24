@@ -5,11 +5,11 @@ import '../globals.dart';	// TODO - Add symbol-text proportions (0.7 etc)i
 import '../settings/game_theme.dart';
 import '../models/puzzle.dart';
 
-// import 'cell_view.dart';
+import 'symbol_view.dart';
 
 // import '../models/puzzle_map.dart';
 
-class PuzzleControlBar extends StatefulWidget
+class PuzzleControlBar extends StatelessWidget
 {
   final double controlSide;
   final int    nSymbols;
@@ -17,29 +17,22 @@ class PuzzleControlBar extends StatefulWidget
 
   // TODO - Need text-height ratio(s) (0.7, etc.) in globals.dart.
   //        Need to get colours (3) and notesEnabled (from Puzzle) providers.
-  const PuzzleControlBar(this.controlSide, this.nSymbols,
-                         {required this.horizontal, Key? key})
+  PuzzleControlBar(this.controlSide, this.nSymbols,
+                   {required this.horizontal, Key? key})
         : super(key: key);
 
-  @override
-  State<PuzzleControlBar> createState() => _ControlBarState();
-  
-} // End class PuzzleControlBar.
-
-class _ControlBarState extends State<PuzzleControlBar>
-{
   late PuzzlePlayer _puzzlePlayer;
 
   @override
   Widget build(BuildContext context)
   {
+    int    nCells   = nSymbols + 2; // TODO - Dep. on Play/Enter/more(?).
+    double cellSide = controlSide;
+    String symbols  = (nSymbols < 10) ? digits : letters;
+
     _puzzlePlayer = context.read<PuzzlePlayer>();
-
-    int    nCells   = widget.nSymbols + 2; // TODO - Dep. on Play/Enter/more(?).
-    double cellSide = widget.controlSide;
-    String symbols  = '.123456789ABCDEFGHIJKLMNOPQRSTUVWXY';
-
     GameTheme gameTheme  = context.read<GameTheme>();
+
     Color cellBackground = gameTheme.emptyCellColor;
     Color textColour     = gameTheme.boldLineColor;
     Color cellDivider    = gameTheme.thinLineColor;
@@ -57,7 +50,7 @@ class _ControlBarState extends State<PuzzleControlBar>
     controls.add(
       Positioned.fromRect(
         rect: allControls,
-        child: ControlGridView(cellSide, nCells, widget.horizontal),
+        child: ControlGridView(cellSide, nCells, horizontal),
       ),
     );
 */
@@ -96,7 +89,7 @@ class _ControlBarState extends State<PuzzleControlBar>
           ), // End GestureDetector().
         ), // End Positioned().
       );
-      topLeft = widget.horizontal ? topLeft = topLeft + Offset(cellSide, 0.0)
+      topLeft = horizontal ? topLeft = topLeft + Offset(cellSide, 0.0)
                                   : topLeft = topLeft + Offset(0.0, cellSide); 
       bottomRight = topLeft + Offset(cellSide, cellSide);
     }
@@ -109,19 +102,19 @@ class _ControlBarState extends State<PuzzleControlBar>
     controls.add( // BAD
       Positioned.fromRect(
         rect: allControls,
-        child: ControlGridView(cellSide, nCells, widget.horizontal),
+        child: ControlGridView(cellSide, nCells, horizontal),
       ),
     );
 */
     Rect allControls = Rect.fromPoints(Offset.zero, bottomRight);
     return SizedBox(
-      width:  widget.horizontal ? nCells * cellSide : cellSide,
-      height: widget.horizontal ? cellSide          : nCells * cellSide,
+      width:  horizontal ? nCells * cellSide : cellSide,
+      height: horizontal ? cellSide          : nCells * cellSide,
       child: Stack(
         children: [
           Positioned.fromRect(
             rect:  allControls,
-            child: ControlGridView(cellSide, nCells, widget.horizontal),
+            child: ControlGridView(cellSide, nCells, horizontal),
           ),
           // Positioned.fromRect(
           /* rect:  allControls,
@@ -135,6 +128,10 @@ class _ControlBarState extends State<PuzzleControlBar>
     );
   } // End Widget build().
 
+  // TODO - Note cells can be hard to tap if you go and work on another cell.
+  //        When you come back to the Note cell, it will not respond to a tap
+  //        unless you hit one of the tiny Note widgets.
+
   void handleTap(int n)
   {
     // TODO - Link up with the Puzzle model.
@@ -142,7 +139,7 @@ class _ControlBarState extends State<PuzzleControlBar>
     _puzzlePlayer.hitControlArea(n);
   }
 
-}
+} // End class PuzzleControlBar.
 
 class ControlGridView extends StatelessWidget
 {
