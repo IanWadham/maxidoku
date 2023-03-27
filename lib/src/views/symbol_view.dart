@@ -11,16 +11,18 @@ class SymbolView extends StatelessWidget
   static String symbols             = '';	// Digits or letters (globals).
   static List<Offset> notePositions = [];	// Alignment-class parameters.
 
-  // final String cellType;	// Values '2D', '3D', 'cage' or 'control'.
+  final String    cellType;	// Values '2D', '3D' or 'Control'.
   final PuzzleMap map;
   final int       index;	// Index in lists of Puzzle board contents.
   final double    cellSide;	// Height and width of the cell.
+  final int       value;	// Fixed value for a Control cell, else 0.
 
   // Does this cell have a highlight border around it?
-  final bool   hasHighlight = false;
+  final bool      hasHighlight = false;
 
-  SymbolView(/*this.cellType,*/ this.map,
-             /*this.isSpecial,*/ this.index, this.cellSide, {Key? key})
+  SymbolView(this.cellType, this.map,
+             /*this.isSpecial,*/ this.index, this.cellSide,
+             {int this.value = 0, Key? key})
            : super(key: key);
 
   late PuzzlePlayer _puzzlePlayer;
@@ -42,13 +44,19 @@ class SymbolView extends StatelessWidget
 
     final int    nSymbols  = map.nSymbols;	// Number of symbols needed.
 
-    // Get Provider to check if cell value or status have changed.
-    // If so, the cell gets repainted...
-    _cellValue  = context.select((PuzzlePlayer _puzzlePlayer)
-                               => _puzzlePlayer.stateOfPlay[index]);
-    _cellStatus = context.select((PuzzlePlayer _puzzlePlayer)
-                               => _puzzlePlayer.cellStatus[index]);
-    // ???????? Test here for a change in hasHighlight...
+    if (cellType == 'Control') {
+      _cellValue  = value;
+      _cellStatus = CORRECT;
+    }
+    else {
+      // Get Provider to check if cell value or status have changed.
+      // If so, the cell gets repainted...
+      _cellValue  = context.select((PuzzlePlayer _puzzlePlayer)
+                                   => _puzzlePlayer.stateOfPlay[index]);
+      _cellStatus = context.select((PuzzlePlayer _puzzlePlayer)
+                                   => _puzzlePlayer.cellStatus[index]);
+    }
+    // ???????? TODO - Test here for a change in hasHighlight...
 
     symbols = (nSymbols <= 9) ? digits : letters;
 
@@ -108,8 +116,14 @@ class SymbolView extends StatelessWidget
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          debugPrint('Tapped cell $index');
-          _puzzlePlayer.hitPuzzleCellN(index);
+          if (cellType == 'Control') {
+            debugPrint('Tapped control cell $index');
+            _puzzlePlayer.hitControlArea(index);
+          }
+          else {			// Board cell of '2D' or '3D' type.
+            debugPrint('Tapped cell $index');
+            _puzzlePlayer.hitPuzzleCellN(index);
+          }
         },
         child: cellContents,		// A full-size symbol or tiny Notes.
       ),

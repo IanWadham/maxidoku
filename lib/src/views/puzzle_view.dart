@@ -191,8 +191,10 @@ class PuzzleView extends StatelessWidget
               ),
               const Spacer(),
               PuzzleBoardView(boardSide),
-              Padding(padding: EdgeInsets.only(top: edgePadding * 4.0)),
-              PuzzleControlBar(controlSide, nSymbols, horizontal: true),
+              Padding(padding: EdgeInsets.only(top: edgePadding * 5.0)),
+              PuzzleControlBar(boardSide, map,
+                               horizontal: true,
+                               hideNotes: puzzlePlayer.hideNotes),
               const Spacer(),
             ],
           ), // End body: Column(
@@ -211,16 +213,18 @@ class PuzzleView extends StatelessWidget
                 children: actionIcons, // [TimerWidget(), actionIcons,]
               ),
             ),
-            Spacer(),
+            // ?????? Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget> [
                 PuzzleBoardView(boardSide),
-                Padding(padding: EdgeInsets.only(left: edgePadding * 4.0)),
-                PuzzleControlBar(controlSide, nSymbols, horizontal: false),
+                Padding(padding: EdgeInsets.only(left: edgePadding * 5.0)),
+                PuzzleControlBar(boardSide, map,
+                                 horizontal: false,
+                                 hideNotes: puzzlePlayer.hideNotes),
               ],
             ), // End Row(.
-            Spacer(),
+            // ?????? Spacer(),
           ],
         ), // End body: Column(
       ); // End return Scaffold(
@@ -236,8 +240,13 @@ class PuzzleView extends StatelessWidget
     longSide            = longSide  - 2.0 * edgePadding;
     double nIcons       = 10.0;
     iconSize            = 0.5  * shortSide / nIcons;
-    print('short $shortSide, nIcons $nIcons, iconSize $iconSize');
+    print('long $longSide short $shortSide, '
+          'nIcons $nIcons, iconSize $iconSize edgePadding $edgePadding');
     nSymbols            = map.nSymbols;
+
+////////////////////////////////////////////////////////////////////////////////
+// TODO - Calculations need fine-tuning, also the widget-trees (pads? spacers?).
+////////////////////////////////////////////////////////////////////////////////
 
     if (portrait) {
       // Vertical layout: icons, board, empty space, control bar.
@@ -249,7 +258,9 @@ class PuzzleView extends StatelessWidget
     else {
       // Horizontal layout: icons at top, board, empty space, control bar below.
       boardSide = longSide - edgePadding - controlSide;
-      double testValue = shortSide - (2.0 * iconSize) - edgePadding;
+      // double testValue = shortSide - (2.0 * iconSize) - edgePadding;
+      double testValue = shortSide - (1.0 * iconSize); // - edgePadding;
+      print('testValue $testValue boardSide $boardSide');
       if (boardSide > testValue) {
         boardSide = testValue;
       }

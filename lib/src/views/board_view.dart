@@ -37,7 +37,7 @@ class BoardView2D extends StatelessWidget
                       // So Y varies faster than X in this convention.
                       for (int y = 0; y < sizeY; y++)
                         Expanded(
-                          child: SymbolView(_map, index++, _cellSide),
+                          child: SymbolView('2D', _map, index++, _cellSide),
                         ),
                     ],
                   ),
