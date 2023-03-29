@@ -77,7 +77,7 @@ class PuzzleBoardView extends StatelessWidget
           roundCellViews.add(
             Positioned.fromRect(
               rect:  r,
-              child: RoundCellView(c.id),
+              child: RoundCellView(c.index, c.diameter),
             )
           );
         }

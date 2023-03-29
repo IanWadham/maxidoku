@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../globals.dart';
-import '../models/puzzle.dart';		// TODO - Testing ONLY?...
+import '../models/puzzle.dart';		// TODO - Needed when file is split????
 import '../models/puzzle_map.dart';
 import '../settings/game_theme.dart';
 
 class SymbolView extends StatelessWidget
 {
+  // Displays single Sudoku symbols or Notes values in 2D cells, 3D cells and
+  // control-bar cells. Control-bar cells always have NULL Gradients and one
+  // cell is passed Notes 1 2 3 as a label.
+
   static String symbols             = '';	// Digits or letters (globals).
   static List<Offset> notePositions = [];	// Alignment-class parameters.
 
@@ -21,7 +25,7 @@ class SymbolView extends StatelessWidget
   final bool      hasHighlight = false;
 
   SymbolView(this.cellType, this.map,
-             /*this.isSpecial,*/ this.index, this.cellSide,
+             this.index, this.cellSide,
              {int this.value = 0, Key? key})
            : super(key: key);
 
@@ -31,9 +35,6 @@ class SymbolView extends StatelessWidget
 
   @override
   // TODO - How to to turn on highlight and turn off OLD Cell highlight.
-  // TODO - How to draw various types of Cell, including unusable, Given, normal
-  //        symbol and Notes symbols.
-  // TODO - 0.6 factor in fontHeight should be a symbolic constant.
   // TODO - Might be easier to pass TextStyle as a pre-computed parameter.
 
   Widget build(BuildContext context)
@@ -59,11 +60,6 @@ class SymbolView extends StatelessWidget
     // ???????? TODO - Test here for a change in hasHighlight...
 
     symbols = (nSymbols <= 9) ? digits : letters;
-
-// TODO - There could probably be a SymbolWidget that takes care of much of
-//        this, as well as displaying Notes values, control-bar cells and
-//        the content of spheres in 3D puzzles. Control-bar cells would have to
-//        have NULL Gradients. Control-cell zero could be passed Notes 1 2 3...
 
     // Make sure the cell value is valid for this Puzzle's range of symbols.
     bool isNote = true;
@@ -172,24 +168,42 @@ class SymbolView extends StatelessWidget
         break;			// No gradient.
     }
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        // The cell background colour has been painted in GridPainter().
-        gradient: cellGradient,	// None, GIVEN or ERROR.
-      ),
-      position: DecorationPosition.background,
-      child: Align (alignment: Alignment.center,	// Vertical+horizontal.
-        child: Text(
-          cellText,
-          style: textStyle,
+    if (cellType == '3D') {
+      return DecoratedBox(
+        decoration: ShapeDecoration(
+          shape: CircleBorder(
+            side: BorderSide(
+              width: 1,
+              color: textColour,
+            ),
+          ),
+          gradient: cellGradient,
         ),
-      ),
-    );
+        position: DecorationPosition.background,
+        child: Align (alignment: Alignment.center,	// Vertical+horizontal.
+          child: Text(
+            cellText,
+            style: textStyle,
+          ),
+        ),
+      );
+    }
+    else {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          // The cell background colour has been painted in GridPainter().
+          gradient: cellGradient,
+        ),
+        position: DecorationPosition.background,
+        child: Align (alignment: Alignment.center,	// Vertical+horizontal.
+          child: Text(
+            cellText,
+            style: textStyle,
+          ),
+        ),
+      );
+    }
   }
-
-// TODO - SO pad the cell by 0.2 at top and 0.15 at bottom and by 0.35/2.0 at
-//        side, then in the 3x3 case build a grid of cells of 0.65/3.0 of cell
-//        size width and height. Still RELEVANT ????????????
 
   Widget noteSymbols(int notes, Color textColour)
   {
@@ -223,6 +237,7 @@ class SymbolView extends StatelessWidget
     }
 
     // TODO - Fine-tune padding and font-size for normal and Mathdoku/Killer.
+    // TODO - And also for the 3D case!!!
     List<Positioned> noteWidgets = [];
     double padding = 0.1 * cellSide;
     Offset topLeft = Offset(padding, padding);

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../settings/game_theme.dart';
+import '../models/puzzle.dart';
+import '../models/puzzle_map.dart';
+
+import 'symbol_view.dart';
 
 // Paint a "sphere" widget, for use in 3D MultiDoku puzzles.
 //
@@ -11,20 +15,30 @@ import '../settings/game_theme.dart';
 
 class RoundCellView extends StatelessWidget
 {
-  // const RoundCellView(this.id, this.centre, this.diameter);
-  const RoundCellView(this.id);
+  // const RoundCellView(this.index, this.centre, this.diameter);
+  const RoundCellView(this.index, this.diameter);
 
   // Keep the PuzzleMap index: the cell-list gets re-ordered after 3D rotations.
-  final int id;
+  final int    index;
+  final double diameter;
 
   @override
   build(BuildContext context) {
     GameTheme gameTheme = context.read<GameTheme>();
+    Puzzle puzzle = context.read<Puzzle>();
+    PuzzleMap map = puzzle.puzzleMap;
+    Color outerCellColor = map.specialCells.contains(index) ?
+                           gameTheme.specialCellColor :
+                           gameTheme.outerSphereColor;
 
     return GestureDetector(
+// TODO - Don't need onTap() here: SymbolView does it. DO NEED A TRUE CIRCULAR
+//        TARGET... This one does NOT fire anyway. The one in SymbolView DOES.
+// TODO - Taps on circles (spheres) are clipped PROPERLY here, but not in
+//        SymbolView, where each circle is treated as a SQUARE for tapping...
       onTap: () {
-        // TODO - Need to handle taps... Need to display symbols...
-        debugPrint('Tapped sphere $id.');
+        // TODO - Need to handle taps... Need to display symbols... ????
+        debugPrint('Tapped sphere $index.');
       },
       child: DecoratedBox(
         decoration: ShapeDecoration(	// Decorate a box of ANY shape.
@@ -42,14 +56,17 @@ class RoundCellView extends StatelessWidget
             radius: 0.5,		// Diameter = width or height of box.
             colors: <Color>[
               gameTheme.innerSphereColor,
-              gameTheme.outerSphereColor,
+              // ?????? gameTheme.outerSphereColor,
+              outerCellColor,
             ],
             stops: <double>[0.2, 1.0],	// Shades circle, bright spot in centre.
             tileMode: TileMode.decal,	// Use transparency after circle-edge.
             // Default TileMode.clamp fills rest of rect box with second color.
           ),
         ), // End ShapeDecoration.
+        child: SymbolView('3D', map, index, diameter),
       ), // End DecoratedBox.
+
     ); // End GestureDetector.
   }
 } // End RoundCellView class.

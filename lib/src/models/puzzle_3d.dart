@@ -26,9 +26,9 @@ typedef Coords = Vector3;
 
 class Sphere
 {
-  Sphere(this.id, this.used, this.xyz, this.diameter);
+  Sphere(this.index, this.used, this.xyz, this.diameter);
 
-  final int    id;
+  final int    index;
   final bool   used;
   Coords       xyz = Coords(0.0, 0.0, 0.0);
   double       diameter = 2.0;
@@ -36,9 +36,9 @@ class Sphere
 
 class RoundCell
 {
-  const RoundCell(this.id, this.used, this.centre, this.diameter);
+  const RoundCell(this.index, this.used, this.centre, this.diameter);
 
-  final int    id;
+  final int    index;
   final bool   used;
   final Offset centre;
   final double diameter;
@@ -68,8 +68,9 @@ class Puzzle3D
   var rotationM          = Matrix.identity();
 
   Coords newOrigin = Coords(0.0, 0.0, 0.0);
-  List<Sphere> spheres = [];
-  List<Sphere> rotated = [];
+  List<Sphere> spheres    = [];
+  List<Sphere> rotated    = [];
+  List<int>    cellLookup = [];
 
   @override
   void calculate3dLayout()
@@ -100,13 +101,13 @@ class Puzzle3D
     int nPoints = _map.size;
     BoardContents board = _map.emptyBoard;
 
-    for (int n = 0; n < nPoints; n++) {
-      bool used = (board[n] == UNUSABLE) ? false : true;
+    for (int index = 0; index < nPoints; index++) {
+      bool used = (board[index] == UNUSABLE) ? false : true;
       Coords sphereN = Coords(0.0, 0.0, 0.0);
-      sphereN[0] =  _map.cellPosX(n) * spacing - newOrigin[0];
-      sphereN[1] = -_map.cellPosY(n) * spacing + newOrigin[1];
-      sphereN[2] = -_map.cellPosZ(n) * spacing + newOrigin[2];
-      spheres.add(Sphere(n, used, sphereN, _rawDiameter));
+      sphereN[0] =  _map.cellPosX(index) * spacing - newOrigin[0];
+      sphereN[1] = -_map.cellPosY(index) * spacing + newOrigin[1];
+      sphereN[2] = -_map.cellPosZ(index) * spacing + newOrigin[2];
+      spheres.add(Sphere(index, used, sphereN, _rawDiameter));
     }
 
     // Rotate all the pseudo-spheres so as to give the user a better view.
@@ -144,10 +145,10 @@ int maxYn = -1;
       rotated.add(Sphere(n, spheres[n].used, sphereN, _rawDiameter));
 
       Offset centre = Offset(rotated[n].xyz[0], -rotated[n].xyz[1]);
-      if (centre.dx < minX) {minX = centre.dx; minXn = rotated[n].id; }
-      if (centre.dy < minY) {minY = centre.dy; minYn = rotated[n].id; }
-      if (centre.dx > maxX) {maxX = centre.dx; maxXn = rotated[n].id; }
-      if (centre.dy > maxY) {maxY = centre.dy; maxYn = rotated[n].id; }
+      if (centre.dx < minX) {minX = centre.dx; minXn = rotated[n].index; }
+      if (centre.dy < minY) {minY = centre.dy; minYn = rotated[n].index; }
+      if (centre.dx > maxX) {maxX = centre.dx; maxXn = rotated[n].index; }
+      if (centre.dy > maxY) {maxY = centre.dy; maxYn = rotated[n].index; }
     }
 
     _rangeX = maxX - minX + _rawDiameter;
@@ -160,6 +161,13 @@ int maxYn = -1;
     // Sort the centres of the spheres into Z order, so that, when painting the
     // Canvas, the furthest-away spheres are painted first and the nearest last.
     rotated.sort((s1, s2) => s1.xyz[2].compareTo(s2.xyz[2]));
+    cellLookup.clear();
+    cellLookup = List.filled(rotated.length, 0, growable: false);
+    for (int n = 0; n < rotated.length; n++) {
+      // ?????? print(rotated[n].index);
+      cellLookup[rotated[n].index] = n;
+    }
+    // ?????? print(cellLookup);
   }
 
   List<RoundCell> calculateProjection(Rect puzzleRect)
@@ -183,12 +191,12 @@ int maxYn = -1;
       Offset proj = Offset(
                       s.used ?  scale * s.xyz[0] + centering.dx : 0.0,	// X.
                       s.used ? -scale * s.xyz[1] + centering.dy : 0.0);	// Y.
-if ((s.id == 6) || (s.id == 20)) {
-      print('Sphere ${s.id}: ${s.xyz[0]} ${s.xyz[1]} ${s.xyz[2]}');
+if ((s.index == 6) || (s.index == 20)) {
+      print('Sphere ${s.index}: ${s.xyz[0]} ${s.xyz[1]} ${s.xyz[2]}');
       print('Projection $proj');
 }
       result.add(RoundCell(
-                   s.id,
+                   s.index,
                    s.used,
                    proj,
                    scale * s.diameter));			// Diameter.
@@ -217,15 +225,15 @@ if ((s.id == 6) || (s.id == 20)) {
       if (! s.used) {
         continue;
       }
-      // if (r.contains(Offset(s.xyz[0], s.xyz[1]))) return s.id;
+      // if (r.contains(Offset(s.xyz[0], s.xyz[1]))) return s.index;
       if (r.contains(Offset(s.xyz[0], s.xyz[1]))) possibles.add(s);
     }
     if (possibles.isEmpty) {
       return -1;
     }
     else if (possibles.length == 1) {
-      debugPrint('whichSphere: SINGLE POSSIBILITY ${possibles[0].id}');
-      return possibles[0].id;
+      debugPrint('whichSphere: SINGLE POSSIBILITY ${possibles[0].index}');
+      return possibles[0].index;
     }
     Sphere closestZ  = possibles[0];
     Sphere closestXY = possibles[0];
@@ -246,9 +254,9 @@ if ((s.id == 6) || (s.id == 20)) {
       }
     }
     debugPrint('POSSIBLES $possibles');
-    debugPrint('Closest Z $bestZ: sphere ${closestZ.id}');
-    debugPrint('Closest XY $bestXY: sphere ${closestXY.id}');
-    return closestZ.id;
+    debugPrint('Closest Z $bestZ: sphere ${closestZ.index}');
+    debugPrint('Closest XY $bestXY: sphere ${closestXY.index}');
+    return closestZ.index;
   }
 
 /* This belongs in a View class...
