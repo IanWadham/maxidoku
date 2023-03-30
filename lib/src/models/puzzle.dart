@@ -399,10 +399,9 @@ class PuzzlePlayer with ChangeNotifier
     return true;
   }
 
-  void  hitPuzzleCellN(int n)
+  void hitPuzzleCellN(int n)
   {
     // Step 1 in making a move: highlight a cell that is to receive a new value.
-
     print('Selected cell $n');
     if (! validCellSelection(n)) {
       return;

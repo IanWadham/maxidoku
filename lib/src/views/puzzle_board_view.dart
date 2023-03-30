@@ -183,14 +183,14 @@ class PuzzleBoardView extends StatelessWidget
       // puzzle.stopClock();	// REDUNDANT???? Hasn't Puzzle already done it.
       await infoMessage(context,
                         'CONGRATULATIONS!!!',
-                        'Well done!!'
-                        ' You have reached the end of the puzzle!');
+                        'You have reached the end of the puzzle!'
+                        ' Well done!!');
     }
     else if (playNow == Play.HasError) {
       await infoMessage(context,
                         'Incorrect Solution',
                         'Your solution contains one or more errors.'
-                        ' Please correct them and try again.');
+                        ' Please correct it and try again.');
     }
   }
 

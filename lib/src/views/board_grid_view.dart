@@ -197,7 +197,9 @@ class CagePainter extends CustomPainter
   @override
   void paint(Canvas canvas, Size size)
   {
-    debugPrint('CagePainter.paint() called...');
+    // debugPrint('CagePainter.paint() called...');
+
+    // TODO - Need to call this ONLY ONCE, unless there is a resize...
 
     // Paint cages if there are any: for Mathdoku and Killer Sudoku only.
     if (cagePerimeters.isEmpty) {
