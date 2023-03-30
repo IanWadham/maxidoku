@@ -21,20 +21,19 @@ class SymbolView extends StatelessWidget
   final double    cellSide;	// Height and width of the cell.
   final int       value;	// Fixed value for a Control cell, else 0.
 
-  // Does this cell have a highlight border around it?
-  final bool      hasHighlight = false;
-
   SymbolView(this.cellType, this.map,
              this.index, this.cellSide,
              {int this.value = 0, Key? key})
            : super(key: key);
 
   late PuzzlePlayer _puzzlePlayer;
-  int _cellValue = 0;
-  int _cellStatus = VACANT;
+
+  int   _cellValue    = 0;
+  int   _cellStatus   = VACANT;
+  bool  _hasHighlight = false;
+  Color _highlight    = Colors.transparent;
 
   @override
-  // TODO - How to to turn on highlight and turn off OLD Cell highlight.
   // TODO - Might be easier to pass TextStyle as a pre-computed parameter.
 
   Widget build(BuildContext context)
@@ -45,19 +44,42 @@ class SymbolView extends StatelessWidget
 
     final int    nSymbols  = map.nSymbols;	// Number of symbols needed.
 
+    // Get Provider to check if cell value, status or highlighting have changed.
+    // If so, the cell gets repainted...
     if (cellType == 'Control') {
-      _cellValue  = value;
-      _cellStatus = CORRECT;
+      _cellValue    = value;
+      _cellStatus   = CORRECT;
+
+      // Always highlight the Notes Mode control (but it can change color).
+      if ((_cellValue & NotesBit) > 0) {
+        _hasHighlight = true;
+        _highlight    = _gameTheme.moveHighlight;
+      }
+      else {
+        // Highlight the other controls only when selected.
+        _hasHighlight = context.select((PuzzlePlayer _puzzlePlayer)
+                              => _puzzlePlayer.selectedControl == _cellValue);
+      }
     }
     else {
-      // Get Provider to check if cell value or status have changed.
-      // If so, the cell gets repainted...
-      _cellValue  = context.select((PuzzlePlayer _puzzlePlayer)
-                                   => _puzzlePlayer.stateOfPlay[index]);
-      _cellStatus = context.select((PuzzlePlayer _puzzlePlayer)
-                                   => _puzzlePlayer.cellStatus[index]);
+      // Repaint when value, status or (selection) highlight changes.
+      _cellValue    = context.select((PuzzlePlayer _puzzlePlayer)
+                              => _puzzlePlayer.stateOfPlay[index]);
+      _cellStatus   = context.select((PuzzlePlayer _puzzlePlayer)
+                              => _puzzlePlayer.cellStatus[index]);
+      _hasHighlight = context.select((PuzzlePlayer _puzzlePlayer)
+                              => _puzzlePlayer.selectedCell == index);
     }
-    // ???????? TODO - Test here for a change in hasHighlight...
+    // Repaint highlighted cells whenever Notes Mode toggles (change hi-color).
+    if (_hasHighlight) {
+      _highlight   = context.select((PuzzlePlayer _puzzlePlayer)
+                             => (_puzzlePlayer.notesMode ?
+                                  _gameTheme.notesHighlight :
+                                  _gameTheme.moveHighlight));
+    }
+    else {
+      _highlight = Colors.transparent;
+    }
 
     symbols = (nSymbols <= 9) ? digits : letters;
 
@@ -77,8 +99,6 @@ class SymbolView extends StatelessWidget
     // So the maximum value of the notes bits is 2**(nSymbols + 1) - 2.
     else if ((_cellValue > NotesBit) &&
              ((_cellValue - NotesBit) <= ((1 << (nSymbols + 1)) - 2))) {
-      debugPrint('Notes bits are ${_cellValue - NotesBit}');
-      debugPrint('Test value is: ${(1 << (nSymbols + 1)) - 2}');
       // The cell value is a set of Notes and all the bits are in a valid range.
       isNote = true;
     }
@@ -92,17 +112,11 @@ class SymbolView extends StatelessWidget
 
     Widget cellContents;
 
-    // Add a live, tappable spot to the 2D Sudoku grid.
-    if (isNote) {
-      cellContents = noteSymbols(_cellValue, textColour);
-    }
-    else {
-      cellContents = singleSymbol(_cellValue, textColour,
-                                  _gameTheme.emptyCellColor,
-                                  _gameTheme.specialCellColor,
-                                  _gameTheme.givenCellColor,
-                                  _gameTheme.errorCellColor);
-    }
+    cellContents = symbolBox(_cellValue, textColour,
+                             _gameTheme.emptyCellColor,
+                             _gameTheme.specialCellColor,
+                             _gameTheme.givenCellColor,
+                             _gameTheme.errorCellColor);
 
     // Return the required variety of cell-widget and its contents. The gesture
     // detector gets all taps whatever widget is underneath (opaque behavior).
@@ -126,20 +140,35 @@ class SymbolView extends StatelessWidget
     );
   } // End Widget build
 
-  Widget singleSymbol(int value, Color textColour,
-                      Color emptyCellColor, Color specialCellColor,
-                      Color givenCellColor, Color errorCellColor)
+  Widget symbolBox(int value, Color textColour,
+                   Color emptyCellColor, Color specialCellColor,
+                   Color givenCellColor, Color errorCellColor)
   {
     // Single cell-value: decide what text to display - symbol or empty string.
-    String cellText = (value == 0) ? '' : symbols[value];
-    TextStyle textStyle = TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color:      textColour,
-                            fontSize:   symbolFraction * cellSide,
-                          );
+    String cellText = '';
+    Widget formattedBox;
+    if (value > map.nSymbols) {
+      formattedBox = noteSymbols(_cellValue, textColour);
+    }
+    else {
+      cellText = (value == 0) ? '' : symbols[value];
+      TextStyle textStyle = TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color:      textColour,
+                              fontSize:   symbolFraction * cellSide,
+                            );
+      formattedBox = Align(
+                      alignment: Alignment.center,	// Vertical+horizontal.
+                      child: Text(
+                        cellText,
+                        style: textStyle,
+                      ),
+                    );
+    }
+
     bool isSpecial = map.specialCells.contains(index);
 
-    // Calculate a radial gradient for GIVEN or ERROR cells.
+    // Calculate a radial gradient for cells with GIVEN or ERROR status.
     Gradient? cellGradient = null;
 
     // The colour is needed for a gradient to blend with the cell background.
@@ -155,7 +184,7 @@ class SymbolView extends StatelessWidget
         cellGradient =
           RadialGradient(
           center: Alignment.center,
-          radius: 0.39,		// A little less than half width of box.
+          radius: 0.39,			// A little less than half width of box.
           colors: <Color>[
             cellEmphasis,
             cellBackground,
@@ -168,41 +197,24 @@ class SymbolView extends StatelessWidget
         break;			// No gradient.
     }
 
-    if (cellType == '3D') {
-      return DecoratedBox(
-        decoration: ShapeDecoration(
-          shape: CircleBorder(
-            side: BorderSide(
-              width: 1,
-              color: textColour,
-            ),
-          ),
-          gradient: cellGradient,
+// TODO - Choose thinner hilite for spheres. Works well with cages and squares.
+
+    BoxShape cellShape = (cellType == '3D') ?
+                         BoxShape.circle : BoxShape.rectangle;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        // The cell background colour has been painted in GridPainter().
+        gradient: cellGradient,
+        border: Border.all(
+          width: cellSide / boldGridFactor,
+          color: _highlight,
         ),
-        position: DecorationPosition.background,
-        child: Align (alignment: Alignment.center,	// Vertical+horizontal.
-          child: Text(
-            cellText,
-            style: textStyle,
-          ),
-        ),
-      );
-    }
-    else {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          // The cell background colour has been painted in GridPainter().
-          gradient: cellGradient,
-        ),
-        position: DecorationPosition.background,
-        child: Align (alignment: Alignment.center,	// Vertical+horizontal.
-          child: Text(
-            cellText,
-            style: textStyle,
-          ),
-        ),
-      );
-    }
+        shape: cellShape,
+      ),
+      position: DecorationPosition.background,
+      child: formattedBox,
+    );
   }
 
   Widget noteSymbols(int notes, Color textColour)
