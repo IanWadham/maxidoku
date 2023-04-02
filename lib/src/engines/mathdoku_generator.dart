@@ -55,10 +55,11 @@ class MathdokuKillerGenerator
                                        List<int>     solutionMoves,
                                        Difficulty    difficultyRequired)
   {
-    Message response = Message('', '');
-    // TODO - Enable hideOperators?..... ?????????????????????????????????
-    // ???? bool hideOperators = _puzzleMap.hideOperators;;
+    // Try up to 10 solution boards + 20 attempts to generate cages for each
+    // solution that satisfy the user's requirements: total 10x20 = 200 tries.
     int  maxTries      = 20;
+
+    Message response = Message('', '');
 
     // Cage sizes must be no more than the number of cells in a column or row.
     CageGenerator cageGen = CageGenerator(_puzzleMap, solution);
@@ -71,8 +72,6 @@ class MathdokuKillerGenerator
       // Generate random cages covering the existing solution. Return n > 0 if
       // those cages provide a puzzle with a single solution. Return n = 0 if
       // they provide no solution or n < 0 if multiple solutions.
-      // ???? n = cageGen.makeCages
-                 // ???? (solutionMoves, hideOperators, difficultyRequired);
       n = cageGen.makeCages(solutionMoves, difficultyRequired);
       if (n < 0) {
         numMultis++;

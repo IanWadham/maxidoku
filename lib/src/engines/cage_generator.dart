@@ -60,11 +60,6 @@ import 'dlx_solver.dart';
    side means that there is a cell assigned to a cage on that side. Cells
    at the edges or corners of the board are set up to have imaginary (dummy)
    cages as neighbours.
-3. Set bool _hiddenOperators permanently == true. Only Mathdoku puzzles can
-   have hidden operators as part of the Puzzle's difficulty. However, the
-   option is NOT yet implemented: Mathdoku is hard enough already without
-   that. KillerSudoku has just + or NoOp and _hiddenOperators is irrelevant
-   but it always hides the +'s in the View.
 */
 
 class CageTarget		// Used as a composite return-value for a cage.
@@ -93,7 +88,6 @@ class CagesLevel		// Parameters for the level of Difficulty.
                    this.maxFeatureSize = 0,
                    this.sizeDistribution = const <int>[]
                    });
-// TODO: Does putting "this." on named params give correct values in all cases?
 }
 
 // Bit-values used to show what neighbours of a cell are already in other cages.
@@ -744,28 +738,7 @@ class CageGenerator
     }
     return isOK;
   }
-/*
-  void _setAllPossibilities (List<int> cage, int nDigits,
-                            CageOperator cageOperator, int cageValue)
-  // Set all possible values for the cells of a cage (used by the solver).
-  {
-    if ((nDigits > 1) && _hideOperators && (! _killerSudoku)) {
-        // debugPrint('MULTIPLE POSSIBLE OPERATORS');
-        // Mathdoku operators and hidden: must consider every possible operator.
-        if (nDigits == 2) {
-            _setPossibilities (cage, CageOperator.Divide, cageValue);
-            _setPossibilities (cage, CageOperator.Subtract, cageValue);
-        }
-        _setPossibilities (cage, CageOperator.Add, cageValue);
-        _setPossibilities (cage, CageOperator.Multiply, cageValue);
-    }
-    else {
-        // debugPrint('ONE OPERATOR ONLY');
-        // Operators are Killer or visible Mathdoku: can consider fewer cases.
-        _setPossibilities (cage, cageOperator, cageValue);
-    }
-  }
-*/
+
   void _setPossibilities (List<int> cage, CageOperator cageOperator,
                          int cageValue)
   // Set all possible values for one operator in a cage (used by the solver).
