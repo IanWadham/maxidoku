@@ -78,7 +78,8 @@ class SymbolView extends StatelessWidget
                                   _gameTheme.moveHighlight));
     }
     else {
-      _highlight = Colors.transparent;
+      _highlight = (cellType == '3D') ? _gameTheme.thinLineColor
+                                      : Colors.transparent;
     }
 
     symbols = (nSymbols <= 9) ? digits : letters;
@@ -108,53 +109,136 @@ class SymbolView extends StatelessWidget
       _cellValue = 0;		// ERROR: Leave the cell empty.
     }
 
-    Color textColour = _gameTheme.boldLineColor;
+    Color textColor      = _gameTheme.boldLineColor;
 
-    Widget cellContents;
+    // This colour is needed for a gradient to blend with the cell background.
+    Color mainCellColor = (cellType == '3D')  ? _gameTheme.outerSphereColor
+                                              : _gameTheme.emptyCellColor;
+    if (map.specialCells.contains(index)) {
+      mainCellColor     = _gameTheme.specialCellColor;
+    };
+    Color emphasisColor = mainCellColor;	// For VACANT or CORRECT status.
+    if (! isNote) {
+      if (_cellStatus == GIVEN) emphasisColor = _gameTheme.givenCellColor;
+      if (_cellStatus == ERROR) emphasisColor = _gameTheme.errorCellColor;
+    }
 
-    cellContents = symbolBox(_cellValue, textColour,
-                             _gameTheme.emptyCellColor,
-                             _gameTheme.specialCellColor,
-                             _gameTheme.givenCellColor,
-                             _gameTheme.errorCellColor);
+    // Decide what text to display - symbol, notes or empty string.
+    Widget cellContents = getSymbols(_cellValue, textColor);
 
-    // Return the required variety of cell-widget and its contents. The gesture
-    // detector gets all taps whatever widget is underneath (opaque behavior).
+    // Return the required variety of cell-widget and its contents. The
+    // gesture detectors get all taps, whether a single symbol or a Stack
+    // of notes lies underneath (opaque behavior option).
 
-    return AspectRatio(
-      aspectRatio: 1.0,			// The cell must be a square.
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+    if (cellType == '3D') {
+      // Build a 3D cell.
+
+// TODO - Taps on circles (spheres) are clipped PROPERLY here, but not in
+//        SymbolView, where each circle is treated as a SQUARE for tapping...
+
+      return GestureDetector(
         onTap: () {
-          if (cellType == 'Control') {
-            debugPrint('Tapped control cell $index');
-            _puzzlePlayer.hitControlArea(index);
-          }
-          else {			// Board cell of '2D' or '3D' type.
-            debugPrint('Tapped cell $index');
-            _puzzlePlayer.hitPuzzleCellN(index);
-          }
+          debugPrint('Tapped cell $index');
+          _puzzlePlayer.hitPuzzleCellN(index);
         },
-        child: cellContents,		// A full-size symbol or tiny Notes.
-      ),
-    );
+        child: DecoratedBox(
+          decoration: ShapeDecoration(	// Decorate a box of ANY shape.
+            shape: CircleBorder(	// Show outline of circular box.
+              side: BorderSide(
+                width: 1,		// TODO - Fixed or dep. on sphere size?
+                color: _highlight,
+              ),
+            ),
+            // Flutter Gradient parameters are fractions of the Box/Circle size.
+            gradient: RadialGradient(	// Shade a circle to look like a sphere.
+              center: Alignment.center,
+              radius: 0.5,		// Diameter = width or height of box.
+              colors: <Color>[
+                _gameTheme.innerSphereColor,
+                emphasisColor,		// Darker color on the outside.
+              ],
+              stops: <double>[0.2, 1.0],
+              tileMode: TileMode.decal,	// Use transparency after circle-edge.
+            ),
+          ), // End ShapeDecoration.
+          position: DecorationPosition.background,
+          child: cellContents,
+        ), // End DecoratedBox.
+
+      ); // End GestureDetector.
+    }
+    else {
+      // Build a 2D cell.
+
+      Gradient? cellGradient = null;
+
+      // Build a radial gradient for cells with GIVEN or ERROR status.
+      cellGradient = RadialGradient(
+        center: Alignment.center,
+        radius: 0.39,			// A little less than half width of box.
+        colors: <Color>[
+          emphasisColor,		// Darker color on the imside..
+          mainCellColor,
+        ],
+        tileMode: TileMode.decal,
+      );
+
+      return AspectRatio(
+        aspectRatio: 1.0,		// The 2D cell must be a square.
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            if (cellType == 'Control') {
+              debugPrint('Tapped control cell $index');
+              _puzzlePlayer.hitControlArea(index);
+            }
+            else {			// Board cell of '2D' or '3D' type.
+              debugPrint('Tapped cell $index');
+              _puzzlePlayer.hitPuzzleCellN(index);
+            }
+          },
+          child: DecoratedBox(		// A full-size symbol or tiny Notes.
+            decoration: BoxDecoration(
+              // The cell background colour has been painted in GridPainter().
+              gradient: cellGradient,
+              border: Border.all(
+                width: cellSide / boldGridFactor,
+                color: _highlight,
+              ),
+            ),
+            position: DecorationPosition.background,
+            child: cellContents,
+          ),
+        ),
+      );
+    }
   } // End Widget build
 
-  Widget symbolBox(int value, Color textColour,
-                   Color emptyCellColor, Color specialCellColor,
-                   Color givenCellColor, Color errorCellColor)
+  void handleTap()
+  {
+    if (cellType == 'Control') {
+      debugPrint('Tapped control cell $index');
+      _puzzlePlayer.hitControlArea(index);
+    }
+    else {			// Board cell of '2D' or '3D' type.
+      debugPrint('Tapped cell $index');
+      _puzzlePlayer.hitPuzzleCellN(index);
+    }
+  }
+
+  Widget getSymbols(int value, Color textColor)
   {
     // Single cell-value: decide what text to display - symbol or empty string.
     String cellText = '';
     Widget formattedBox;
     if (value > map.nSymbols) {
-      formattedBox = noteSymbols(_cellValue, textColour);
+      return noteSymbols(_cellValue, textColor);
     }
     else {
       cellText = (value == 0) ? '' : symbols[value];
       TextStyle textStyle = TextStyle(
                               fontWeight: FontWeight.bold,
-                              color:      textColour,
+                              color:      textColor,
                               fontSize:   symbolFraction * cellSide,
                             );
       formattedBox = Align(
@@ -165,59 +249,10 @@ class SymbolView extends StatelessWidget
                       ),
                     );
     }
+    return formattedBox;
+}
 
-    bool isSpecial = map.specialCells.contains(index);
-
-    // Calculate a radial gradient for cells with GIVEN or ERROR status.
-    Gradient? cellGradient = null;
-
-    // The colour is needed for a gradient to blend with the cell background.
-    Color  cellBackground = isSpecial ? specialCellColor :
-                                        emptyCellColor;
-
-    switch(_cellStatus) {
-      case GIVEN:
-      case ERROR:
-        Color cellEmphasis = (_cellStatus == GIVEN) ?
-                             givenCellColor :
-                             errorCellColor;
-        cellGradient =
-          RadialGradient(
-          center: Alignment.center,
-          radius: 0.39,			// A little less than half width of box.
-          colors: <Color>[
-            cellEmphasis,
-            cellBackground,
-          ],
-          stops: <double>[0.0, 1.0],	// Colour centre of cell.
-          tileMode: TileMode.decal,	// Fill rest with cellBg colour.
-        );
-        break;
-      default:			// UNUSABLE, VACANT or CORRECT.
-        break;			// No gradient.
-    }
-
-// TODO - Choose thinner hilite for spheres. Works well with cages and squares.
-
-    BoxShape cellShape = (cellType == '3D') ?
-                         BoxShape.circle : BoxShape.rectangle;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        // The cell background colour has been painted in GridPainter().
-        gradient: cellGradient,
-        border: Border.all(
-          width: cellSide / boldGridFactor,
-          color: _highlight,
-        ),
-        shape: cellShape,
-      ),
-      position: DecorationPosition.background,
-      child: formattedBox,
-    );
-  }
-
-  Widget noteSymbols(int notes, Color textColour)
+  Widget noteSymbols(int notes, Color textColor)
   {
     // Lay out and paint one or more notes in this cell.
 
@@ -259,7 +294,7 @@ class SymbolView extends StatelessWidget
 
     TextStyle textStyle = TextStyle(
                             fontWeight: FontWeight.bold,
-                            color:      textColour,
+                            color:      textColor,
                             fontSize:   0.8 * noteSide,
                           );
 
