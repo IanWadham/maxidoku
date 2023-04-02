@@ -1,6 +1,4 @@
-// import 'puzzle_types.dart';
-
-/// A placeholder class that represents an entity or model.
+/// A list of extracts from the PuzzleType list, to appear in the startup sreen.
 class PuzzleList
 {
   const PuzzleList();
@@ -9,7 +7,6 @@ class PuzzleList
 
   List<String> getItem(int index) => puzzleList[index];
 
-  // static const List<List<String>> puzzleList =
   static const List<List<String>> puzzleList =
   [
   ['2', // Puzzle ID
@@ -169,6 +166,12 @@ class PuzzleList
   'ksudoku-roxdoku_3x3x3' // Icon ID
   ],
   ['26', // Puzzle ID
+  'Blindfold Mathdoku 101',
+  'Size 4x4 grid, with calculated cages, but operators +-/x are hidden',
+  // Author Ian Wadham
+  'ksudoku-ksudoku_4x4' // Icon ID
+  ],
+  ['27', // Puzzle ID
   'Blindfold Mathdoku - Settable Size',
   'Size 3x3 to 9x9 grid, with calculated cages, but operators +-/x are hidden',
   // Author Ian Wadham
@@ -176,30 +179,3 @@ class PuzzleList
   ],
   ];
 }
-
-/*
-class PuzzleInfo 
-{
-  PuzzleInfo(String name,
-             String description,
-             String iconFilePath,
-             int    specIndex)
-    :
-    _name         = name,
-    _description  = description,
-    _iconFilePath = iconFilePath,
-    _specIndex    = specIndex
-  {
-  }
-
-  String get name         => _name;
-  String get description  => _description;
-  String get iconFilePath => _iconFilePath;
-  int    get specIndex    => _specIndex;
-
-  String _name;
-  String _description;
-  String _iconFilePath;
-  int    _specIndex;
-}
-*/

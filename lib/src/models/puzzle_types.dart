@@ -524,6 +524,20 @@ class PuzzleTypesText {
     RoxdokuGroups 84
     RoxdokuGroups 96 '''
 ,
+''' Name Blindfold Mathdoku 101
+    Description Size 4x4 grid, with calculated cages, but operators +-/x are hidden
+    Author Ian Wadham
+    FileName Mathdoku_4x4.xml
+    Icon ksudoku-ksudoku_4x4
+    SizeX 4
+    SizeY 4
+    SizeZ 1
+    NSymbols 4 
+    SpecificType Mathdoku
+    HideOperators
+    PuzzleMap
+    SudokuGroups 0 NoSquareBlocks '''
+,
 ''' Name Blindfold Mathdoku - Settable Size
     Description Size 3x3 to 9x9 grid, with calculated cages, but operators +-/x are hidden
     Author Ian Wadham
