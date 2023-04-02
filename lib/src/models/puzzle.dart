@@ -13,7 +13,7 @@ import '../engines/sudoku_solver.dart';
 import '../engines/mathdoku_generator.dart';
 
 import '../layouts/board_layout_2d.dart';
-// import '../layouts/board_layout_3d.dart';
+import '../layouts/board_layout_3d.dart';
 
 class Puzzle with ChangeNotifier
 {
@@ -35,13 +35,22 @@ class Puzzle with ChangeNotifier
   BoardContents   _cellColorCodes = [];	// Codes for colours to paint cells.
   List<List<int>> _cagePerimeters = [];	// Cage-layouts for Mathdoku and Killer.
 
-  // TODO - Insert 3D layout data here...
+  // Layout data for 3D Puzzles: stays empty in 2D, set ONCE when the Puzzle
+  //starts  and again whenever the user turns or tilts the Puzzle by 90 degrees.
+  List<RoundCell> _roundCells3D = [];
+  // TODO - baseScale2D is very likely NOT NEEDED.
+  double          _baseScale3D  = 1.0;
+
+  //        Should probably KEEP the 3D Layout object - ready for pi/4 flips.
 
   PuzzleMap       get puzzleMap      => _puzzleMap;
   List<int>       get edgesEW        => _edgesEW;
   List<int>       get edgesNS        => _edgesNS;
   BoardContents   get cellColorCodes => _cellColorCodes;
   List<List<int>> get cagePerimeters => _cagePerimeters;
+
+  List<RoundCell> get roundCells3D   => _roundCells3D;
+  double          get baseScale3D    => _baseScale3D;
 
   Message delayedMessage = Message('', '');
 
@@ -77,8 +86,10 @@ class Puzzle with ChangeNotifier
       _boardLayout2D.calculateLayout(_edgesEW, _edgesNS, _cellColorCodes);
     }
     else {
-      // BoardLayout3D _boardLayout3D = BoardLayout3D(_puzzleMap);
-      // _boardLayout3D.calculateLayout();
+      BoardLayout3D _boardLayout3D = BoardLayout3D(_puzzleMap);
+      _boardLayout3D.calculate3DLayout();
+      _roundCells3D = _boardLayout3D.calculate2DProjection(); // One step?
+      _baseScale3D  = _boardLayout3D.baseScale3D;
     }
 
     // Start by generating a puzzle and a delayed message. Maybe the users
@@ -293,7 +304,6 @@ class PuzzlePlayer with ChangeNotifier
   // Current values of each cell, which may be +ve integers or bitmaps of Notes.
   BoardContents    _stateOfPlay = [];
   BoardContents get stateOfPlay => _stateOfPlay;
-  // ?????? BoardContents get solution => _solution;	// TODO - Testing ONLY...
 
   int cellValue(int n)
   {
@@ -348,7 +358,7 @@ class PuzzlePlayer with ChangeNotifier
 
     _indexUndoRedo  = 0;
 
-    selectedCell    = null;	// TODO - Could be 0/
+    selectedCell    = null;
     selectedControl = 1;
     notesMode       = false;
 

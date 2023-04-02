@@ -26,6 +26,7 @@ typedef Coords = Vector3;
 
 class Sphere
 {
+  // A Sphere in 3D space.
   Sphere(this.index, this.used, this.xyz, this.diameter);
 
   final int    index;
@@ -36,6 +37,7 @@ class Sphere
 
 class RoundCell
 {
+  // A Sphere's projection into a Circle on a 2D surface.
   const RoundCell(this.index, this.used, this.centre, this.diameter);
 
   final int    index;
@@ -44,18 +46,22 @@ class RoundCell
   final double diameter;
 }
 
-class Puzzle3D
+class BoardLayout3D
 {
+  // A Roxdoku (3D) Puzzle layout is a List of projected RoundCell objects.
   final PuzzleMap _map;
 
-  Puzzle3D(this._map);
+  BoardLayout3D(this._map);
 
   final int    spacing   = 6;
   final int    radius    = 1;
-  final double deg       = pi / 180.0;
+  final double deg       = pi / 180.0;		// Converts degrees to radians.
 
   Offset    _origin      = const Offset(0, 0);	// Centre of 3D puzzle-area.
-  double    _scale       = 1.0;			// Current scale of puzzle.
+
+  double    _baseScale3D = 1.0;			// Current scale of puzzle.
+  double get baseScale3D => _baseScale3D;
+
   double    _rawDiameter = 2.0;			// Relative size of spheres.
   double    _rotateX     = 0.0;			// Deg to rotate view around X.
   double    _rotateY     = 0.0;			// Deg to rotate view around Y.
@@ -70,10 +76,10 @@ class Puzzle3D
   Coords newOrigin = Coords(0.0, 0.0, 0.0);
   List<Sphere> spheres    = [];
   List<Sphere> rotated    = [];
-  List<int>    cellLookup = [];
+  // ?????? List<int>    cellLookup = [];	// NOT NEEDED...
 
   @override
-  void calculate3dLayout()
+  void calculate3DLayout()
   {
     // Pre-calculate puzzle background details (fixed when puzzle-play starts).
     // NOTE: This class gets size* values from PuzzleMap via the _map variable.
@@ -82,12 +88,13 @@ class Puzzle3D
     int sizeY    = _map.sizeY;
     int sizeZ    = _map.sizeZ;
 
+    // These rotations tilt and turn the spheres so that all become visible.
     _rawDiameter = _map.diameter/100.0;	// Usually set to about 3.5.
-    _rotateX     = _map.rotateX + 0.0;
+    _rotateX     = _map.rotateX + 0.0;	// The 0.0 forces int degrees to double.
     _rotateY     = _map.rotateY + 0.0;
     // debugPrint('X range $minX $maxX, Y range $minY $maxY');
     // debugPrint('rangeX $rangeX rangeY $rangeY maxRange $maxRange');
-    // debugPrint('Sphere IDs: minX $minXn maxX $maxXn minY $minYn maxY $maxYn'); 
+    // debugPrint('Sphere IDs: minX $minXn maxX $maxXn minY $minYn maxY $maxYn');
 
 
     // Place the origin in the centre of the puzzle - used as rotation centre.
@@ -112,8 +119,8 @@ class Puzzle3D
 
     // Rotate all the pseudo-spheres so as to give the user a better view.
     debugPrint('\nROTATIONS: _rotateX $_rotateX _rotateY $_rotateY\n');
-    rotationM = Matrix.rotationX(_rotateX * deg).
-                multiplied(Matrix.rotationY(_rotateY * deg));
+    rotationM = Matrix.rotationX(_rotateX * deg).		// Tilt.
+                multiplied(Matrix.rotationY(_rotateY * deg));	// Turn.
     homeRotM  = rotationM.clone();
     rotateCentresOfSpheres();
   }
@@ -156,21 +163,22 @@ int maxYn = -1;
     _maxRange = (_rangeX > _rangeY) ? _rangeX : _rangeY;
     debugPrint('X range $minX $maxX, Y range $minY $maxY');
     debugPrint('rangeX $_rangeX rangeY $_rangeY maxRange $_maxRange');
-    debugPrint('Sphere IDs: minX $minXn maxX $maxXn minY $minYn maxY $maxYn'); 
+    debugPrint('Sphere IDs: minX $minXn maxX $maxXn minY $minYn maxY $maxYn');
 
     // Sort the centres of the spheres into Z order, so that, when painting the
     // Canvas, the furthest-away spheres are painted first and the nearest last.
     rotated.sort((s1, s2) => s1.xyz[2].compareTo(s2.xyz[2]));
-    cellLookup.clear();
-    cellLookup = List.filled(rotated.length, 0, growable: false);
-    for (int n = 0; n < rotated.length; n++) {
+    // ?????? cellLookup.clear();	// NOT NEEDED...
+    // ?????? cellLookup = List.filled(rotated.length, 0, growable: false);
+    // ?????? for (int n = 0; n < rotated.length; n++) {
       // ?????? print(rotated[n].index);
-      cellLookup[rotated[n].index] = n;
-    }
+      // ?????? cellLookup[rotated[n].index] = n;
+    // ?????? }
     // ?????? print(cellLookup);
   }
 
-  List<RoundCell> calculateProjection(Rect puzzleRect)
+  // ?????? List<RoundCell> calculateProjection(Rect puzzleRect)
+  List<RoundCell> calculate2DProjection()
   {
     List<RoundCell> result = [];
 
@@ -178,19 +186,26 @@ int maxYn = -1;
     int nCircles = rotated.length;
 
     // Spheres started with diameter 2: now inflated as per PuzzleMap specs.
-    double scale  = 0.95 * puzzleRect.height / (_maxRange + _rawDiameter);
-    debugPrint('Scaled ranges ${scale * _rangeX} ${scale * _rangeY} puzzleRect ${puzzleRect.size}');
+    // ?????? double scale  = 0.95 * puzzleRect.height / (_maxRange + _rawDiameter);
+    _baseScale3D  = 1.0 / (_maxRange + _rawDiameter);
+    // ?????? debugPrint('Scaled ranges ${scale * _rangeX} ${scale * _rangeY} puzzleRect ${puzzleRect.size}');
+    debugPrint('Scaled ranges ${_baseScale3D * _rangeX} ${_baseScale3D * _rangeY}');
+/* ??????
     Offset origin = puzzleRect.center;
     Offset centering = Offset((puzzleRect.width  - scale * _rangeX)/2.0,
                               (puzzleRect.height - scale * _rangeY)/2.0);
     debugPrint('Centering $centering');
-    centering = Offset(0.0, 0.0);
+*/
+    Offset centering = Offset(0.0, 0.0);
     debugPrint('Centering $centering');
     for (int n = 0; n < rotated.length; n++) {
       Sphere s = rotated[n];
+      // ?????? Offset proj = Offset(
+                      // s.used ?  scale * s.xyz[0] + centering.dx : 0.0,	// X.
+                      // s.used ? -scale * s.xyz[1] + centering.dy : 0.0);	// Y.
       Offset proj = Offset(
-                      s.used ?  scale * s.xyz[0] + centering.dx : 0.0,	// X.
-                      s.used ? -scale * s.xyz[1] + centering.dy : 0.0);	// Y.
+                      s.used ?  _baseScale3D * s.xyz[0] + centering.dx : 0.0,	// X.
+                      s.used ? -_baseScale3D * s.xyz[1] + centering.dy : 0.0);	// Y.
 if ((s.index == 6) || (s.index == 20)) {
       print('Sphere ${s.index}: ${s.xyz[0]} ${s.xyz[1]} ${s.xyz[2]}');
       print('Projection $proj');
@@ -199,7 +214,8 @@ if ((s.index == 6) || (s.index == 20)) {
                    s.index,
                    s.used,
                    proj,
-                   scale * s.diameter));			// Diameter.
+                   _baseScale3D * s.diameter));			// Diameter.
+                   // ?????? scale * s.diameter));			// Diameter.
     }
     return result;
   }
@@ -208,7 +224,7 @@ if ((s.index == 6) || (s.index == 20)) {
   {
     return Offset(rotated[n].xyz[0], rotated[n].xyz[1]);
   }
-
+/* ??????
   int whichSphere(Offset hitPos)
   {
     // debugPrint('whichSphere: hitPos = $hitPos');
@@ -258,7 +274,7 @@ if ((s.index == 6) || (s.index == 20)) {
     debugPrint('Closest XY $bestXY: sphere ${closestXY.index}');
     return closestZ.index;
   }
-
+?????? */
 /* This belongs in a View class...
   final List<Path> _arrowList = [];
 

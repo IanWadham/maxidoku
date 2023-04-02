@@ -12,10 +12,9 @@ import '../settings/settings_view.dart';
 import '../globals.dart';
 import '../models/puzzle.dart';
 import '../models/puzzle_map.dart';
-import '../models/puzzle_3d.dart';
-import 'round_cell_view.dart';
-
-// TO BE TESTED --- import 'board_view.dart';
+import '../layouts/board_layout_3d.dart';
+// import 'round_cell_view.dart';
+import 'symbol_view.dart';
 
 import 'board_view.dart';
 import 'board_grid_view.dart';
@@ -60,24 +59,23 @@ class PuzzleBoardView extends StatelessWidget
     WidgetsBinding.instance.addPostFrameCallback((_)
                             {executeAfterBuild(context);});
 
-    if (puzzle.puzzleMap.specificType == SudokuType.Roxdoku) {	// 3D Puzzle.
-      Puzzle3D puzzle3D = Puzzle3D(map);
-      puzzle3D.calculate3dLayout();
+    if (map.specificType == SudokuType.Roxdoku) {	// 3D Puzzle.
+      // ?????? BoardLayout3D boardLayout3D = BoardLayout3D(map);
+      // ?????? boardLayout3D.calculate3DLayout();
 
       List<Positioned> roundCellViews = [];
-      List<RoundCell> roundCells = puzzle3D.calculateProjection(boardSpace);
+      List<RoundCell> roundCells = puzzle.roundCells3D;
       for (RoundCell c in roundCells) {
         if (c.used) {
-// Cells 6. 13 and 20 are at the bottom, centre and top of the view.
+          double viewDiameter = c.diameter * boardSide;
           Rect r = Rect.fromCenter(
-                     center: boardSpace.center + c.centre,
-                     width:  c.diameter,
-                     height: c.diameter);
-          // debugPrint('ID ${c.id} Centre ${c.centre} diameter ${c.diameter} $r');
+                     center: boardSpace.center + c.centre * boardSide,
+                     width:  viewDiameter,
+                     height: viewDiameter);
           roundCellViews.add(
             Positioned.fromRect(
               rect:  r,
-              child: RoundCellView(c.index, c.diameter),
+              child: SymbolView('3D', map, c.index, viewDiameter),
             )
           );
         }
@@ -89,9 +87,9 @@ class PuzzleBoardView extends StatelessWidget
           // print('Board Constraints $constraints');
           // return Stack(
       return SizedBox(
-        width: boardSide,
+        width:  boardSide,
         height: boardSide,
-        child: Stack(
+        child:  Stack(
           children: roundCellViews,
         ),
       );
@@ -105,13 +103,18 @@ class PuzzleBoardView extends StatelessWidget
         child: Stack(
           children: [
             // TODO - Merge BoardView2D code into BoardGridView2D. Colour cellBG
-            //        into grid before building (transparent) CellViewa
+            //        into grid before building (transparent) CellView
             //        (SymbolViews-to-be). Would need to move the Stack( and
             //        children: lines in there too.
             BoardGridView2D(
               boardSide,
               puzzleMap: map),
             BoardView2D(map, cellSide),
+            // TODO - Disconnect the Cage painter from this. So that it can be
+            //        instantiated and painted only ONCE per caged puzzle, using
+            //        RepaintBoundary and deleted and re-created whenever there
+            //        is a new caged puzzle. The function shared by the grid and
+            //        cage calculations might become a "helper" function.
           ],
         ),
       );
