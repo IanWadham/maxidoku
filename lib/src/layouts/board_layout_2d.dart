@@ -202,24 +202,10 @@ class BoardLayout2D
       int topLeft    = puzzleMap.cageTopLeft(cageNum);
       int cell       = topLeft;
 
-      // *********** DEBUG ************ //
-      // debugPrint('Cage $cageNum $cage topLeft $topLeft'
-            // ' label ${puzzleMap.cageValue(cageNum)}');
-      // List<int> temp = [];
-      // for (int nCell in cage) {
-        // temp.add(cagesEdges[nCell]);
-      // }
-      // debugPrint('Cage edges $temp');
-      // ****************************** //
-
       int edgeBits   = cagesEdges[cell];
       int edgeNum    = 0;
       int direction  = cycle[edgeNum];
       List<int> perimeter = [setPair(cell, 0)];
-
-// TODO - Use a list of Paths instead of a list of "perimeter"s, then use
-//        canvas.drawPath() in PuzzlePainter2D. May need to offset the points
-//        added to a Path, so that the cage-boundary is drawn within its cells.
 
       // Keep marking lines until we get back to starting cell and direction.
       do {
