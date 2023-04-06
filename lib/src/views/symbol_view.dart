@@ -6,6 +6,9 @@ import '../models/puzzle.dart';		// TODO - Needed when file is split????
 import '../models/puzzle_map.dart';
 import '../settings/game_theme.dart';
 
+// TODO - Definitely use the List of UNUSED, VACANT and SPECIAL in Puzzle class.
+//        Don't keep computing map.xxx.contains(index). 
+
 class SymbolView extends StatelessWidget
 {
   // Displays single Sudoku symbols or Notes values in 2D cells, 3D cells and
@@ -14,6 +17,13 @@ class SymbolView extends StatelessWidget
 
   static String symbols             = '';	// Digits or letters (globals).
   static List<Offset> notePositions = [];	// Alignment-class parameters.
+
+  static EdgeInsets cellSymbolSpace = EdgeInsets.only
+                           (left: 0.15, top: 0.15,  right: 0.15, bottom: 0.15);
+  static EdgeInsets cageSymbolSpace = EdgeInsets.only
+                           (left: 0.15, top: 0.25,  right: 0.15, bottom: 0.15);
+  static EdgeInsets sphereSymbolSpace = EdgeInsets.only
+                           (left: 0.2,  top: 0.3,   right: 0.2,  bottom: 0.2);
 
   final String    cellType;	// Values '2D', '3D' or 'Control'.
   final PuzzleMap map;
@@ -117,25 +127,41 @@ class SymbolView extends StatelessWidget
     if (map.specialCells.contains(index)) {
       mainCellColor     = _gameTheme.specialCellColor;
     };
+    bool emphasised = false;
     Color emphasisColor = mainCellColor;	// For VACANT or CORRECT status.
     if (! isNote) {
-      if (_cellStatus == GIVEN) emphasisColor = _gameTheme.givenCellColor;
-      if (_cellStatus == ERROR) emphasisColor = _gameTheme.errorCellColor;
+      if (_cellStatus == GIVEN) {
+        emphasisColor = _gameTheme.givenCellColor;
+        emphasised = true;
+      }
+      if (_cellStatus == ERROR) {
+        emphasisColor = _gameTheme.errorCellColor;
+        emphasised = true;
+      }
+    }
+    EdgeInsets symbolSpace;
+    if (cellType == '3D') {
+      symbolSpace = sphereSymbolSpace;
+    }
+    else if ((cellType == 'Control') || (map.cageCount() == 0)) {
+      symbolSpace = cellSymbolSpace;
+    }
+    else {
+      symbolSpace = cageSymbolSpace;
     }
 
     // Decide what text to display - symbol, notes or empty string.
-    Widget cellContents = getSymbols(_cellValue, textColor);
+    Widget cellContents = getSymbols(_cellValue, isNote,
+                                     textColor, symbolSpace * cellSide);
 
     // Return the required variety of cell-widget and its contents. The
-    // gesture detectors get all taps, whether a single symbol or a Stack
-    // of notes lies underneath (opaque behavior option).
+    // gesture detectors get all taps on the cell-widget area, whether a single
+    // symbol or a Stack of tiny Notes lies underneath (opaque behavior option).
 
     if (cellType == '3D') {
       // Build a 3D cell.
 
-// TODO - Taps on circles (spheres) are clipped PROPERLY here, but not in
-//        SymbolView, where each circle is treated as a SQUARE for tapping...
-
+      double borderWidth = _hasHighlight ? cellSide / highlightFactor : 1.0;
       return GestureDetector(
         onTap: () {
           debugPrint('Tapped cell $index');
@@ -145,7 +171,7 @@ class SymbolView extends StatelessWidget
           decoration: ShapeDecoration(	// Decorate a box of ANY shape.
             shape: CircleBorder(	// Show outline of circular box.
               side: BorderSide(
-                width: 1,		// TODO - Fixed or dep. on sphere size?
+                width: borderWidth,
                 color: _highlight,
               ),
             ),
@@ -173,15 +199,19 @@ class SymbolView extends StatelessWidget
       Gradient? cellGradient = null;
 
       // Build a radial gradient for cells with GIVEN or ERROR status.
-      cellGradient = RadialGradient(
-        center: Alignment.center,
-        radius: 0.39,			// A little less than half width of box.
-        colors: <Color>[
-          emphasisColor,		// Darker color on the imside..
-          mainCellColor,
-        ],
-        tileMode: TileMode.decal,
-      );
+      if (emphasised) {
+        double relativeR = (1.0 - symbolSpace.top - symbolSpace.bottom) / 2.0;
+        double centerY   = (relativeR + symbolSpace.top - 0.5) * 2.0;;
+        cellGradient = RadialGradient(
+          center: Alignment(0.0, centerY),
+          radius: relativeR,		// A little less than half width of box.
+          colors: <Color>[
+            emphasisColor,		// Darker color on the imside..
+            mainCellColor,
+          ],
+          tileMode: TileMode.decal,
+        );
+      }
 
       return AspectRatio(
         aspectRatio: 1.0,		// The 2D cell must be a square.
@@ -202,7 +232,7 @@ class SymbolView extends StatelessWidget
               // The cell background colour has been painted in GridPainter().
               gradient: cellGradient,
               border: Border.all(
-                width: cellSide / boldGridFactor,
+                width: cellSide / highlightFactor,
                 color: _highlight,
               ),
             ),
@@ -214,45 +244,40 @@ class SymbolView extends StatelessWidget
     }
   } // End Widget build
 
-  void handleTap()
-  {
-    if (cellType == 'Control') {
-      debugPrint('Tapped control cell $index');
-      _puzzlePlayer.hitControlArea(index);
-    }
-    else {			// Board cell of '2D' or '3D' type.
-      debugPrint('Tapped cell $index');
-      _puzzlePlayer.hitPuzzleCellN(index);
-    }
-  }
-
-  Widget getSymbols(int value, Color textColor)
+  Widget getSymbols(int value, bool isNote, Color textColor, EdgeInsets symbolSpace)
   {
     // Single cell-value: decide what text to display - symbol or empty string.
     String cellText = '';
-    Widget formattedBox;
-    if (value > map.nSymbols) {
-      return noteSymbols(_cellValue, textColor);
+    Widget cellContents;
+    if (isNote) {
+      return noteSymbols(_cellValue, textColor, symbolSpace);
     }
     else {
       cellText = (value == 0) ? '' : symbols[value];
+      // double fontSize = (cellType == '3D') ? 0.8 * symbolFraction * cellSide
+                                           // : symbolFraction * cellSide;
+      double fontSize = cellSide - symbolSpace.top - symbolSpace.bottom;
       TextStyle textStyle = TextStyle(
                               fontWeight: FontWeight.bold,
                               color:      textColor,
-                              fontSize:   symbolFraction * cellSide,
+                              height:     1.0,
+                              fontSize:   fontSize,
                             );
-      formattedBox = Align(
-                      alignment: Alignment.center,	// Vertical+horizontal.
-                      child: Text(
-                        cellText,
-                        style: textStyle,
-                      ),
-                    );
+      cellContents = Padding(
+                       padding: symbolSpace,
+                         child: Align(
+                           alignment: Alignment.center,	// Vertical+horizontal.
+                           child: Text(
+                             cellText,
+                             style: textStyle,
+                         ),
+                       ),
+                     );
     }
-    return formattedBox;
-}
+    return cellContents;
+  }
 
-  Widget noteSymbols(int notes, Color textColor)
+  Widget noteSymbols(int notes, Color textColor, EdgeInsets symbolSpace)
   {
     // Lay out and paint one or more notes in this cell.
 
@@ -261,13 +286,9 @@ class SymbolView extends StatelessWidget
     int    nSymbols  = map.nSymbols;
     int    gridWidth = (nSymbols <= 9) ? 3 : (nSymbols <= 16) ? 4 : 5;
 
-    //symbolSize = ((1 - topMargin - bottomNotesMargin) / gridWidth) * cellSide;
-
-    debugPrint('Entering noteSymbols(): Notes value is $notes');
     if ((notes & NotesBit) > 0) {	// Bitmap of one or more notes.
       notes = notes ^ NotesBit;		// Clear the Notes bit.
     }
-    debugPrint('Removed NotesBit(): Notes value is $notes');
 
     List<int> noteList = [];
 
@@ -280,22 +301,21 @@ class SymbolView extends StatelessWidget
         notes = notes >> 1;
       }
       noteList.add(val);
-      debugPrint('Add $val Note list $noteList');
     }
 
-    // TODO - Fine-tune padding and font-size for normal and Mathdoku/Killer.
-    // TODO - And also for the 3D case!!!
     List<Positioned> noteWidgets = [];
-    double padding = 0.1 * cellSide;
-    Offset topLeft = Offset(padding, padding);
-    double noteSide = (cellSide - 2.0 * padding) / gridWidth;
+    double noteSide = (cellSide - symbolSpace.top - symbolSpace.bottom)
+                      / gridWidth;
+    double leftSide = (cellSide - noteSide * gridWidth) / 2.0;	// Centering.
+    Offset topLeft  = Offset(leftSide, symbolSpace.top);
     Offset noteSize = Offset(noteSide, noteSide);
     int    n = 1;
 
     TextStyle textStyle = TextStyle(
                             fontWeight: FontWeight.bold,
                             color:      textColor,
-                            fontSize:   0.8 * noteSide,
+                            height:     1.0,
+                            fontSize:   0.95 * noteSide,
                           );
 
     for (int n in noteList) {

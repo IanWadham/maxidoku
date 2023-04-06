@@ -21,6 +21,8 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
+import 'dart:ui';
+
 // NOTE: On most platforms Dart/Flutter integers are 64 bits, BUT in Web apps,
 //       based on JavaScript, bit-wise operations are limited to 32 bits and
 //       true integers are whatever fits a float with exponent zero. So the
@@ -136,11 +138,12 @@ const double symbolFraction    = 1.0 - topMargin - bottomMargin;
 
 const double thinGridFactor    = 30.0;	// Divisor for thin grid-line's width.
 const double boldGridFactor    = 15.0;	// Divisor for thick grid-line's width.
+const double highlightFactor   = 20.0;	// Divisor for highlight-line's width.
+
 const double cageGridFactor    = 20.0;	// Divisor for cage-outline's width.
 const double cageInsetFactor   = 12.0;	// Divisor for cage-outline's inset.
 const double labelInsetFactor  = 20.0;	// Divisor for cage-label's inset.
 const double labelTextFactor   =  6.0;	// Divisor for cage-label's text-size.
-
 
 class Message
 {

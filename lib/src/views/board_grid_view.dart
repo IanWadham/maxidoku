@@ -55,13 +55,9 @@ class BoardGridView2D extends StatelessWidget
       ],
     );
 
-    // TODO - Do all calculations and cleanup of Lists inside CustomPainter?
-    //        Check on what Tictactoe's RoughGrid does...
-    // TODO - Tidy up and shorten the code for painting the text in cage-labels.
-
   } // End Widget build
 
-} // End class _BoardGridState
+} // End class BoardGridView2D
 
 class GridPainter extends CustomPainter
 {
@@ -104,15 +100,6 @@ class GridPainter extends CustomPainter
     thinLinePaint.strokeWidth  = cellSide / thinGridFactor;
     boldLinePaint.strokeWidth  = cellSide / boldGridFactor;
 
-    // WILL BE NEEDED LATER...
-    // highlight.strokeWidth      = cellSide * paintingSpecs.highlightInset;
-
-    // TODO - Try a double loop here to paint squares of normal or special
-    //        colour in each cell. See if it affects re-painting behaviour.
-    // TODO - Putting the cell-colour in the grid madw NO DIFFERENCE to the
-    //        repaint behaviour. So RepaintBoundary is STILL NEEDED. Also,
-    //        using a transparent colour in the cell-amphasis gradients made
-    //        the emphasis look too small.
     double oX     = 0.0;
     double oY     = 0.0;
 
@@ -130,8 +117,9 @@ class GridPainter extends CustomPainter
       oX = (index~/sizeY) * cellSide;
       oY = (index% sizeY)  * cellSide;
       canvas.drawRect(Rect.fromLTWH(oX, oY, cellSide, cellSide), cellBgPaint);
-/*
-      // TODO - REMOVE THIS sometime.
+
+/*    // Debugging aid for unwanted overlaps of symbols, gradients, cage
+      // perimeters and grid-lines. Paints a faint 10x10 grid over each cell.
       Paint debugGrid = Paint()	// Style for lines between cells.
       ..color = thinLineColor
       ..style = PaintingStyle.stroke
@@ -145,7 +133,7 @@ class GridPainter extends CustomPainter
                         debugGrid);
         gap = gap + cellSide / 10.0;
       }
-*/
+// */
     }
 
     // Draw light and dark edges of puzzle-area, as required by the puzzle type.
@@ -193,6 +181,13 @@ class CagePainter extends CustomPainter
   final Color           cageLineColor;
   final Color           boldLineColor;
   final Color           emptyCellColor;
+
+  // A text-painter for painting Sudoku symbols on a Canvas.
+  final TextPainter textPainter = TextPainter(
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        textDirection: TextDirection.ltr);
+  final double baseSize = 60.0;
 
   @override
   void paint(Canvas canvas, Size size)
@@ -242,9 +237,6 @@ class CagePainter extends CustomPainter
   {
     PuzzleMap       map            = puzzleMap;
 
-// TODO - Can we make this a list of Path ... i.e. List<Path>? If so, we would
-//        have to introduce the insets in some other way...
-
     double inset = cellSide/cageInsetFactor;
     List<Offset> corners = [Offset(inset, inset),			// NW
                             Offset(cellSide - inset, inset),		// NE
@@ -269,6 +261,13 @@ class CagePainter extends CustomPainter
       }
     }
 
+    double labelSize      = cellSide / labelTextFactor;
+    TextStyle stringStyle = TextStyle(
+      color:      boldLineColor,
+      height:     1.0,
+      fontSize:   labelSize,
+      fontWeight: FontWeight.bold);
+
     // Paint the cage labels.
     for (int cageNum = 0; cageNum < cageCount; cageNum++) {
       if (map.cage(cageNum).length == 1) {
@@ -280,14 +279,12 @@ class CagePainter extends CustomPainter
       int labelCell     = map.cageTopLeft(cageNum);
       int cellX         = map.cellPosX(labelCell);
       int cellY         = map.cellPosY(labelCell);
-      double textSize   = cellSide / labelTextFactor;
       Offset cellOrigin = Offset(cellX * cellSide, cellY * cellSide);
       Offset labelInset = Offset(cellSide/labelInsetFactor,
                                  cellSide/labelInsetFactor);
       // debugPrint('Paint cage $cageNum label $cageLabel at $labelCell');
-      paintTextString(canvas, cageLabel,
-                      textSize, cellOrigin + labelInset,
-                      labelPaintFg, labelPaintBg);
+      paintTextString(canvas, cageLabel, stringStyle, labelSize,
+                              cellOrigin + labelInset, labelPaintBg);
     }
   }
 
@@ -307,30 +304,18 @@ class CagePainter extends CustomPainter
     return cLabel;
   }
 
-  void paintTextString(Canvas canvas, String textString, double textSize,
-                       Offset offset, Paint foreground, Paint background)
+  void paintTextString(Canvas canvas, String textString, TextStyle stringStyle,
+                       double labelSize, Offset offset, Paint background)
   {
-    // TODO - Clean up this procedure - especially the numeric literals.
+    double padding = 0.25 * labelSize;
 
-    double padding = 0.25 * textSize;
-    const double baseSize = 60.0;	// Base-size for scaling text symbols.
-    // A text-painter for painting Sudoku symbols on a Canvas.
-    final TextPainter textPainter = TextPainter(
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          textDirection: TextDirection.ltr);
-
-    TextStyle stringStyle = TextStyle(	// Make sure the string picks up the
-      color:      foreground.color,	// text color on light/dark change.
-      fontSize:   baseSize,
-      fontWeight: FontWeight.bold);
     textPainter.text = TextSpan(style: stringStyle, text: textString);
-    textPainter.textScaleFactor = textSize / baseSize;
     textPainter.layout();
 
     Rect textRect  = Rect.fromPoints(offset, offset +
-                     Offset(padding + textPainter.width, textSize * 5.0 / 4.0));
+                     Offset(padding + textPainter.width, labelSize));
     canvas.drawRect(textRect, background);
+
     // Need padding at both ends of string, so inset by padding / 2.0;
     textPainter.paint(canvas, offset + Offset(padding / 2.0, 0.0));
   }

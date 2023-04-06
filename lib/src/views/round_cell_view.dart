@@ -32,23 +32,16 @@ class RoundCellView extends StatelessWidget
                            gameTheme.outerSphereColor;
 
     return GestureDetector(
-// TODO - Don't need onTap() here: SymbolView does it. DO NEED A TRUE CIRCULAR
-//        TARGET... This one does NOT fire anyway. The one in SymbolView DOES.
-// TODO - Taps on circles (spheres) are clipped PROPERLY here, but not in
-//        SymbolView, where each circle is treated as a SQUARE for tapping...
       onTap: () {
-        // TODO - Need to handle taps... Need to display symbols... ????
         debugPrint('Tapped sphere $index.');
       },
       child: DecoratedBox(
         decoration: ShapeDecoration(	// Decorate a box of ANY shape.
           shape: CircleBorder(		// Show outline of circular box.
             side: BorderSide(
-              width: 1,			// TODO - Fixed or dep. on sphere size?
+              width: 1,
               color: gameTheme.thinLineColor,
-              // width: 2,		// TODO - How to do the circular cursor?
-              // color: Colors.red,
-            ), 
+            ),
           ),
           // Flutter's Gradient parameters are fractions of the Box/Circle size.
           gradient: RadialGradient(	// Shade a circle to look like a sphere.
