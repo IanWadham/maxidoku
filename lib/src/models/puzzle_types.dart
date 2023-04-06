@@ -40,7 +40,7 @@ class PuzzleTypesText {
     debugPrint('First space is at $firstSpace');
 
     if (firstSpace > 0) {
-      return  temp.substring(0, firstSpace); 
+      return  temp.substring(0, firstSpace);
     }
     else if (temp.isNotEmpty) {
       return temp;
@@ -54,7 +54,7 @@ class PuzzleTypesText {
   {
     String temp = puzzleMapSpec[index];
 
-    return temp.substring(temp.indexOf(' ')).trim(); 
+    return temp.substring(temp.indexOf(' ')).trim();
   }
 
   List<String> getSplitDataByIndex (List<String> puzzleMapSpec, int index)
@@ -128,15 +128,15 @@ class PuzzleTypesText {
     SizeX 6
     SizeY 6
     SizeZ 1
-    NSymbols 6 
+    NSymbols 6
     SpecificType PseudoSudoku
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
-    Group 6  0  1  6  7 12 13 
-    Group 6 18 19 24 25 30 31 
-    Group 6  2  3  8  9 14 15 
-    Group 6 20 21 26 27 32 33 
-    Group 6  4  5 10 11 16 17 
+    Group 6  0  1  6  7 12 13
+    Group 6 18 19 24 25 30 31
+    Group 6  2  3  8  9 14 15
+    Group 6 20 21 26 27 32 33
+    Group 6  4  5 10 11 16 17
     Group 6 22 23 28 29 34 35  '''
 ,
 ''' Name Aztec
@@ -147,7 +147,7 @@ class PuzzleTypesText {
     SizeX 9
     SizeY 9
     SizeZ 1
-    NSymbols 9 
+    NSymbols 9
     SpecificType Aztec
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
@@ -176,7 +176,7 @@ class PuzzleTypesText {
     RotateY 27
     SpecialCells 1 13
     PuzzleMap
-    RoxdokuGroups 0 ''' 
+    RoxdokuGroups 0 '''
 ,
 ''' Name Double Roxdoku
     Description Three-dimensional puzzle with two interlocking 3x3x3 cubes
@@ -193,7 +193,7 @@ class PuzzleTypesText {
     RotateY -27
     SpecialCells 3 36 37 38
     PuzzleMap
-    RoxdokuGroups 0  
+    RoxdokuGroups 0
     RoxdokuGroups 36 '''
 ,
 ''' Name Jigsaw
@@ -204,7 +204,7 @@ class PuzzleTypesText {
     SizeX 9
     SizeY 9
     SizeZ 1
-    NSymbols 9 
+    NSymbols 9
     SpecificType Jigsaw
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
@@ -239,7 +239,7 @@ class PuzzleTypesText {
     SizeX 9
     SizeY 9
     SizeZ 1
-    NSymbols 9 
+    NSymbols 9
     SpecificType KillerSudoku
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
@@ -252,7 +252,7 @@ class PuzzleTypesText {
     SizeX 4
     SizeY 4
     SizeZ 1
-    NSymbols 4 
+    NSymbols 4
     SpecificType Mathdoku
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks '''
@@ -265,7 +265,7 @@ class PuzzleTypesText {
     SizeX Mathdoku
     SizeY Mathdoku
     SizeZ 1
-    NSymbols Mathdoku 
+    NSymbols Mathdoku
     SpecificType Mathdoku
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks '''
@@ -278,7 +278,7 @@ class PuzzleTypesText {
     SizeX 9
     SizeY 9
     SizeZ 1
-    NSymbols 9 
+    NSymbols 9
     SpecificType Jigsaw
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
@@ -300,7 +300,7 @@ class PuzzleTypesText {
     SizeX 5
     SizeY 5
     SizeZ 1
-    NSymbols 5 
+    NSymbols 5
     SpecificType PseudoSudoku
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
@@ -325,7 +325,7 @@ class PuzzleTypesText {
     RotateY -27
     SpecialCells 1 62
     PuzzleMap
-    RoxdokuGroups 0  
+    RoxdokuGroups 0
     RoxdokuGroups 62 '''
 ,
 ''' Name Samurai
@@ -365,14 +365,14 @@ class PuzzleTypesText {
     RotateY -27
     SpecialCells 27 114 115 116 121 122 123 128 129 130 163 164 165 170 171 172 177 178 179 212 213 214 219 220 221 226 227 228
     PuzzleMap
-    RoxdokuGroups 0  
+    RoxdokuGroups 0
     RoxdokuGroups 196
-    RoxdokuGroups 28 
+    RoxdokuGroups 28
     RoxdokuGroups 224
     RoxdokuGroups 114
-    RoxdokuGroups 4  
+    RoxdokuGroups 4
     RoxdokuGroups 200
-    RoxdokuGroups 32 
+    RoxdokuGroups 32
     RoxdokuGroups 228 '''
 ,
 ''' Name Sohei
@@ -399,7 +399,7 @@ class PuzzleTypesText {
     SizeX 4
     SizeY 4
     SizeZ 1
-    NSymbols 4 
+    NSymbols 4
     SpecificType Jigsaw
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks
@@ -485,7 +485,7 @@ class PuzzleTypesText {
     RotateY 27
     PuzzleMap
     SpecialCells 8 21 22 25 26 37 38 41 42
-    RoxdokuGroups 0 ''' 
+    RoxdokuGroups 0 '''
 ,
 ''' Name Roxdoku 25 (5x5x5)
     Description Three-dimensional puzzle with one 5x5x5 cube
@@ -501,7 +501,7 @@ class PuzzleTypesText {
     RotateY 27
     SpecialCells 27 31 32 33 36 37 38 41 42 43 56 57 58 61 62 63 66 67 68 81 82 83 86 87 88 91 92 93
     PuzzleMap
-    RoxdokuGroups 0 ''' 
+    RoxdokuGroups 0 '''
 ,
 ''' Name Windmill Roxdoku
     Description Windmill three-dimensional puzzle with five 3x3x3 cubes
@@ -518,7 +518,7 @@ class PuzzleTypesText {
     RotateY -27
     SpecialCells 12 48 49 50 54 55 56 90 91 92 96 97 98
     PuzzleMap
-    RoxdokuGroups 0  
+    RoxdokuGroups 0
     RoxdokuGroups 12
     RoxdokuGroups 48
     RoxdokuGroups 84
@@ -532,7 +532,7 @@ class PuzzleTypesText {
     SizeX 4
     SizeY 4
     SizeZ 1
-    NSymbols 4 
+    NSymbols 4
     SpecificType Mathdoku
     HideOperators
     PuzzleMap
@@ -546,7 +546,7 @@ class PuzzleTypesText {
     SizeX Mathdoku
     SizeY Mathdoku
     SizeZ 1
-    NSymbols Mathdoku 
+    NSymbols Mathdoku
     SpecificType Mathdoku
     HideOperators
     PuzzleMap
