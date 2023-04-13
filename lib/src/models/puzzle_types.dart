@@ -2,78 +2,28 @@ import 'package:flutter/foundation.dart' show debugPrint;
 
 class PuzzleTypesText {
 
-  PuzzleTypesText();
+  const PuzzleTypesText();
 
-  final int _nTypes = puzzleTypes.length;
+  static int _nTypes = puzzleTypes.length;
 
   // Extract the specification String of the Puzzle Type at [index] and
   // split it into parseable lines, each line beginning with a keyword.
   List<String> puzzleTypeText (int index)
   {
-    List<String> result = List.empty(growable: true);
-    debugPrint ('Number of puzzle types = $_nTypes, selected index $index\n');
+    List<String> result = [];
+    // debugPrint('\nNumber of puzzle types = $_nTypes, selected index $index');
 
     // Split the string into lines, removing leading and trailing blanks.
     if ((index < _nTypes) && (index >= 0)) {
       result = puzzleTypes[index].split('\n');
       for (int i = 0; i < result.length; i++) {
         result[i] = result[i].trim();
-        debugPrint(result[i]);
+        // debugPrint(result[i]);
       }
     }
 
     // Result-list will be empty if index was out of the valid range.
     return result;
-  }
-
-  String getDataByKey (List<String> puzzleMapSpec, String key)
-  {
-    return 'Stub';
-  }
-
-  String getKeyByIndex (List<String> puzzleMapSpec, int index)
-  {
-    String temp = puzzleMapSpec[index];
-    debugPrint('getKeyByIndex');
-    debugPrint(temp);
-    int firstSpace = temp.indexOf(' ');
-    debugPrint('First space is at $firstSpace');
-
-    if (firstSpace > 0) {
-      return  temp.substring(0, firstSpace);
-    }
-    else if (temp.isNotEmpty) {
-      return temp;
-    }
-    else {
-      return '';
-    }
-  }
-
-  String getWholeDataByIndex (List<String> puzzleMapSpec, int index)
-  {
-    String temp = puzzleMapSpec[index];
-
-    return temp.substring(temp.indexOf(' ')).trim();
-  }
-
-  List<String> getSplitDataByIndex (List<String> puzzleMapSpec, int index)
-  {
-    String wholeData = getWholeDataByIndex (puzzleMapSpec, index);
-
-    return wholeData.split(' ');
-  }
-
-  int    findKey (List<String> puzzleMapSpec, String key)
-  {
-    int numberOfStrings = puzzleMapSpec.length;
-    debugPrint('puzzleMapSpec length = $numberOfStrings');
-    for (int i = 0; i < numberOfStrings; i++) {
-        if (key == getKeyByIndex(puzzleMapSpec, i)) {
-          return i;	// Found key.
-        }
-    }
-    return -1;		// Failed to find key.
   }
 
   static const List<String> puzzleTypes = [
@@ -91,7 +41,7 @@ class PuzzleTypesText {
     SudokuGroups 0 HasSquareBlocks '''
 ,
 ''' Name Tiny Samurai
-    Description A smaller samurai puzzle
+    Description A small Samurai puzzle, with five overlapping 4x4 puzzles.
     Author Francesco Rossi
     FileName TinySamurai.xml
     Icon ksudoku-tiny_samurai
@@ -121,7 +71,7 @@ class PuzzleTypesText {
     SudokuGroups 0 HasSquareBlocks '''
 ,
 ''' Name 6x6 Pseudo Sudoku
-    Description 6x6 puzzle with rectangular blocks
+    Description A 6x6 puzzle with rectangular blocks that must each contain the symbols 1-6 exactly once.
     Author Ian Wadham
     FileName 6x6.xml
     Icon ksudoku-ksudoku_9x9
@@ -139,8 +89,8 @@ class PuzzleTypesText {
     Group 6  4  5 10 11 16 17
     Group 6 22 23 28 29 34 35  '''
 ,
-''' Name Aztec
-    Description Jigsaw variant shaped like an Aztec pyramid
+''' Name Aztec Pyramid 9x9
+    Description The central square and the irregular blocks must each contain the symbols 1-9 exactly once.
     Author Ian Wadham
     FileName Aztec.xml
     Icon ksudoku-jigsaw
@@ -161,8 +111,8 @@ class PuzzleTypesText {
     Group 9 26 34 35 42 43 44 52 53 62
     Group 9 51 59 60 61 69 70 71 79 80 '''
 ,
-''' Name Roxdoku 9 (3x3x3)
-    Description Three-dimensional puzzle with one 3x3x3 cube
+''' Name 3D Roxdoku 3x3x3
+    Description Each of the nine 3x3 slices through the cube must contain the symbols 1-9 exactly once.
     Author Ian Wadham
     FileName DoubleRoxdoku.xml
     Icon ksudoku-roxdoku_3x3x3
@@ -178,8 +128,8 @@ class PuzzleTypesText {
     PuzzleMap
     RoxdokuGroups 0 '''
 ,
-''' Name Double Roxdoku
-    Description Three-dimensional puzzle with two interlocking 3x3x3 cubes
+''' Name Double 3D Roxdoku
+    Description Three-dimensional puzzle with two interlocking 3x3x3 cubes.
     Author Ian Wadham
     FileName DoubleRoxdoku.xml
     Icon ksudoku-roxdoku_3x3x3
@@ -196,8 +146,8 @@ class PuzzleTypesText {
     RoxdokuGroups 0
     RoxdokuGroups 36 '''
 ,
-''' Name Jigsaw
-    Description Jigsaw shape puzzle
+''' Name Jigsaw 9x9
+    Description The central square and the 8 jigsaw pieces must each contain the symbols 1-9 exactly once.
     Author Francesco Rossi
     FileName Jigsaw.xml
     Icon ksudoku-jigsaw
@@ -218,8 +168,8 @@ class PuzzleTypesText {
     Group 9 57 58 59 69 67 68 75 76 77
     Group 9 60 61 62 52 70 71 78 79 80 '''
 ,
-''' Name Tiny Killer
-    Description 4x4 Sudoku, but cages must add to totals shown
+''' Name Tiny Killer Sudoku 4x4
+    Description Same rules as 4x4 Sudoku, but each cage must also add to the total shown, using digits no more than once.
     Author Ian Wadham
     FileName Killer_4x4.xml
     Icon ksudoku-ksudoku_4x4
@@ -231,8 +181,8 @@ class PuzzleTypesText {
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
 ,
-''' Name Killer Sudoku
-    Description Classic Sudoku, but cages must add to totals shown
+''' Name Killer Sudoku 9x9
+    Description Same rules as Classic 9x9 Sudoku, but each cage must also add to the total shown, using a digit no more than once per cage.
     Author Ian Wadham
     FileName Killer_9x9.xml
     Icon ksudoku-ksudoku_9x9
@@ -244,7 +194,7 @@ class PuzzleTypesText {
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
 ,
-''' Name Mathdoku 101
+''' Name Mathdoku 101 4x4
     Description Size 4x4 grid, with calculated cages
     Author Ian Wadham
     FileName Mathdoku_4x4.xml
@@ -311,7 +261,7 @@ class PuzzleTypesText {
     Group 5 23  9 14 19 24 '''
 ,
 ''' Name Roxdoku Twin
-    Description Three-dimensional puzzle with two 3x3x3 cubes which share a corner
+    Description Three-dimensional puzzle with two 3x3x3 cubes that share a corner.
     Author Ian Wadham
     FileName RoxdokuTwin.xml
     Icon ksudoku-roxdoku_3x3x3
@@ -329,7 +279,7 @@ class PuzzleTypesText {
     RoxdokuGroups 62 '''
 ,
 ''' Name Samurai
-    Description Samurai shape puzzle
+    Description Samurai puzzle, with five overlapping 9x9 Sudoku puzzles.
     Author Francesco Rossi
     FileName Samurai.xml
     Icon ksudoku-samurai
@@ -350,8 +300,8 @@ class PuzzleTypesText {
     SudokuGroups 252 HasSquareBlocks
     SudokuGroups 264 HasSquareBlocks '''
 ,
-''' Name Samurai Roxdoku
-    Description Samurai three-dimensional puzzle with nine 3x3x3 cubes
+''' Name Samurai 3D Roxdoku
+    Description Samurai three-dimensional puzzle with nine overlapping 3x3x3 cubes.
     Author Ian Wadham
     FileName SamuraiRoxdoku.xml
     Icon ksudoku-roxdoku_3x3x3
@@ -376,7 +326,7 @@ class PuzzleTypesText {
     RoxdokuGroups 228 '''
 ,
 ''' Name Sohei
-    Description Sohei puzzle with four overlapping 9x9 squares
+    Description Sohei puzzle with four overlapping 9x9 Sudoku squares.
     Author Ian Wadham
     FileName Sohei.xml
     Icon ksudoku-samurai
@@ -392,7 +342,7 @@ class PuzzleTypesText {
     SudokuGroups 138 HasSquareBlocks '''
 ,
 ''' Name Tetromino 4x4
-    Description Jigsaw with Tetromino blocks (Tetris pieces)
+    Description Jigsaw with Tetromino blocks (Tetris pieces).
     Author Ian Wadham
     FileName Tetromino.xml
     Icon ksudoku-ksudoku_4x4
@@ -414,7 +364,7 @@ class PuzzleTypesText {
     // Group 4 3  7 11 15
 ,
 ''' Name Windmill
-    Description Windmill puzzle with five overlapping 9x9 squares
+    Description Windmill puzzle with five overlapping 9x9 Sudoku squares.
     Author Ian Wadham
     FileName Windmill.xml
     Icon ksudoku-samurai
@@ -431,8 +381,8 @@ class PuzzleTypesText {
     SudokuGroups 9   HasSquareBlocks
     SudokuGroups 201 HasSquareBlocks '''
 ,
-''' Name XSudoku
-    Description XSudoku shape puzzle
+''' Name XSudoku 9x9
+    Description Same rules as Classic 9x9 Sudoku, but each diagonal must also contain the symbols 1-9.
     Author Francesco Rossi
     FileName XSudoku.xml
     Icon ksudoku-xsudoku
@@ -471,8 +421,8 @@ class PuzzleTypesText {
     PuzzleMap
     SudokuGroups 0 HasSquareBlocks '''
 ,
-''' Name Roxdoku 16 (4x4x4)
-    Description Three-dimensional puzzle with one 4x4x4 cube
+''' Name 3D Roxdoku 4x4x4
+    Description Three-dimensional puzzle with one 4x4x4 cube, using the 16 symbols A-P.
     Author Francesco Rossi
     Icon ksudoku-roxdoku_3x3x3
     SizeX 4
@@ -487,8 +437,8 @@ class PuzzleTypesText {
     SpecialCells 8 21 22 25 26 37 38 41 42
     RoxdokuGroups 0 '''
 ,
-''' Name Roxdoku 25 (5x5x5)
-    Description Three-dimensional puzzle with one 5x5x5 cube
+''' Name 3D Roxdoku 5x5x5
+    Description Three-dimensional puzzle with one 5x5x5 cube, using the 25 symbols A-Y.
     Author Francesco Rossi
     Icon ksudoku-roxdoku_3x3x3
     SizeX 5
@@ -503,8 +453,8 @@ class PuzzleTypesText {
     PuzzleMap
     RoxdokuGroups 0 '''
 ,
-''' Name Windmill Roxdoku
-    Description Windmill three-dimensional puzzle with five 3x3x3 cubes
+''' Name 3D Windmill Roxdoku
+    Description Windmill shaped hree-dimensional puzzle with five 3x3x3 cubes.
     Author Ian Wadham
     FileName SamuraiRoxdoku.xml
     Icon ksudoku-roxdoku_3x3x3
@@ -525,7 +475,7 @@ class PuzzleTypesText {
     RoxdokuGroups 96 '''
 ,
 ''' Name Blindfold Mathdoku 101
-    Description Size 4x4 grid, with calculated cages, but operators +-/x are hidden
+    Description Size 4x4 grid, with calculated cages, but operators +-/x are hidden.
     Author Ian Wadham
     FileName Mathdoku_4x4.xml
     Icon ksudoku-ksudoku_4x4
@@ -538,8 +488,8 @@ class PuzzleTypesText {
     PuzzleMap
     SudokuGroups 0 NoSquareBlocks '''
 ,
-''' Name Blindfold Mathdoku - Settable Size
-    Description Size 3x3 to 9x9 grid, with calculated cages, but operators +-/x are hidden
+''' Name Blindfold Mathdoku
+    Description Size 3x3 to 9x9 grid, with calculated cages, but operators +-/x are hidden.
     Author Ian Wadham
     FileName Mathdoku_Settable.xml
     Icon ksudoku-ksudoku_9x9
