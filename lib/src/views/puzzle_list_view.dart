@@ -16,13 +16,16 @@ class PuzzleListView extends StatelessWidget
 
   static const routeName = '/';
 
+  static const List<String> selections = [
+                 "Beginners' Selection", "Main Selection",
+                 "Additional Selection", "Tap In A Puzzle"];
+
   final SettingsController settings;
 
   void handleSelection (int newSelection)
   {
-    // print('PuzzleListView::handleSelection(); Selected Item $newSelection');
     PuzzleList   items     = const PuzzleList();
-    List<String> item      = items.getItem(newSelection);
+    List<String> item      = items.getItem(settings.puzzleRange, newSelection);
     settings.selectedIndex = newSelection;	// Save selection in Settings.
     settings.puzzleSpecID  = item[0];		// Save specID in Settings.
   }
@@ -31,15 +34,47 @@ class PuzzleListView extends StatelessWidget
   Widget build(BuildContext context) {
     // AnimatedBuilder in app.dart and NotifyListeners() in SettingsController
     // guarantee a repaint whenever Difficulty, Symmetry, ThemeMode etc. change.
-    Difficulty initialDifficulty = settings.difficulty;
-    Symmetry   initialSymmetry   = settings.symmetry;
+
+    Difficulty initialDifficulty  = settings.difficulty;
+    Symmetry   initialSymmetry    = settings.symmetry;
+    int        initialPuzzleRange = settings.puzzleRange;
+
+    // TODO - Tried to get a copy of the AppBar's titleTextStyle, but could
+    //        not get the Theme ... titleMedium approach to work. The "print"
+    //        gets specs that look reasonable, but are NOT a TextStyle type.
+    // TextStyle myStyle = Theme.of(context)!.textTheme!.titleMedium!;
+    // if (myStyle == null) {
+      // print('Could not get AppBar title text style.');
+    // }
+    // else print('MY STYLE ${myStyle.toString()}');
+
+    TextStyle myStyle = TextStyle(		// Imitate AppBar style...
+      inherit: true,
+      color: Colors.white,
+      fontSize: 16.0,);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Welcome to MultiDoku'),
+        title: const Text("MultiDoku"),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(20.0),
+          child: Align(				// ... to add AppBar subtitle.
+            alignment: Alignment.centerLeft,	// Don't let the Text center,
+            child: Padding(			// but indent and style it.
+              padding: EdgeInsets.only(left: 16, bottom: 8),
+              child: Text(
+                selections[settings.puzzleRange],
+                style: myStyle,
+              ),
+            ),
+          ),
+        ),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
         leading: null,
+        // TODO - Move AppBar actions: to bottom: and TabBar()... ?
+        //        See example in AppBar API doco.
         actions: [
           PopupMenuButton<Difficulty>(
             icon: const Icon(Icons.leaderboard),
@@ -112,6 +147,7 @@ class PuzzleListView extends StatelessWidget
           IconButton(
             icon: const Icon(Icons.settings),
             tooltip: 'More Settings',
+            color: Colors.white,
             onPressed: () {
               // Navigate to the settings page. If the user leaves and returns
               // to the app after it has been killed while running in the
@@ -119,22 +155,52 @@ class PuzzleListView extends StatelessWidget
               Navigator.restorablePushNamed(context, SettingsView.routeName);
             },
           ),
-          // Packing to avoid Debug stripe covering last icon.
-          IconButton(
-            icon: const Icon(Icons.block),
-            onPressed: () {},
+          PopupMenuButton<int>(
+            child: Text('Menu...', style: myStyle),
+            tooltip: 'Select range of puzzles',
+            initialValue: initialPuzzleRange, 
+            itemBuilder: (context){
+              return [
+                PopupMenuItem<int>(
+                  value: 0,
+                  child: Text(selections[0]),
+                ),
+                PopupMenuItem<int>(
+                  value: 1,
+                  child: Text(selections[1]),
+                ),
+                PopupMenuItem<int>(
+                  value: 2,
+                  child: Text(selections[2]),
+                ),
+                PopupMenuItem<int>(
+                  value: 3,
+                  child: Text(selections[3]),
+                ),
+              ];
+            },
+            onSelected: (value) {
+              // _listNumber = value;
+              settings.puzzleRange = value;
+            }
           ),
+          // Packing to avoid Debug stripe covering last icon.
+          // ?????? IconButton(
+            // ?????? icon: const Icon(Icons.block),
+            // ?????? onPressed: () {},
+          // ?????? ),
         ],
       ),
 
 // TODO - Sort out the highlighting of the last item selected AND automatically
-//        scrolling to it. Wanted teal not red, but teal text not conspicuous...
+//        scrolling to it.
 // https://stackoverflow.com/questions/49153087/flutter-scrolling-to-a-widget-in-listview
 //        Lots of interesting answers, many of them a bit hackish...
 
       body: ListTileTheme(
-        selectedColor: Colors.green, // red[700],
+        selectedColor: Colors.teal, // green,
         child: MyListView(
+          listNumber: settings.puzzleRange,
           initialSelection: settings.selectedIndex,
           onChanged: handleSelection,
         ),
@@ -146,10 +212,12 @@ class PuzzleListView extends StatelessWidget
 /// A stateful ListView which updates tile selections and provides a callback.
 class MyListView extends StatefulWidget
 {
-  const MyListView({required this.initialSelection,
+  const MyListView({required this.listNumber,
+                    required this.initialSelection,
                     required this.onChanged,
                     Key? key}) : super(key: key);
 
+  final int listNumber;
   final int initialSelection;
   final ValueChanged<int> onChanged;
  
@@ -185,9 +253,9 @@ class _MyListViewState extends State<MyListView>
       // scroll position when a user leaves and returns to the app after it
       // has been killed while running in the background.
       restorationId: 'puzzleListView',
-      itemCount:     items.length,
+      itemCount:     items.listLength(widget.listNumber),
       itemBuilder:   (BuildContext context, int index) {
-        List<String> item = items.getItem(index);
+        List<String> item = items.getItem(widget.listNumber, index);
         return ListTile(
           title:       Text(item[1]),
           subtitle:    Text(item[2]),
@@ -202,8 +270,9 @@ class _MyListViewState extends State<MyListView>
           enabled:     true,
           // Called when the user has selected an item from the list.
           onTap: () {
-            item = items.getItem(index);
-            debugPrint('TAP received: index = $index, item = $item');
+            int xxxxindex = PuzzleList.puzzles[widget.listNumber][index];
+            print('ListNumber ${widget.listNumber} index $index puzzle $xxxxindex');
+            item = items.getItem(widget.listNumber, index);
             // Make the highlight on this selection persist.
             setState(() { _selectedIndex = index; });
             // Pass the selection to app.dart via the Settings Controller.
@@ -214,6 +283,7 @@ class _MyListViewState extends State<MyListView>
             Navigator.restorablePushNamed(
               context,
               PuzzleView.routeName,
+              arguments: xxxxindex,
             );
           } // End onTap: ()
         ); // End ListTile
