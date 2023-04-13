@@ -68,7 +68,7 @@ class Puzzle with ChangeNotifier
   bool createState(int index)
   {
     // Create the layout, clues and model for the puzzle type the user selected.
-    debugPrint('Create Puzzle: index $index hash $hashCode');
+    debugPrint('Create Puzzle: index $index');
 
     // TODO - Could do the string-handling in PuzzleMap and just pass it index.
     // Get a list of puzzle specifications in textual form.
@@ -183,7 +183,7 @@ class PuzzleGenerator
           // Used up max tries with no valid puzzle - 10 solutions x 20 tries.
           // TODO - There IS no puzzle to Accept... Try again or go back to menu
           //        or change the Difficulty... ???????
-          response.messageType = 'F';		// Warning.
+          response.messageType = 'F';
           response.messageText = 'Attempts to generate a puzzle failed after'
                                  ' about 200 tries.';
         }
@@ -198,8 +198,8 @@ class PuzzleGenerator
         break;
     }
 
-    debugPrint('_puzzleGiven = $_puzzleGiven');
-    debugPrint('_solution    = $_solution   ');
+    // debugPrint('_puzzleGiven = $_puzzleGiven');
+    // debugPrint('_solution    = $_solution   ');
     // debugPrint('_sudokuMoves = $_sudokuMoves');
 
     if (response.messageType != 'F') {	// Succeeded - up to a point maybe...
@@ -211,8 +211,8 @@ class PuzzleGenerator
       _solution.clear();
       _sudokuMoves.clear();
     }
-    else {				// FAILED. Please try again.
-      debugPrint('In PuzzleGenerator class: Puzzle generation failed');
+    else {				// Did not succeed. Please try again.
+      debugPrint('PuzzleGenerator did not succeed. User will try again?');
     }
     return response;
   }
@@ -412,7 +412,6 @@ class PuzzlePlayer with ChangeNotifier
   void hitPuzzleCellN(int n)
   {
     // Step 1 in making a move: highlight a cell that is to receive a new value.
-    print('Selected cell $n');
     if (! validCellSelection(n)) {
       return;
     }
@@ -441,25 +440,24 @@ class PuzzlePlayer with ChangeNotifier
     // entered into one selected cell. In either mode, a value can be
     // deleted by tapping on the same value again.
 
-    debugPrint('hitControlArea: selection $selection, hideNotes $hideNotes');
+    // debugPrint('hitControlArea: selection $selection, hideNotes $hideNotes');
     if ((! hideNotes) && (selection == 0)) {
       // If solving, switch Notes mode and change colour of highlight.
       notesMode = !notesMode;
-      debugPrint('Switched Notes to $notesMode');
+      // debugPrint('Switched Notes to $notesMode');
       notifyListeners();	// Trigger a repaint of the Puzzle View.
       return;
     }
     // The value selected is treated as a cell-value, a note or an erase.
     selectedControl = selection - (hideNotes ? 0 : 1);
-    debugPrint('hitControlArea: Selected control $selectedControl');
+    // debugPrint('hitControlArea: Selected control $selectedControl');
 
     int cellToChange = selectedCell ?? -1;
     if (cellToChange < 0) {
       return;		// No cell selected: cannot make a move.
     }
-    debugPrint('Check valid move: cell $cellToChange control $selectedControl');
+    // debugPrint('Call validMove: cell $cellToChange ctrl $selectedControl');
     if (! validMove(cellToChange, selectedControl)) {
-      print('Invalid move');
       return;
     }
 
@@ -494,8 +492,10 @@ class PuzzlePlayer with ChangeNotifier
         /////////// ????????????? _puzzleTimer.stopClock();
       }
 
-      // Need to select a message and display it in PuzzleBoardView.
-      _puzzle.notifyListeners();
+      if ((_puzzlePlay == Play.Solved) || (_puzzlePlay == Play.HasError)) {
+        // Need to select a message and display it in PuzzleBoardView.
+        _puzzle.notifyListeners();
+      }
     }
 
     // The move has been accepted and made.
@@ -507,7 +507,7 @@ class PuzzlePlayer with ChangeNotifier
   {
     // The user has tapped on a puzzle-cell in 2D/3D: apply the rules of play.
     if ((n < 0) || (n > _puzzleMap.size)) {
-      debugPrint('puzzle.dart:validCellSelection() - INVALID CELL-INDEX $n');
+      // debugPrint('puzzle.dart:validCellSelection() - INVALID CELL-INDEX $n');
       return false;
     }
     if (_puzzlePlay == Play.Solved) {
@@ -525,7 +525,7 @@ class PuzzlePlayer with ChangeNotifier
 
     // Check that the user has selected a symbol and that the cell is usable.
     if (status == UNUSABLE || status == GIVEN) {
-      debugPrint('Invalid: Status is UNUSABLE or GIVEN');
+      // debugPrint('Invalid: Status is UNUSABLE or GIVEN');
       return false;
     }
     return true;
@@ -535,11 +535,11 @@ class PuzzlePlayer with ChangeNotifier
   {
     // The user has tapped on a control-cell: if OK, allow a move to be made.
     if ((n < 0) || (n > _puzzleMap.size)) {
-      debugPrint('puzzle.dart:validMove() - INVALID CELL-INDEX $n');
+      // debugPrint('puzzle.dart:validMove() - INVALID CELL-INDEX $n');
       return false;
     }
     if ((symbol < 0) || (symbol > _puzzleMap.nSymbols)) {
-      debugPrint('puzzle.dart:validMove() - INVALID SYMBOL $symbol');
+      // debugPrint('puzzle.dart:validMove() - INVALID SYMBOL $symbol');
       return false;
     }
     if ((symbol == VACANT) && (_stateOfPlay[n] == VACANT)) {
@@ -551,7 +551,7 @@ class PuzzlePlayer with ChangeNotifier
 
   void move(int n, CellValue symbol)
   {
-    debugPrint('PuzzlePlayer move: cell $n symbol $symbol');
+    // debugPrint('PuzzlePlayer move: cell $n symbol $symbol');
 
     // Register a move in the Model data and update the Puzzle cell's state.
     CellStatus currentStatus = _cellStatus[n];
@@ -603,7 +603,7 @@ class PuzzlePlayer with ChangeNotifier
           _autoClearNotes(n, newValue);
         }
       }
-      debugPrint('New value $newValue, new status $newStatus');
+      // debugPrint('New value $newValue, new status $newStatus');
     }
 
     // TODO - Need to test newValue == currentValue, i.e. that cell did change?
@@ -683,7 +683,7 @@ class PuzzlePlayer with ChangeNotifier
     // _autoClearNotes() operations in the last move can be undone correctly.
     // For further information, see the comments in _autoClearNotes() below.
     if (_indexUndoRedo <= 0) {
-      debugPrint('NO MOVES available to Undo');
+      // debugPrint('NO MOVES available to Undo');
       return false;		// No moves left to undo - or none made yet.
     }
 
@@ -700,7 +700,7 @@ class PuzzlePlayer with ChangeNotifier
     // _autoClearNotes() operations can be re-done correctlyi at every step.
     // For further information, see the comments in _autoClearNotes() below.
     if (_indexUndoRedo >= _cellChanges.length) {
-      debugPrint('NO MOVES available to Redo');
+      // debugPrint('NO MOVES available to Redo');
       return false;		// No moves left to redo - or none made yet.
     }
 
