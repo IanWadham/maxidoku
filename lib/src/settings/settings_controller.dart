@@ -16,6 +16,7 @@ class SettingsController with ChangeNotifier {
   final String themeModeKey      = 'ThemeMode';
   final String difficultyKey     = 'Difficulty';
   final String symmetryKey       = 'Symmetry';
+  final String puzzleRangeKey    = 'PuzzleRange';
   final String selectedPuzzleKey = 'SelectedPuzzleIndex';
   final String puzzleSpecIDKey   = 'PuzzleSpecID';
   final String mathdokuSizeKey   = 'MathdokuSize';
@@ -24,6 +25,7 @@ class SettingsController with ChangeNotifier {
   final ThemeMode  themeModeDefault      = ThemeMode.system;
   final Difficulty difficultyDefault     = Difficulty.Easy;
   final Symmetry   symmetryDefault       = Symmetry.RANDOM_SYM;
+  final int        puzzleRangeDefault    = 0;      // Beginners' puzzle types.
   final int        selectedIndexDefault  = 0;
   final String     puzzleSpecIDDefault   = '0';
   final int        mathdokuSizeDefault   = 6;
@@ -32,6 +34,7 @@ class SettingsController with ChangeNotifier {
   ThemeMode  get themeMode     => _themeMode;      // Light or dark colours.
   Difficulty get difficulty    => _difficulty;	   // Reqd. puzzle difficulty.
   Symmetry   get symmetry      => _symmetry;	   // Symmetry of Givens layout.
+  int        get puzzleRange   => _puzzleRange;    // Selected range of puzzles.
   int        get selectedIndex => _selectedIndex;  // Last puzzle-type selected.
   String     get puzzleSpecID  => _puzzleSpecID;   // ID of last puzzlei-type.
   int        get mathdokuSize  => _mathdokuSize;   // Reqd. size of Mathdoku.
@@ -40,6 +43,7 @@ class SettingsController with ChangeNotifier {
   late ThemeMode  _themeMode;
   late Difficulty _difficulty;
   late Symmetry   _symmetry;
+  late int        _puzzleRange;
   late int        _selectedIndex;
   late String     _puzzleSpecID;
   late int        _mathdokuSize;
@@ -55,7 +59,13 @@ class SettingsController with ChangeNotifier {
     if (newThemeMode == _themeMode) return;
     _themeMode = newThemeMode;
     _service.storeThemeMode(themeModeKey, newThemeMode);
-    notifyListeners();
+    notifyListeners();	// Repaint needed: tell AnimationBuilder in app.dart.
+  }
+
+  set puzzleRange(int range) {
+    _puzzleRange = range;
+    _service.storeInt(puzzleRangeKey, range);
+    notifyListeners();	// Repaint needed: tell AnimationBuilder in app.dart.
   }
 
   set difficulty(Difficulty newDifficulty) => setDifficulty(newDifficulty);
@@ -63,7 +73,6 @@ class SettingsController with ChangeNotifier {
   setDifficulty(Difficulty newDifficulty) {
     _difficulty = newDifficulty;
     _service.storeDifficulty(difficultyKey, newDifficulty);
-    notifyListeners();
   }
 
   set symmetry(Symmetry newSymmetry) => setSymmetry(newSymmetry);
@@ -71,25 +80,21 @@ class SettingsController with ChangeNotifier {
   setSymmetry(Symmetry newSymmetry) {
     _symmetry = newSymmetry;
     _service.storeSymmetry(symmetryKey, newSymmetry);
-    notifyListeners();
   }
 
   set selectedIndex(int index) {
     _selectedIndex = index;
     _service.storeInt(selectedPuzzleKey, index);
-    notifyListeners();
   }
 
   set puzzleSpecID(String specID) {
     _puzzleSpecID = specID;
     _service.storeString(puzzleSpecIDKey, specID);
-    // notifyListeners(); Maybe not needed? Not seen, but sets up Puzzle type.
   }
 
   set mathdokuSize(int newSize) {
     _mathdokuSize = newSize;
     _service.storeInt(mathdokuSizeKey, newSize);
-    // notifyListeners();Maybe not needed?
   }
 
   /// Load the user's saved settings from the SettingsService. It may load
@@ -99,11 +104,14 @@ class SettingsController with ChangeNotifier {
     _themeMode     = _service.loadThemeMode(themeModeKey, themeModeDefault);
     _difficulty    = _service.loadDifficulty(difficultyKey, difficultyDefault);
     _symmetry      = _service.loadSymmetry(symmetryKey, symmetryDefault);
+    _puzzleRange   = _service.loadInt(puzzleRangeKey, puzzleRangeDefault);
     _selectedIndex = _service.loadInt(selectedPuzzleKey, selectedIndexDefault);
     _puzzleSpecID  = _service.loadString( puzzleSpecIDKey, puzzleSpecIDDefault);
     _mathdokuSize  = _service.loadInt(mathdokuSizeKey, mathdokuSizeDefault);
 
-    // Important! Inform listeners that a change has occurred.
-    notifyListeners();
+    // NOTE: main.dart loads the settings from file. The App and screens are
+    //       then expected to read the settings during their initialization.
+    //       Thus the settings are restored to what the user saw in the last
+    //       session and there is no need to call notifyListeners() here.
   }
 }
