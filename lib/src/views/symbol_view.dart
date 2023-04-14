@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../globals.dart';
-import '../models/puzzle.dart';		// TODO - Needed when file is split????
+import '../models/puzzle.dart';		// TODO - Needed after file is split????
 import '../models/puzzle_map.dart';
 import '../settings/game_theme.dart';
 
@@ -18,11 +18,14 @@ class SymbolView extends StatelessWidget
   static String symbols             = '';	// Digits or letters (globals).
   static List<Offset> notePositions = [];	// Alignment-class parameters.
 
-  static EdgeInsets cellSymbolSpace = EdgeInsets.only
-                           (left: 0.15, top: 0.15,  right: 0.15, bottom: 0.15);
-  static EdgeInsets cageSymbolSpace = EdgeInsets.only
-                           (left: 0.15, top: 0.25,  right: 0.15, bottom: 0.15);
-  static EdgeInsets sphereSymbolSpace = EdgeInsets.only
+  static const double highlightFactor2D = 15.0;	// Divisor for highlight-width.
+  static const double highlightFactor3D = 20.0;	// Divisor for highlight-width.
+
+  static const EdgeInsets cellSymbolSpace = EdgeInsets.only
+                           (left: 0.15, top: 0.1,  right: 0.15, bottom: 0.1);
+  static const EdgeInsets cageSymbolSpace = EdgeInsets.only
+                           (left: 0.15, top: 0.2,  right: 0.15, bottom: 0.15);
+  static const EdgeInsets sphereSymbolSpace = EdgeInsets.only
                            (left: 0.2,  top: 0.3,   right: 0.2,  bottom: 0.2);
 
   final String    cellType;	// Values '2D', '3D' or 'Control'.
@@ -158,13 +161,14 @@ class SymbolView extends StatelessWidget
     // gesture detectors get all taps on the cell-widget area, whether a single
     // symbol or a Stack of tiny Notes lies underneath (opaque behavior option).
 
+    // debugPrint('SymbolView: Paint $cellType cell, cellSide $cellSide.');
     if (cellType == '3D') {
       // Build a 3D cell.
 
-      double borderWidth = _hasHighlight ? cellSide / highlightFactor : 1.0;
+      double borderWidth = _hasHighlight ? cellSide / highlightFactor3D : 1.0;
       return GestureDetector(
         onTap: () {
-          debugPrint('Tapped cell $index');
+          // debugPrint('Tapped cell $index');
           _puzzlePlayer.hitPuzzleCellN(index);
         },
         child: DecoratedBox(
@@ -219,11 +223,11 @@ class SymbolView extends StatelessWidget
           behavior: HitTestBehavior.opaque,
           onTap: () {
             if (cellType == 'Control') {
-              debugPrint('Tapped control cell $index');
+              // debugPrint('Tapped control cell $index');
               _puzzlePlayer.hitControlArea(index);
             }
             else {			// Board cell of '2D' or '3D' type.
-              debugPrint('Tapped cell $index');
+              // debugPrint('Tapped cell $index');
               _puzzlePlayer.hitPuzzleCellN(index);
             }
           },
@@ -232,7 +236,7 @@ class SymbolView extends StatelessWidget
               // The cell background colour has been painted in GridPainter().
               gradient: cellGradient,
               border: Border.all(
-                width: cellSide / highlightFactor,
+                width: cellSide / highlightFactor2D,
                 color: _highlight,
               ),
             ),
@@ -256,7 +260,7 @@ class SymbolView extends StatelessWidget
       cellText = (value == 0) ? '' : symbols[value];
       // double fontSize = (cellType == '3D') ? 0.8 * symbolFraction * cellSide
                                            // : symbolFraction * cellSide;
-      double fontSize = cellSide - symbolSpace.top - symbolSpace.bottom;
+      double fontSize = .75 * (cellSide - symbolSpace.top - symbolSpace.bottom);
       TextStyle textStyle = TextStyle(
                               fontWeight: FontWeight.bold,
                               color:      textColor,
