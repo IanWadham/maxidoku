@@ -67,8 +67,11 @@ class PuzzleView extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
+// TODO - TRY RECEIVING A NAVIGATOR ARGUMENT...
+    final puzzleIndex = ModalRoute.of(context)!.settings.arguments as int;
+    print('PuzzleView puzzleIndex arg = $puzzleIndex');
 
-    // Find the Puzzle and PuzzlePlayer objects (models), as set up by Providers.
+    // Find the Puzzle and PuzzlePlayer models, as set up by Providers.
     puzzle       = context.read<Puzzle>();
     puzzlePlayer = context.read<PuzzlePlayer>();
 
@@ -176,6 +179,7 @@ class PuzzleView extends StatelessWidget
     // In Landscape mode. put it vertically to the right of the puzzle board.
 
     if (portrait) {		// Portrait mode.
+      debugPrint('PuzzleView: Paint puzzle view, portrait mode.');
       return Scaffold(		// Omit AppBar, to maximize real-estate.
         // Give puzzle-background colour to whole screen, including icons.
         backgroundColor: background,
@@ -202,6 +206,7 @@ class PuzzleView extends StatelessWidget
       ); // End return Scaffold(
     }
     else {			// Landscape mode.
+      debugPrint('PuzzleView: Paint puzzle view, landscape mode.');
       return Scaffold(		// Omit AppBar, to maximize real-estate.
         // Give puzzle-background colour to whole screen, including icons.
         backgroundColor: background,
@@ -240,7 +245,7 @@ class PuzzleView extends StatelessWidget
     longSide            = longSide  - 2.0 * edgePadding;
     double nIcons       = 10.0;
     iconSize            = 0.5  * shortSide / nIcons;
-    print('long $longSide short $shortSide, '
+    print('Layout long $longSide short $shortSide, '
           'nIcons $nIcons, iconSize $iconSize edgePadding $edgePadding');
     nSymbols            = map.nSymbols;
 

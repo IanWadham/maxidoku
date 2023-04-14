@@ -21,6 +21,7 @@ class BoardView2D extends StatelessWidget
     int sizeX = _map.sizeX;
     int index = 0;
 
+    debugPrint('BoardView2D: Paint $sizeX x $sizeY cells, cellSide $_cellSide.');
     return AspectRatio(
       aspectRatio: 1.0,
       // This Stack arranges its children to fit a grid in the space available.

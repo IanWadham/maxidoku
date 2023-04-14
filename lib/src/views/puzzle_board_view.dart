@@ -44,13 +44,16 @@ class PuzzleBoardView extends StatelessWidget
     // (taps) or actions on icon-buttons such as Undo/Redo, Generate and Hint.
     // In 3D puzzles, the repaint can be due to rotation, with no data change.
 
+    // TODO - Maybe this should be one or more selects on Puzzle. A full build
+    //        of PuzzleBoardView is needed after generating a puzzle, but not
+    //        after the board was filled with a correct or incorrect solution.
     puzzle        = context.watch<Puzzle>();
     puzzlePlayer  = context.read<PuzzlePlayer>();
 
     PuzzleMap map = puzzle.puzzleMap;
 
     Rect boardSpace = const Offset(0.0, 0.0) & Size(boardSide, boardSide);
-    debugPrint('Context size ${MediaQuery.of(context).size} board space $boardSpace');
+    // debugPrint('PuzzleBoardView: Context size ${MediaQuery.of(context).size} board space $boardSpace');
 
     // Find out if the System (O/S) or Flutter colour Theme is dark or light.
     bool isDarkMode = (Theme.of(context).brightness == Brightness.dark);
@@ -81,11 +84,7 @@ class PuzzleBoardView extends StatelessWidget
         }
       }
       // We wish to fill the parent, in either Portrait or Landscape layout.
-      debugPrint('Board Side $boardSide;');
-      // return LayoutBuilder(
-        // builder: (BuildContext context, BoxConstraints constraints) {
-          // print('Board Constraints $constraints');
-          // return Stack(
+      debugPrint('PuzzleBoardView: Paint 3D Puzzle, boardSide $boardSide.');
       return SizedBox(
         width:  boardSide,
         height: boardSide,
@@ -97,6 +96,7 @@ class PuzzleBoardView extends StatelessWidget
     else {		// 2D Sudoku variant, Killer Sudoku or Mathdoku puzzle.
       int    n = puzzle.puzzleMap.sizeY;
       double cellSide = boardSide / n;
+      debugPrint('PuzzleBoardView: Paint 2D Puzzle, boardSide $boardSide;');
       return SizedBox(
         width: boardSide,
         height: boardSide,
@@ -123,7 +123,7 @@ class PuzzleBoardView extends StatelessWidget
 
   Future<void> executeAfterBuild(BuildContext context) async
   {
-    debugPrint('ENTERED executeAfterBuild...');
+    debugPrint('PuzzleBoardView: ENTERED executeAfterBuild...\n');
     if (puzzle.delayedMessage.messageType != '') {
       // The user selected a new puzzle from the menu-screen or icon-button
       // or asked for a retry to get a more difficult puzzle (see below). The
