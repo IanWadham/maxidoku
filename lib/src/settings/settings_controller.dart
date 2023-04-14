@@ -73,6 +73,7 @@ class SettingsController with ChangeNotifier {
   setDifficulty(Difficulty newDifficulty) {
     _difficulty = newDifficulty;
     _service.storeDifficulty(difficultyKey, newDifficulty);
+    notifyListeners();	// Need to update button's options in PuzzleListView.
   }
 
   set symmetry(Symmetry newSymmetry) => setSymmetry(newSymmetry);
@@ -80,6 +81,7 @@ class SettingsController with ChangeNotifier {
   setSymmetry(Symmetry newSymmetry) {
     _symmetry = newSymmetry;
     _service.storeSymmetry(symmetryKey, newSymmetry);
+    notifyListeners();	// Need to update button's options in PuzzleListView.
   }
 
   set selectedIndex(int index) {
