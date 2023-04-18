@@ -7,7 +7,9 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import 'messages.dart';
 
-import '../settings/settings_view.dart';
+import '../settings/settings_controller.dart';
+// import '../settings/settings_view.dart';
+import '../settings/game_theme.dart';
 
 import '../globals.dart';
 import '../models/puzzle.dart';
@@ -21,13 +23,15 @@ import 'board_grid_view.dart';
 
 class PuzzleBoardView extends StatelessWidget
 {
-  PuzzleBoardView(/* {super.key}, */ this.boardSide);
+  PuzzleBoardView(this.boardSide, {Key? key, required this.settings})
+    : super(key: key);
 
   // TODO - StatelessWidget is an immutable class, but puzzle and hitPos cannot
   //        be "final" and so the PuzzleBoardView constructor cannot be "const".
   //        What to do?
 
   final double boardSide;
+  final SettingsController settings;
 
   Offset hitPos    = const Offset(-1.0, -1.0);
 
@@ -49,6 +53,7 @@ class PuzzleBoardView extends StatelessWidget
     //        after the board was filled with a correct or incorrect solution.
     puzzle        = context.watch<Puzzle>();
     puzzlePlayer  = context.read<PuzzlePlayer>();
+    GameTheme gameTheme = context.watch<GameTheme>();
 
     PuzzleMap map = puzzle.puzzleMap;
 
@@ -158,7 +163,7 @@ class PuzzleBoardView extends StatelessWidget
         // N.B. Puzzle.generatePuzzle() will trigger a widget re-build and a
         //      repaint, returning control to executeAferBuild() (above) again.
         puzzle.delayedMessage = Message('', '');
-        puzzle.generatePuzzle(puzzlePlayer);
+        puzzle.generatePuzzle(puzzlePlayer, settings.difficulty, settings.symmetry);
       }
       else {
         // A puzzle was selected, generated and accepted, so start the clock!

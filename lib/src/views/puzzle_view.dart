@@ -6,6 +6,7 @@ import 'package:community_material_icon/community_material_icon.dart';
 import 'dart:async';
 import 'messages.dart';
 
+import '../settings/settings_controller.dart';
 import '../settings/settings_view.dart';
 import '../settings/game_theme.dart';
 
@@ -50,11 +51,13 @@ class PuzzleView extends StatelessWidget
 // Widget build(). PuzzleBoardView is a sub-Widget of the PuzzleView Widget.
 
   final bool isDarkMode;	// Display in dark theme-mode colours or light.
+  final SettingsController settings;
+  final Puzzle puzzle;
 
-  PuzzleView(this.isDarkMode, {Key? key,}) : super(key: key);
+  PuzzleView(this.puzzle, this.isDarkMode, {required this.settings, Key? key,}) : super(key: key);
 
   final bool timerVisible = false;	// TODO - Make this a Setting...
-  late  Puzzle puzzle;
+  // ?????? late  Puzzle puzzle;
   late  PuzzlePlayer puzzlePlayer;
 
   Size   screenSize    = Size(0.0, 0.0);
@@ -67,21 +70,46 @@ class PuzzleView extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-// TODO - TRY RECEIVING A NAVIGATOR ARGUMENT...
+    // Receive the index of the selected puzzle-type via the Navigator.
     final puzzleIndex = ModalRoute.of(context)!.settings.arguments as int;
     print('PuzzleView puzzleIndex arg = $puzzleIndex');
 
     // Find the Puzzle and PuzzlePlayer models, as set up by Providers.
-    puzzle       = context.read<Puzzle>();
-    puzzlePlayer = context.read<PuzzlePlayer>();
+    // ?????? puzzle       = context.read<Puzzle>();
+    puzzlePlayer        = context.read<PuzzlePlayer>();
+    // GameTheme gameTheme = context.read<GameTheme>();
+    GameTheme gameTheme = context.watch<GameTheme>();
+    debugPrint('PuzzleView: FOUND PUZZLE STATUS ${puzzlePlayer.puzzlePlay}.');
+    debugPrint('PuzzleView: GameTheme.isDarkMode is ${gameTheme.isDarkMode}.');
+    debugPrint('PuzzleView: THIS.isDarkMode is ${this.isDarkMode}.');
 
     // Set portrait/landscape, depending on the device or window-dimensions.
     Orientation orientation = MediaQuery.of(context).orientation;
     screenSize = MediaQuery.of(context).size;
 
-    GameTheme       gameTheme       = context.read<GameTheme>();
+    // If a new puzzle has been requested, create a puzzle and board, else just
+    // do a repaint, but DO NOT clobber puzzle play by generating a new puzzle!
 
-    PuzzleMap       map             = puzzle.puzzleMap;
+    if (puzzlePlayer.puzzlePlay == Play.NotStarted) {
+      // Create a Puzzle and board where all the cells are empty or unusable.
+      // Internally this initializes the Puzzle model and creates the PuzzleMap.
+
+      puzzle.createState(puzzleIndex);
+
+      // Generate a puzzle of the required type and difficulty.
+      // Deliver the results to the PuzzlePlayer object.
+      // TODO - Compute-bound, maybe a few seconds, usually < 1 sec. What to do?
+
+      debugPrint('\nPuzzleView: GENERATE PUZZLE, index $puzzleIndex.');
+      puzzle.generatePuzzle(puzzlePlayer,
+                            settings.difficulty, settings.symmetry);
+    }
+    else {
+      debugPrint('\nPuzzleView: REPAINT PUZZLE - DO NOT re-generate it.');
+    }
+
+    // The information for configuring the Puzzle Board View is now available.
+    PuzzleMap map = puzzle.puzzleMap;
 
     // Save the orientation, for later use by PuzzlePainters and paint().
     // A setter in Puzzle saves "portrait" in either 2D or 3D PaintingSpecs.
@@ -111,6 +139,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Return to list of puzzles',
         color:   foreground,
         onPressed: () {
+          debugPrint('PuzzleView: RETURN TO LIST OF PUZZLES - exitScreen();');
           exitScreen(context);
         },
       ),
@@ -194,7 +223,7 @@ class PuzzleView extends StatelessWidget
                 ),
               ),
               const Spacer(),
-              PuzzleBoardView(boardSide),
+              PuzzleBoardView(boardSide, settings: settings),
               Padding(padding: EdgeInsets.only(top: edgePadding * 5.0)),
               PuzzleControlBar(boardSide, map,
                                horizontal: true,
@@ -222,7 +251,7 @@ class PuzzleView extends StatelessWidget
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget> [
-                PuzzleBoardView(boardSide),
+                PuzzleBoardView(boardSide, settings: settings),
                 Padding(padding: EdgeInsets.only(left: edgePadding * 5.0)),
                 PuzzleControlBar(boardSide, map,
                                  horizontal: false,
@@ -245,8 +274,8 @@ class PuzzleView extends StatelessWidget
     longSide            = longSide  - 2.0 * edgePadding;
     double nIcons       = 10.0;
     iconSize            = 0.5  * shortSide / nIcons;
-    print('Layout long $longSide short $shortSide, '
-          'nIcons $nIcons, iconSize $iconSize edgePadding $edgePadding');
+    // debugPrint('Layout long $longSide short $shortSide, '
+          // 'nIcons $nIcons, iconSize $iconSize edgePadding $edgePadding');
     nSymbols            = map.nSymbols;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -265,7 +294,7 @@ class PuzzleView extends StatelessWidget
       boardSide = longSide - edgePadding - controlSide;
       // double testValue = shortSide - (2.0 * iconSize) - edgePadding;
       double testValue = shortSide - (1.0 * iconSize); // - edgePadding;
-      print('testValue $testValue boardSide $boardSide');
+      // debugPrint('testValue $testValue boardSide $boardSide');
       if (boardSide > testValue) {
         boardSide = testValue;
       }
@@ -289,17 +318,22 @@ class PuzzleView extends StatelessWidget
     // Generate a puzzle of the requested level of difficulty.
     debugPrint('GENERATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
     bool newPuzzleOK = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
-                       (puzzlePlayer.puzzlePlay == Play.ReadyToStart);
+                       (puzzlePlayer.puzzlePlay == Play.ReadyToStart) ||
+                       (puzzlePlayer.puzzlePlay == Play.Solved);
     if (! newPuzzleOK) {
       newPuzzleOK = await questionMessage(
         context,
-        'Generate a new puzzle?',
+        'Start a new puzzle?',
         'You could lose your work so far. Do you '
-        ' really want to generate a new puzzle?',
+        ' really want to start a new puzzle?',
       );
     }
     if (newPuzzleOK) {
-      puzzle.generatePuzzle(puzzlePlayer);
+      // ?????? puzzle.generatePuzzle(puzzlePlayer);
+      Difficulty difficulty = settings.difficulty;
+      Symmetry   symmetry   = settings.symmetry;
+      // ?????? puzzle.generatePuzzle(puzzlePlayer, settings.difficulty, settings.symmetry);
+      puzzle.generatePuzzle(puzzlePlayer, difficulty, symmetry);
     }
   }
 /* ************************************* TEMPORARILY DISABLED
@@ -371,6 +405,7 @@ class PuzzleView extends StatelessWidget
                  );
     }
     if (okToQuit && context.mounted) {
+      puzzlePlayer.resetPlayStatus();	// Needed in next build of PuzzleView.
       Navigator.pop(context);
     }
   }

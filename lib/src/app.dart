@@ -13,33 +13,36 @@ import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 import 'settings/game_theme.dart';
 
-/// The Widget that configures your application.
-class MyApp extends StatelessWidget {
+class MultiDokuApp extends StatelessWidget {
 
-  const MyApp({
+  const MultiDokuApp(
+    Puzzle this.puzzle, {
     Key? key,
     required this.settingsController,
-  }) : super(key: key);
+    }
+  ) : super(key: key);
 
   final SettingsController settingsController;
+  final Puzzle puzzle;
 
   @override
   Widget build(BuildContext context) {
     // Make the MaterialApp listen for changes in Settings, by using the
-    // AnimatedBuilder to listen to the SettingsController. So whenever
-    // the user updates their settings, the MaterialApp and dependent
-    // widgets are rebuilt.
+    // AnimatedBuilder to listen to the SettingsController. So whenever the
+    // user updates their settings, the MaterialApp and dependent widgets
+    // can be rebuilt - IF the screen colors or appearance are affected.
     //
     // NOTE: In this instance the AnimatedBuilder does not listen for a tick of
     //       the clock. Rather it listens for any NotifyListeners() in the
     //       SettingsController, signalling a change in a Setting or Preference.
     return AnimatedBuilder(
       animation: settingsController,
-      builder: (BuildContext context, Widget? child) {
+      builder: (BuildContext context, Widget? child) { // The child is null.
+        debugPrint('BUILD APP.');
         return MaterialApp(
 
           // Show stripe in work-version, but NOT in /Applications play-version.
-          // debugShowCheckedModeBanner: false, // No Debug stripe at top-right.
+          debugShowCheckedModeBanner: false, // No Debug stripe at top-right.
 
           // Providing a restorationScopeId allows the Navigator built by the
           // MaterialApp to restore the navigation stack when a user leaves and
@@ -76,8 +79,6 @@ class MyApp extends StatelessWidget {
             useMaterial3:    true,
           ),
           darkTheme: ThemeData(
-            // colorSchemeSeed: Colors.teal,
-            // primaryColor: Colors.teal,
             brightness:      Brightness.dark,
             useMaterial3:    true,
           ),
@@ -95,21 +96,6 @@ class MyApp extends StatelessWidget {
                     return SettingsView(controller: settingsController);
 
                   case PuzzleView.routeName:
-                    // Show the selected puzzle board.
-                    String puzzleSpecID = settingsController.puzzleSpecID;
-                    int    index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
-
-                    Puzzle puzzle = Puzzle(index, settingsController);
-                    PuzzlePlayer puzzlePlayer =
-                                 PuzzlePlayer(puzzle.puzzleMap, puzzle);
-
-                    // TODO - Compute-bound, possibly for a few seconds,
-                    //        almost always < 1 sec. What to do?
-                    // Generate a puzzle of the required type and difficulty.
-                    // Deliver the results to the PuzzlePlayer object.
-
-                    puzzle.generatePuzzle(puzzlePlayer);
-
                     bool isDarkMode =
                          (Theme.of(context).brightness == Brightness.dark);
 
@@ -121,6 +107,8 @@ class MyApp extends StatelessWidget {
                     // several places in the puzzle-model classes where they
                     // call notifyListeners(). The Providers listen for them.
 
+                    debugPrint('\nMyApp: Create Providers,'
+                               ' dark mode $isDarkMode.');
                     return MultiProvider(
                       providers: [
                         // Access to model of game in Puzzle class.
@@ -129,28 +117,39 @@ class MyApp extends StatelessWidget {
                         ),
                         // Access to model of gameplay in PuzzlePlayer class.
                         ChangeNotifierProvider.value(
-                          value: puzzlePlayer,
+                          value: puzzle.puzzlePlayer,
                         ),
                         // Access to Game Theme colours.
                         Provider(
+// TODO - PROBLEM: This one re-creates GameTheme and changes Theme Brightness
+//        colors, BUT PuzzleView keeps the same colors, until return to the menu
+//        screen, selection of a Puzzle and PuzzleView starting a new puzzle.
+//        The menu and settings screens go dark or light as the setting changes.
                           create: (context) => GameTheme(isDarkMode),
                           lazy:   false,
                         ),
                       ],
+                      builder: (context, child) {
                       // Top widget of puzzle screen.
-                      child: PuzzleView(isDarkMode),
-                    );
+                      // ?????? child: PuzzleView(puzzle, isDarkMode,
+                      final value = context.watch<GameTheme>();
+                      return PuzzleView(puzzle, isDarkMode,
+                        settings: settingsController
+                        );
+                      }
+                      // ?????? ),
+                    ); // End MultiProvider.
 
                   case PuzzleListView.routeName:
                   default:
-                    // Show a list of available puzzle types and sizes.
+                    // Choose from a list of puzzle types and sizes.
                     return PuzzleListView(settings: settingsController);
                 }
               },
             );
           },
-        );
-      },
-    );
+        ); // End MaterialApp.
+      }, // }, // End builder:
+    ); // ); // End AnimatedBuilder.
   }
 }

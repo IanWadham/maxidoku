@@ -138,7 +138,6 @@ const double symbolFraction    = 1.0 - topMargin - bottomMargin;
 
 const double thinGridFactor    = 30.0;	// Divisor for thin grid-line's width.
 const double boldGridFactor    = 15.0;	// Divisor for thick grid-line's width.
-const double highlightFactor   = 20.0;	// Divisor for highlight-line's width.
 
 const double cageGridFactor    = 20.0;	// Divisor for cage-outline's width.
 const double cageInsetFactor   = 12.0;	// Divisor for cage-outline's inset.

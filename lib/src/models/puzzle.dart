@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
 
-import '../settings/settings_controller.dart';
-
 import '../globals.dart';
 import 'puzzle_map.dart';
 import 'puzzle_types.dart';
@@ -18,14 +16,11 @@ import '../layouts/board_layout_3d.dart';
 class Puzzle with ChangeNotifier
 {
   // Constructor.
-  Puzzle(int index, this.settings)
-  {
-    createState(index);
-  }
+  Puzzle() {print('PUZZLE CREATED');} // ;
 
-  final SettingsController settings;
+  final PuzzleMap    _puzzleMap    = PuzzleMap();
+  final PuzzlePlayer _puzzlePlayer = PuzzlePlayer();
 
-  late PuzzleMap     _puzzleMap;
   late BoardLayout2D _boardLayout2D;
   // ?????? late BoardLayout3D _boardLayout3D;
 
@@ -39,11 +34,13 @@ class Puzzle with ChangeNotifier
   //starts  and again whenever the user turns or tilts the Puzzle by 90 degrees.
   List<RoundCell> _roundCells3D = [];
   // TODO - baseScale2D is very likely NOT NEEDED.
+  // TODO - baseScale3D currently used only locally in layouts/board_layout_3D.
   double          _baseScale3D  = 1.0;
 
   //        Should probably KEEP the 3D Layout object - ready for pi/4 flips.
 
   PuzzleMap       get puzzleMap      => _puzzleMap;
+  PuzzlePlayer    get puzzlePlayer   => _puzzlePlayer;
   List<int>       get edgesEW        => _edgesEW;
   List<int>       get edgesNS        => _edgesNS;
   BoardContents   get cellColorCodes => _cellColorCodes;
@@ -52,20 +49,13 @@ class Puzzle with ChangeNotifier
   List<RoundCell> get roundCells3D   => _roundCells3D;
   double          get baseScale3D    => _baseScale3D;
 
+  // This gives the result of Puzzle generation, but Flutter build may be busy.
   Message delayedMessage = Message('', '');
 
-  int _firstTimeCount = 2;	// Skip 2 notifyListeners() during first build.
+  // This is needed to help co-ordinate Puzzle generation and Flutter painting.
+  Play _startingStatus = Play.NotStarted;
 
-  bool firstBuild()
-  {
-    if (_firstTimeCount <= 0) {
-      return false;
-    }
-    _firstTimeCount--;
-    return true;		// Avoid errors in first build of PuzzleView.
-  }
-
-  bool createState(int index)
+  void createState(int index)
   {
     // Create the layout, clues and model for the puzzle type the user selected.
     debugPrint('Create Puzzle: index $index');
@@ -78,9 +68,14 @@ class Puzzle with ChangeNotifier
     List<String> puzzleMapSpec = puzzleList.puzzleTypeText(index);
 
     // Parse it and create the corresponding Puzzle Map, with an empty board.
-    _puzzleMap = PuzzleMap(specStrings: puzzleMapSpec);
+    _puzzleMap.buildPuzzleMap(specStrings: puzzleMapSpec);
 
     // The only time the Board Layout is calculated in the lifetime of a Puzzle.
+    _cellColorCodes.clear();
+    _edgesEW.clear();
+    _edgesNS.clear();
+    _cagePerimeters.clear();
+    _roundCells3D.clear();
     if (_puzzleMap.sizeZ == 1) {
       BoardLayout2D _boardLayout2D = BoardLayout2D(_puzzleMap);
       _boardLayout2D.calculateLayout(_edgesEW, _edgesNS, _cellColorCodes);
@@ -92,41 +87,42 @@ class Puzzle with ChangeNotifier
       _baseScale3D  = _boardLayout3D.baseScale3D;
     }
 
-    // Start by generating a puzzle and a delayed message. Maybe the users
-    // can tap an icon button or message reply if they wish to tap in a puzzle.
-    // _puzzlePlayer = PuzzlePlayer(_puzzleMap, this)
-    // generatePuzzle(puzzlePlayer);		// ???????? generatePuzzle();
-
-    // NOTE - Flutter is already painting. Issuing a message right now causes
-    //        a crash and calling notifyListeners() also causes Flutter errors.
-    //        The delayed message will appear in PuzzleView.executeAfterBuild().
-    return true;
+    return;
   }
 
-  void generatePuzzle(PuzzlePlayer puzzlePlayer)
+  void generatePuzzle(PuzzlePlayer puzzlePlayer,
+                      Difficulty difficulty, Symmetry symmetry)
   {
     PuzzleGenerator generator = PuzzleGenerator();
+
+    // If the starting status is NotStarted, Flutter will begin to paint the
+    // PuzzleView and board and it will be necessary to avoid notifyListeners().
+    _startingStatus = _puzzlePlayer.puzzlePlay;
 
     // Generate a puzzle of the required layout type, difficulty and symmetry.
     // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
     // The result-message either informs the user about the puzzle generated or
-    // asks whether to Accept or Retry, if the requirements have not been met.
+    // asks whether to Accept or Retry when the requirements have not been met.
     // The message is stashed, in case the Puzzle View is currently painting.
-
     delayedMessage = generator.generatePuzzle(
-                                 _puzzleMap, puzzlePlayer,
-                                 settings.difficulty, settings.symmetry);
+                                 this, _puzzleMap, puzzlePlayer,
+                                 difficulty, symmetry);
 
-    if(_puzzleMap.cageCount() > 0) {
+    if (_puzzleMap.cageCount() > 0) {
+      // Get the cage-layouts for Mathdoku and Killeri Sudoku puzzles.
       BoardLayout2D _boardLayout2D = BoardLayout2D(_puzzleMap);
-      _cagePerimeters.clear();	// Get the cage-layouts for Mathdoku and Killer.
+      _cagePerimeters.clear();
       _boardLayout2D.calculateCagesLayout(_puzzleMap, _cagePerimeters);
     }
 
-    if (firstBuild()) {
+    if (_startingStatus == Play.NotStarted) {
       return;		// Avoid notifyListeners() during Flutter's first build.
     }
-    notifyListeners();	// Else make sure PuzzleView issues the delayedMessage.
+    notifyListeners();	// Make sure PuzzleView issues the delayedMessage.
+
+    // NOTE - Flutter may be already painting. So issuing a message right now
+    //        causes a crash and notifyListeners() also causes Flutter errors.
+    //        The delayed message will appear in PuzzleView.executeAfterBuild().
   }
 
 } // End Puzzle class.
@@ -153,12 +149,12 @@ class PuzzleGenerator
   BoardContents _solution     = [];	// Finishing state of generated puzzle.
   List<int>     _sudokuMoves  = [];	// Move-list: for hints.
 
-  Message generatePuzzle(PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer,
+  Message generatePuzzle(Puzzle puzzle, PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer,
                          Difficulty difficulty, Symmetry symmetry)
   // Generate a new puzzle of the type and size selected by the user.
   {
-    // Clear the Puzzle state. Make THIS._puzzleGiven (above) an empty board.
-    puzzlePlayer.initialise();
+    // Clear the PuzzlePlayer state. Fill _puzzleGiven with empty cells.
+    puzzlePlayer.initialise(puzzleMap, puzzle);
     _puzzleGiven = [...puzzleMap.emptyBoard];
 
     Message response = Message('', '');
@@ -275,13 +271,11 @@ class CellChange
 
 class PuzzlePlayer with ChangeNotifier
 {
-  PuzzleMap _puzzleMap;
-  Puzzle    _puzzle;
+  // TODO - Do these NEED to be "late".
+  late PuzzleMap _puzzleMap;
+  late Puzzle    _puzzle;
 
-  PuzzlePlayer(this._puzzleMap, this._puzzle)
-  {
-    initialise();
-  }
+  PuzzlePlayer();
 
   // The status of puzzle-play. Determines what moves are allowed and their
   // meaning. In NotStarted status, the puzzle is set to be empty and can be
@@ -339,8 +333,12 @@ class PuzzlePlayer with ChangeNotifier
   String get userTimeDisplay => _puzzleTimer.userTimeDisplay;
   void       startClock()    => _puzzleTimer.startClock();
 
-  void initialise()
+  initialise(PuzzleMap puzzleMap, Puzzle puzzle)
   {
+    // Set references to the Puzzle Map and the Puzzle.
+    _puzzleMap = puzzleMap;
+    _puzzle    = puzzle;
+
     // Initialize the lists of cells, using deep copies. The solution is empty
     // in case the user taps in a puzzle: it gets filled if they generate one.
     //
@@ -365,6 +363,12 @@ class PuzzlePlayer with ChangeNotifier
     _puzzlePlay = Play.NotStarted;
 
     _puzzleTimer.init();
+  }
+
+  void resetPlayStatus()
+  {
+    _puzzlePlay = Play.NotStarted;
+    debugPrint('PuzzlePlayer: RESET STATUS TO $_puzzlePlay');
   }
 
   void makeReadyToPlay(BoardContents puzzleGiven,
@@ -396,10 +400,13 @@ class PuzzlePlayer with ChangeNotifier
 
     // Change the Puzzle Play status to receive solving moves.
     _puzzlePlay = Play.ReadyToStart;
-    if (_puzzle.firstBuild()) {
-      return;		// Avoid notifyListeners() during Flutter's first build.
+    debugPrint('PuzzlePlayer: CHANGED STATUS TO $_puzzlePlay');
+    if (_puzzle._startingStatus == Play.NotStarted) {
+      return;		// Flutter is already painting the PuzzleView and board.
     }
-    notifyListeners();  // Else ensure the board and initial clues get painted.
+    notifyListeners();  // Ensure that the board and initial clues get painted.
+    // TODO - This notifyListeners can cause Flutter to throw an exception
+    //        because "setState() or markNeedsBuild() is called during build".
   }
 
   bool triggerRepaint()

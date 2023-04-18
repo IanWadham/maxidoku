@@ -114,31 +114,55 @@ class PuzzleMap
   // The file has one string per puzzle-type specification, containing Name,
   // Description and layout details for the puzzle map.
 
-  PuzzleMap({required List<String> specStrings})
-    :
-      _name = '',
-      _specificType = SudokuType.Invalid,
-      _sizeX        = 0,
-      _sizeY        = 0,
-      _sizeZ        = 0,
-      _size         = 0,
-      _blockSize    = 0,
-      _nGroups      = 0,
-      _nSymbols     = 0,
-      _hideOperators = false
+  PuzzleMap();
+
+  void buildPuzzleMap({required List<String> specStrings})
   {
-    bool   mapStarted = false;
-    int    index = 0;
-    int    nSpecs = specStrings.length;
-    if (nSpecs < 1) return;
+    // Start by initializing or re-initializing the Puzzle configuration data.
+
+    int    nSpecs     = specStrings.length;
+    if (nSpecs < 1) {
+      return;
+    }
+
+    // Initialize the Properties of the PuzzleMap, using invalid values.
+    _name             = '';
+    _specificType     = SudokuType.Invalid;
+    _sizeX            = 0;
+    _sizeY            = 0;
+    _sizeZ            = 0;
+    _size             = 0;
+    _blockSize        = 0;
+    _nGroups          = 0;
+    _nSymbols         = 0;
+
+    // Reset the default values for Mathdoku and 3D Puzzle spheres.
+    _hideOperators    = false;
+    _diameter         = 350;
+    _rotateX          = 15;
+    _rotateY          = 27;
+
+    // Clear the configuration Lists.
+    _specialCells.clear();
+    _structureTypes.clear();
+    _structurePositions.clear();
+    _structuresWithBlocks.clear();
+    _groups.clear();
+    _cages.clear();
+    _indexOfCellsToGroups.clear();
+    // _emptyBoard.clear();	// Gets cleared when keyword PuzzleMap is seen.
+
     RegExp whiteSpace = RegExp(r'(\s+)');
+    bool   mapStarted = false;
+    int    specIndex  = 0;
 
-    while (index < nSpecs) {
-      // debugPrint('Index: $index of $nSpecs');
-      String specLine = specStrings[index];
+    while (specIndex < nSpecs) {
+      // debugPrint('Index: $specIndex of $nSpecs');
+      String specLine = specStrings[specIndex];
 
-      if (specLine.isEmpty) { index++; continue; }	// Skip empty line(s).
+      if (specLine.isEmpty) { specIndex++; continue; }	// Skip empty line(s).
 
+      // debugPrint(specLine);
       List<String> fields = specLine.split(whiteSpace);
       int nFields = fields.length;
       if (nFields < 1) { break; }	// Must have one or more fields.
@@ -295,7 +319,7 @@ class PuzzleMap
           // Skip unused or obsolete tags in puzzle_types.dart.
           break;
       }
-      index++;
+      specIndex++;
     }
 
     // Finalise the number of groups.
@@ -307,7 +331,7 @@ class PuzzleMap
     // Create an index to help puzzle generators and solvers.
     _createIndexOfCellsToGroups();
 
-  } // End of PuzzleMap constructor.
+  } // End of buildPuzzleMap().
 
   // Getters for PuzzleMap properties.
   int get nSymbols   => _nSymbols;
@@ -443,15 +467,15 @@ class PuzzleMap
         }
   }
 
-  // Private values and methods.
+  // PuzzleMap Properties - Private values and methods.
 
-  int _sizeX;
-  int _sizeY;
-  int _sizeZ;
-  int _size;		// Size of puzzle's whole area or volume (the board).
-  int _blockSize;	// Edge-length of a square 2D block or 3D cube.
-  int _nGroups;		// Number of groups (cliques) in the puzzle.
-  int _nSymbols;	// Number of symbols (4 9 16 25: 0-4, 0-9, A-P or A-Y).
+  int _sizeX      = 0;
+  int _sizeY      = 0;
+  int _sizeZ      = 0;
+  int _size       = 0;	// Size of puzzle's whole area or volume (the board).
+  int _blockSize  = 0;	// Edge-length of a square 2D block or 3D cube.
+  int _nGroups    = 0;	// Number of groups (cliques) in the puzzle.
+  int _nSymbols   = 9;	// Number of symbols (4 9 16 25: 0-4, 0-9, A-P or A-Y).
 
   bool _hideOperators = false;	// Default Mathdoku option: operators are SHOWN.
 
