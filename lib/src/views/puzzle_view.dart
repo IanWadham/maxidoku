@@ -146,12 +146,12 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(Icons.settings_outlined),
         iconSize: iconSize,
-        tooltip: 'Settings',
+        tooltip: 'Temporarily out of action',	// 'Settings',
         color:   foreground,
         onPressed: () {
           // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
+          // Navigator.restorablePushNamed(
+            // context, SettingsView.routeName);
         },
       ),
       IconButton(
