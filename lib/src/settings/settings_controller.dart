@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
-import 'settings_service.dart';
 import '../globals.dart';
+import 'settings_service.dart';
 
 /// A class that many Widgets can interact with to read user settings, update
 /// user settings, or listen to user settings changes.
 class SettingsController with ChangeNotifier {
+
+  // ?????? const SettingsController(this._service);	// Constructor.
+  // Can't be const. See comments in settings_service.dart...
 
   SettingsController(this._service);	// Constructor.
 
@@ -22,13 +25,13 @@ class SettingsController with ChangeNotifier {
   final String mathdokuSizeKey   = 'MathdokuSize';
 
   // Default Values of Settings.
-  final ThemeMode  themeModeDefault      = ThemeMode.system;
-  final Difficulty difficultyDefault     = Difficulty.Easy;
-  final Symmetry   symmetryDefault       = Symmetry.RANDOM_SYM;
-  final int        puzzleRangeDefault    = 0;      // Beginners' puzzle types.
-  final int        selectedIndexDefault  = 0;
-  final String     puzzleSpecIDDefault   = '0';
-  final int        mathdokuSizeDefault   = 6;
+  static const ThemeMode  themeModeDefault      = ThemeMode.system;
+  static const Difficulty difficultyDefault     = Difficulty.Easy;
+  static const Symmetry   symmetryDefault       = Symmetry.RANDOM_SYM;
+  static const int        puzzleRangeDefault    = 0; // Beginners' puzzle types.
+  static const int        selectedIndexDefault  = 0;
+  static const String     puzzleSpecIDDefault   = '0';
+  static const int        mathdokuSizeDefault   = 6;
 
   // Getters for settings.
   ThemeMode  get themeMode     => _themeMode;      // Light or dark colours.
@@ -40,13 +43,13 @@ class SettingsController with ChangeNotifier {
   int        get mathdokuSize  => _mathdokuSize;   // Reqd. size of Mathdoku.
 
   // Private values of settings.
-  late ThemeMode  _themeMode;
-  late Difficulty _difficulty;
-  late Symmetry   _symmetry;
-  late int        _puzzleRange;
-  late int        _selectedIndex;
-  late String     _puzzleSpecID;
-  late int        _mathdokuSize;
+  static ThemeMode  _themeMode     = themeModeDefault;
+  static Difficulty _difficulty    = difficultyDefault;
+  static Symmetry   _symmetry      = symmetryDefault;
+  static int        _puzzleRange   = puzzleRangeDefault;
+  static int        _selectedIndex = selectedIndexDefault;
+  static String     _puzzleSpecID  = puzzleSpecIDDefault;
+  static int        _mathdokuSize  = mathdokuSizeDefault;
 
   // Setters for settings - extended to store values persistently (on disk).
 
