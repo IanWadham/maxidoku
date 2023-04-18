@@ -33,7 +33,7 @@ class BoardView2D extends StatelessWidget
               for (int x = 0; x < sizeX; x++)
                 Expanded(
                   child: Column(
-                    // In Multidoku cells go into the grid a column at a time.
+                    // In Maxidoku cells go into the grid a column at a time.
                     children: [
                       // So Y varies faster than X in this convention.
                       for (int y = 0; y < sizeY; y++)

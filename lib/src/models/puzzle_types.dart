@@ -1,3 +1,11 @@
+/*
+    SPDX-FileCopyrightText: 2005-2007 Francesco Rossi <redsh@email.it>
+    SPDX-FileCopyrightText: 2012      Ian Wadham <iandw.au@gmail.com>
+    SPDX-FileCopyrightText: 2015      Ian Wadham <iandw.au@gmail.com>
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/foundation.dart' show debugPrint;
 
 class PuzzleTypesText {

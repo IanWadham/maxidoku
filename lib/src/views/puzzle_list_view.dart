@@ -55,7 +55,7 @@ class PuzzleListView extends StatelessWidget
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("MultiDoku"),
+        title: const Text("MaxiDoku"),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(20.0),
           child: Align(				// ... to add AppBar subtitle.
@@ -261,7 +261,7 @@ class _MyListViewState extends State<MyListView>
           subtitle:    Text(item[2]),
           isThreeLine: true,
           leading:     Image.asset(
-            // Display a MultiDoku icon from the assets folder.
+            // Display a MaxiDoku icon from the assets folder.
             'assets/icons/hi48-action-${item[3]}.png',
             color: null,    // Don't blend in any colour.
           ),

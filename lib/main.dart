@@ -1,3 +1,8 @@
+/*
+    SPDX-FileCopyrightText: 2023 Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -11,7 +16,7 @@ void main() async {
 
   // Start up the persistent-storage package for Settings (on file).
   // Remembering a player's preferences between sessions is an
-  // important feature of MultiDoku
+  // important feature of MaxiDoku
 
   await GetStorage.init();
 
@@ -30,5 +35,5 @@ void main() async {
   // SettingsController for changes that require a screen repaint. The Puzzle
   // object and its friends PuzzleMap and PuzzlePlayer are also constructed.
 
-  runApp(MultiDokuApp(Puzzle(), settingsController: settingsController));
+  runApp(MaxiDokuApp(Puzzle(), settingsController: settingsController));
 }

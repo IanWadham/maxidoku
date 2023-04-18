@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../settings/game_theme.dart';
 
 // TODO - Use a better barrier colour than black54 (black with 54% opacity),
 //        use better backround and foreground colours for the message area
@@ -12,6 +15,7 @@ Future<bool> questionMessage(
   // Optional named parameters and their default values.
   String okText     = 'Yes',
   String cancelText = 'No',
+  // String ignoreText = '',	// No good. Makes an invisible tappable button.
   }
 ) async
 {
@@ -30,14 +34,20 @@ Future<bool> questionMessage(
       Navigator.of(context).pop(false);	// Dismiss the dialog box.
     },
   );
+  // Widget ignoreButton = TextButton(
+    // child: Text(ignoreText),
+    // onPressed: () {
+      // debugPrint('User pressed $ignoreText button in questionMessage()');
+      // Navigator.of(context).pop(false);	// Dismiss the dialog box.
+    // },
+  // );
   // Set up the AlertDialog.
   AlertDialog alert = AlertDialog(
     title:   Text(heading),
     content: Text(question),
-    // surfaceTintColor: Colors.transparent,
-    // backgroundColor:  Colors.transparent, // Ugh, background of message-area!
-    // shadowColor: Colors.transparent,
+    backgroundColor:  Colors.amber.shade100,
     actions: [
+      // ignoreButton,
       cancelButton,
       okButton,
     ],
@@ -47,8 +57,6 @@ Future<bool> questionMessage(
       context: context,
       barrierDismissible: false,	// User must tap button, not background.
       barrierColor: Colors.transparent,
-      // barrierColor: Colors.purple.withOpacity(0.1),
-      // barrierColor: Colors.amber.withOpacity(0.2),
       builder: (BuildContext context)
       {
         return alert;
@@ -80,6 +88,7 @@ async
   AlertDialog alert = AlertDialog(
     title:   Text(heading),
     content: Text(information),
+    backgroundColor:  Colors.amber.shade100,
     actions: [
       okButton,
     ],
@@ -90,7 +99,6 @@ async
     context: context,
     barrierDismissible: false,		// User must tap button, not background.
     barrierColor: Colors.transparent,
-    // barrierColor: Colors.purple.withOpacity(0.1),
     builder: (BuildContext context) {
       return alert;
     },

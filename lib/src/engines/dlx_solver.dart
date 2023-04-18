@@ -39,7 +39,7 @@ class DLXNode			// Represents a 1 in a sparse matrix
  * @short Provides a solver, based on the DLX algorithm, for Sudoku variants.
  *
  * This solver can potentially handle all variants of Sudoku puzzles supported
- * by Multidoku, including classical 9x9 Sudokus, 2-D variants, 3-D variants,
+ * by Maxidoku, including classical 9x9 Sudokus, 2-D variants, 3-D variants,
  * Killer Sudoku and Mathdoku (aka Kenken TM). However, it is used only to solve
  * and check the solutions of Mathdoku and Killer Sudoku puzzles. The other
  * types of puzzle use the SudokuGenerator and SudokuSolver classes, because
@@ -250,7 +250,7 @@ class DLXSolver
     // predecessor (if there is one), but if the solution is unique it will stay
     // in place until the DLXSolver has exhausted all other possibilities.
     //
-    // In MultiDoku (ie. Sudoku-style puzzles) solutions are of interest ONLY if
+    // In MaxiDoku (ie. Sudoku-style puzzles) solutions are of interest ONLY if
     // they are UNIQUE. In that case, after the DLXSolver has run to completion,
     // the caller can retrieve the solution and the moves by using the getters
     // DLXSolver.currentSolution and DLXSolver.solutionMoves (defined earlier).

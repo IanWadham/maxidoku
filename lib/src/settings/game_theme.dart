@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// Colours and light/dark options for the MultiDoku game.
+// Colours and light/dark options for the MaxiDoku game.
 //
 // These are not related to Flutter Material 3 Themes. Games have more laid-back
 // colour schemes. In the future, this class could allow colour schemes to be

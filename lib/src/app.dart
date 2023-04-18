@@ -13,9 +13,9 @@ import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 import 'settings/game_theme.dart';
 
-class MultiDokuApp extends StatelessWidget {
+class MaxiDokuApp extends StatelessWidget {
 
-  const MultiDokuApp(
+  const MaxiDokuApp(
     Puzzle this.puzzle, {
     Key? key,
     required this.settingsController,
