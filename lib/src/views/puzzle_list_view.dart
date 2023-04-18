@@ -40,7 +40,7 @@ class PuzzleListView extends StatelessWidget
     int        initialPuzzleRange = settings.puzzleRange;
 
     // TODO - Tried to get a copy of the AppBar's titleTextStyle, but could
-    //        not get the Theme ... titleMedium approach to work. The "print"
+    //        not get the Theme ... titleMedium approach to work. My "print"
     //        gets specs that look reasonable, but are NOT a TextStyle type.
     // TextStyle myStyle = Theme.of(context)!.textTheme!.titleMedium!;
     // if (myStyle == null) {
@@ -144,17 +144,6 @@ class PuzzleListView extends StatelessWidget
               ),
             ],
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'More Settings',
-            color: Colors.white,
-            onPressed: () {
-              // Navigate to the settings page. If the user leaves and returns
-              // to the app after it has been killed while running in the
-              // background, the navigation stack is restored.
-              Navigator.restorablePushNamed(context, SettingsView.routeName);
-            },
-          ),
           PopupMenuButton<int>(
             child: Text('Menu...', style: myStyle),
             tooltip: 'Select range of puzzles',
@@ -183,6 +172,17 @@ class PuzzleListView extends StatelessWidget
               // _listNumber = value;
               settings.puzzleRange = value;
             }
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'More Settings',
+            color: Colors.white,
+            onPressed: () {
+              // Navigate to the settings page. If the user leaves and returns
+              // to the app after it has been killed while running in the
+              // background, the navigation stack is restored.
+              Navigator.restorablePushNamed(context, SettingsView.routeName);
+            },
           ),
           // Packing to avoid Debug stripe covering last icon.
           // ?????? IconButton(
@@ -270,8 +270,8 @@ class _MyListViewState extends State<MyListView>
           enabled:     true,
           // Called when the user has selected an item from the list.
           onTap: () {
-            int xxxxindex = PuzzleList.puzzles[widget.listNumber][index];
-            print('ListNumber ${widget.listNumber} index $index puzzle $xxxxindex');
+            int puzzleIndex = PuzzleList.puzzles[widget.listNumber][index];
+            print('ListNumber ${widget.listNumber} index $index puzzleIndex $puzzleIndex');
             item = items.getItem(widget.listNumber, index);
             // Make the highlight on this selection persist.
             setState(() { _selectedIndex = index; });
@@ -283,7 +283,7 @@ class _MyListViewState extends State<MyListView>
             Navigator.restorablePushNamed(
               context,
               PuzzleView.routeName,
-              arguments: xxxxindex,
+              arguments: puzzleIndex,
             );
           } // End onTap: ()
         ); // End ListTile
