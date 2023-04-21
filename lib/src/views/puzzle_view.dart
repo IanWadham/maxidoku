@@ -21,10 +21,6 @@ import 'puzzle_control_bar.dart';
 import 'timer_widget.dart';
 
 /* ************************************************************************** **
-   ICON BUTTONS - Mark and go back to Mark???
-** ************************************************************************** */
-
-/* ************************************************************************** **
   // Can get device/OS/platform at https://pub.dev/packages/device_info_plus
   // See also the "Dependencies" list in the column at RHS of that page re
   // info on MacOS, Linux, Windows, etc.
@@ -52,13 +48,15 @@ class PuzzleView extends StatelessWidget
 
   final bool isDarkMode;	// Display in dark theme-mode colours or light.
   final SettingsController settings;
-  final Puzzle puzzle;
+  Puzzle puzzle;
 
   PuzzleView(this.puzzle, this.isDarkMode, {required this.settings, Key? key,}) : super(key: key);
 
   final bool timerVisible = false;	// TODO - Make this a Setting...
-  // ?????? late  Puzzle puzzle;
-  late  PuzzlePlayer puzzlePlayer;
+
+  bool tappedInPuzzle = false;		// Whether the user tapped in a Puzzle.
+
+  late PuzzlePlayer puzzlePlayer;
 
   Size   screenSize    = Size(0.0, 0.0);
   double edgeFactor    = 0.025;
@@ -70,15 +68,23 @@ class PuzzleView extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-    // Receive the index of the selected puzzle-type via the Navigator.
-    final puzzleIndex = ModalRoute.of(context)!.settings.arguments as int;
+    // Receive the parameters of the selected puzzle-type via the Navigator.
+    final List<int> parameters =
+                      ModalRoute.of(context)!.settings.arguments as List<int>;
+    final int puzzleIndex = parameters.last;
+    final int playOrTapIn = parameters.first;
     print('PuzzleView puzzleIndex arg = $puzzleIndex');
 
     // Find the Puzzle and PuzzlePlayer models, as set up by Providers.
-    // ?????? puzzle       = context.read<Puzzle>();
+
+    // TODO - Maybe this should be one or more selects on Puzzle. A full build
+    //        of PuzzleBoardView is needed after generating a puzzle, but not
+    //        after the board was filled with a correct or incorrect solution.
+    puzzle              = context.watch<Puzzle>();
     puzzlePlayer        = context.read<PuzzlePlayer>();
     // GameTheme gameTheme = context.read<GameTheme>();
     GameTheme gameTheme = context.watch<GameTheme>();
+
     debugPrint('PuzzleView: FOUND PUZZLE STATUS ${puzzlePlayer.puzzlePlay}.');
     debugPrint('PuzzleView: GameTheme.isDarkMode is ${gameTheme.isDarkMode}.');
     debugPrint('PuzzleView: THIS.isDarkMode is ${this.isDarkMode}.');
@@ -88,7 +94,7 @@ class PuzzleView extends StatelessWidget
     screenSize = MediaQuery.of(context).size;
 
     // If a new puzzle has been requested, create a puzzle and board, else just
-    // do a repaint, but DO NOT clobber puzzle play by generating a new puzzle!
+    // do a repaint, but DO NOT clobber puzzle play by creating a new puzzle!
 
     if (puzzlePlayer.puzzlePlay == Play.NotStarted) {
       // Create a Puzzle and board where all the cells are empty or unusable.
@@ -100,9 +106,16 @@ class PuzzleView extends StatelessWidget
       // Deliver the results to the PuzzlePlayer object.
       // TODO - Compute-bound, maybe a few seconds, usually < 1 sec. What to do?
 
-      debugPrint('\nPuzzleView: GENERATE PUZZLE, index $puzzleIndex.');
-      puzzle.generatePuzzle(puzzlePlayer,
-                            settings.difficulty, settings.symmetry);
+      if (playOrTapIn == forPlay) {
+        tappedInPuzzle = false;
+        debugPrint('\nPuzzleView: GENERATE PUZZLE, index $puzzleIndex.');
+        puzzle.generatePuzzle(settings.difficulty, settings.symmetry);
+      }
+      else if (playOrTapIn == forTapIn) {
+        tappedInPuzzle = true;
+        debugPrint('\nPuzzleView: TAP IN PUZZLE, index $puzzleIndex.');
+        puzzlePlayer.initialise(puzzle.puzzleMap, puzzle);
+      }
     }
     else {
       debugPrint('\nPuzzleView: REPAINT PUZZLE - DO NOT re-generate it.');
@@ -195,10 +208,10 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(Icons.devices_outlined),
         iconSize: iconSize,
-        tooltip: 'Generate a new puzzle',
+        tooltip: 'Create a new puzzle',	// TODO - How to vary this tooltip?
         color:   foreground,
         onPressed: () {
-          generatePuzzle(context);
+          createPuzzle(context);
         },
       ),
     ]; // End list of action icons
@@ -223,7 +236,7 @@ class PuzzleView extends StatelessWidget
                 ),
               ),
               const Spacer(),
-              PuzzleBoardView(boardSide, settings: settings),
+              PuzzleBoardView(puzzle, boardSide, settings: settings),
               Padding(padding: EdgeInsets.only(top: edgePadding * 5.0)),
               PuzzleControlBar(boardSide, map,
                                horizontal: true,
@@ -251,7 +264,7 @@ class PuzzleView extends StatelessWidget
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget> [
-                PuzzleBoardView(boardSide, settings: settings),
+                PuzzleBoardView(puzzle, boardSide, settings: settings),
                 Padding(padding: EdgeInsets.only(left: edgePadding * 5.0)),
                 PuzzleControlBar(boardSide, map,
                                  horizontal: false,
@@ -312,13 +325,21 @@ class PuzzleView extends StatelessWidget
 
   // PROCEDURES FOR ICON ACTIONS AND USER MESSAGES.
 
-  void generatePuzzle(context)
+  void createPuzzle(context)
   async
   {
-    // Generate a puzzle of the requested level of difficulty.
-    debugPrint('GENERATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
+    // Generate a puzzle of the requested level of difficulty
+    // OR check a tapped-in puzzle and maybe make it into a playable puzzle.
+
+    debugPrint('CREATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
+    if (puzzlePlayer.puzzlePlay == Play.BeingEntered) {
+      checkPuzzle(context);
+      return;
+    }
+
     bool newPuzzleOK = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
-                       (puzzlePlayer.puzzlePlay == Play.ReadyToStart) ||
+                       (! tappedInPuzzle && (puzzlePlayer.puzzlePlay
+                                                == Play.ReadyToStart)) ||
                        (puzzlePlayer.puzzlePlay == Play.Solved);
     if (! newPuzzleOK) {
       newPuzzleOK = await questionMessage(
@@ -328,22 +349,21 @@ class PuzzleView extends StatelessWidget
         ' really want to start a new puzzle?',
       );
     }
+    debugPrint('PuzzleView: New puzzle OK $newPuzzleOK,'
+               ' play status ${puzzlePlayer.puzzlePlay}.');
     if (newPuzzleOK) {
-      // ?????? puzzle.generatePuzzle(puzzlePlayer);
       Difficulty difficulty = settings.difficulty;
       Symmetry   symmetry   = settings.symmetry;
-      // ?????? puzzle.generatePuzzle(puzzlePlayer, settings.difficulty, settings.symmetry);
-      puzzle.generatePuzzle(puzzlePlayer, difficulty, symmetry);
+      puzzle.generatePuzzle(difficulty, symmetry);
     }
   }
-/* ************************************* TEMPORARILY DISABLED
-  // TODO - Get tapping-in a puzzle working again....
-  void checkPuzzle(PuzzleGenerator puzzleGenerator, BuildContext context)
+
+  void checkPuzzle(BuildContext context)
   async
   {
     // Validate a puzzle that has been tapped in or loaded by the user.
     debugPrint('CHECK Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
-    int error = puzzleGenerator.checkPuzzle();
+    int error = puzzle.checkPuzzle();
     switch(error) {
       case 0:
         bool finished = await questionMessage(
@@ -353,11 +373,11 @@ class PuzzleView extends StatelessWidget
           ' Would you like to make it into a finished puzzle, ready to'
           ' solve, or continue working on it?',
           okText:     'Finish Up',
-          cancelText: 'Continue',
+          cancelText: 'Continue Working',
         );
         if (finished) {
           // Convert the entered data into a Puzzle and re-display it.
-          puzzleGenerator.convertDataToPuzzle();
+          puzzle.convertDataToPuzzle();
           // TODO - Suggest saving the puzzle to a file before playing it.
         }
         return;
@@ -371,6 +391,7 @@ class PuzzleView extends StatelessWidget
         );
         return;
       case -2:
+        // Checking a puzzle retrieved from a file NOT IMPLEMENTED YET.
         await infoMessage(
           context,
           '',
@@ -389,7 +410,7 @@ class PuzzleView extends StatelessWidget
       default:
     }
   }
-*/
+
   void exitScreen(BuildContext context)
   async
   {

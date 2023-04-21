@@ -23,7 +23,8 @@ import 'board_grid_view.dart';
 
 class PuzzleBoardView extends StatelessWidget
 {
-  PuzzleBoardView(this.boardSide, {Key? key, required this.settings})
+  PuzzleBoardView(this.puzzle, this.boardSide,
+                  {Key? key, required this.settings})
     : super(key: key);
 
   // TODO - StatelessWidget is an immutable class, but puzzle and hitPos cannot
@@ -32,12 +33,12 @@ class PuzzleBoardView extends StatelessWidget
 
   final double boardSide;
   final SettingsController settings;
+  final Puzzle puzzle;
 
   Offset hitPos    = const Offset(-1.0, -1.0);
 
-  // Located by Provider's watch<>() or read<>() function.
-  late Puzzle          puzzle;
-  late PuzzlePlayer    puzzlePlayer;
+  // Located by Provider's read<>() function.
+  late PuzzlePlayer puzzlePlayer;
 
   @override
   // This widget tree contains the puzzle-area and puzzle-controls (symbols).
@@ -48,11 +49,7 @@ class PuzzleBoardView extends StatelessWidget
     // (taps) or actions on icon-buttons such as Undo/Redo, Generate and Hint.
     // In 3D puzzles, the repaint can be due to rotation, with no data change.
 
-    // TODO - Maybe this should be one or more selects on Puzzle. A full build
-    //        of PuzzleBoardView is needed after generating a puzzle, but not
-    //        after the board was filled with a correct or incorrect solution.
-    puzzle        = context.watch<Puzzle>();
-    puzzlePlayer  = context.read<PuzzlePlayer>();
+    puzzlePlayer        = context.read<PuzzlePlayer>();
     GameTheme gameTheme = context.watch<GameTheme>();
 
     PuzzleMap map = puzzle.puzzleMap;
@@ -163,7 +160,7 @@ class PuzzleBoardView extends StatelessWidget
         // N.B. Puzzle.generatePuzzle() will trigger a widget re-build and a
         //      repaint, returning control to executeAferBuild() (above) again.
         puzzle.delayedMessage = Message('', '');
-        puzzle.generatePuzzle(puzzlePlayer, settings.difficulty, settings.symmetry);
+        puzzle.generatePuzzle(settings.difficulty, settings.symmetry);
       }
       else {
         // A puzzle was selected, generated and accepted, so start the clock!
@@ -248,35 +245,5 @@ class PuzzleBoardView extends StatelessWidget
     //       invalid, there is no model-change and no repaint.
     return false;
   }
-
-/* OBSOLETE
-  // Handle the user's PointerDown actions on a 3D puzzle-area and controls.
-  void _possibleHit3D(PointerEvent details)
-  {
-    hitPos = details.localPosition;
-    PaintingSpecs3D paintingSpecs = puzzle.paintingSpecs3D;
-    if (paintingSpecs.hit3DViewControl(hitPos)) {
-      // If true, the 3D Puzzle View is to be rotated and re-painted,
-      // but the Puzzle Model's contents are actually unchanged.
-      puzzle.triggerRepaint();	// No Model change, but View must be repainted.
-    }
-    else if (_possibleHit('3D', paintingSpecs.puzzleRect,
-                                paintingSpecs.controlRect)) {
-      // Hit on 3D puzzle-area - special processing required.
-      // Hit on controlRect is handled by _possibleHit() exactly as for 2D case.
-      int n = paintingSpecs.whichSphere(hitPos);
-      if (n >= 0) {
-        puzzle.hitPuzzleCellN(n);
-      }
-      else {
-        debugPrint('_possibleHit3D: NO SPHERE HIT');
-      }
-    }
-    // NOTE: If the hit led to a valid change in the puzzle model,
-    //       notifyListeners() has been called and a repaint will
-    //       be scheduled by Provider. If the attempted move was
-    //       invalid, there is no model-change and no repaint.
-  }
-*/
 
 } // End class PuzzleBoardView extends StatelessWidget

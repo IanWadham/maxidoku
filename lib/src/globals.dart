@@ -103,6 +103,10 @@ const String symm6 = 'No Symmetry';
 const List<String> symmetryTexts =
                            [symm0, symm1, symm2, symm3, symm4, symm5, symm6];
 
+// Tags for lists of Puzzle Types in screens PuzzleListView and PuzzleView.
+const int forPlay  = -1;	// These Puzzles will be generated immediately.
+const int forTapIn = -2;	// These Puzzles will be available for tap in.
+
 enum CageOperator {NoOperator, Divide, Subtract, Multiply, Add}
 
 typedef CellValue     = int;		// Bits or a value, see consts above.

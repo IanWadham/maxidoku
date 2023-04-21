@@ -184,11 +184,6 @@ class PuzzleListView extends StatelessWidget
               Navigator.restorablePushNamed(context, SettingsView.routeName);
             },
           ),
-          // Packing to avoid Debug stripe covering last icon.
-          // ?????? IconButton(
-            // ?????? icon: const Icon(Icons.block),
-            // ?????? onPressed: () {},
-          // ?????? ),
         ],
       ),
 
@@ -270,8 +265,12 @@ class _MyListViewState extends State<MyListView>
           enabled:     true,
           // Called when the user has selected an item from the list.
           onTap: () {
-            int puzzleIndex = PuzzleList.puzzles[widget.listNumber][index];
-            print('ListNumber ${widget.listNumber} index $index puzzleIndex $puzzleIndex');
+            // TODO - Call a small function in models/puzzle_list.dart.
+            List<int> parameters = [];	// Parameters to be sent to PuzzleView.
+            parameters.add(PuzzleList.puzzles[widget.listNumber].first);
+            parameters.add(PuzzleList.puzzles[widget.listNumber][index + 1]);
+            print('Parameters for PuzzleView: $parameters');
+
             item = items.getItem(widget.listNumber, index);
             // Make the highlight on this selection persist.
             setState(() { _selectedIndex = index; });
@@ -283,7 +282,7 @@ class _MyListViewState extends State<MyListView>
             Navigator.restorablePushNamed(
               context,
               PuzzleView.routeName,
-              arguments: puzzleIndex,
+              arguments: parameters,
             );
           } // End onTap: ()
         ); // End ListTile

@@ -18,8 +18,9 @@ class Puzzle with ChangeNotifier
   // Constructor.
   Puzzle() {print('PUZZLE CREATED');} // ;
 
-  final PuzzleMap    _puzzleMap    = PuzzleMap();
-  final PuzzlePlayer _puzzlePlayer = PuzzlePlayer();
+  final PuzzleMap       _puzzleMap       = PuzzleMap();
+  final PuzzlePlayer    _puzzlePlayer    = PuzzlePlayer();
+  final PuzzleGenerator _puzzleGenerator = PuzzleGenerator();
 
   late BoardLayout2D _boardLayout2D;
   // ?????? late BoardLayout3D _boardLayout3D;
@@ -37,19 +38,21 @@ class Puzzle with ChangeNotifier
   // TODO - baseScale3D currently used only locally in layouts/board_layout_3D.
   double          _baseScale3D  = 1.0;
 
-  //        Should probably KEEP the 3D Layout object - ready for pi/4 flips.
+  // TODO - Should probably KEEP the 3D Layout object - ready for pi/4 flips.
 
-  PuzzleMap       get puzzleMap      => _puzzleMap;
-  PuzzlePlayer    get puzzlePlayer   => _puzzlePlayer;
-  List<int>       get edgesEW        => _edgesEW;
-  List<int>       get edgesNS        => _edgesNS;
-  BoardContents   get cellColorCodes => _cellColorCodes;
-  List<List<int>> get cagePerimeters => _cagePerimeters;
+  PuzzleMap       get puzzleMap       => _puzzleMap;
+  PuzzleGenerator get puzzleGenerator => _puzzleGenerator;
+  PuzzlePlayer    get puzzlePlayer    => _puzzlePlayer;
 
-  List<RoundCell> get roundCells3D   => _roundCells3D;
-  double          get baseScale3D    => _baseScale3D;
+  List<int>       get edgesEW         => _edgesEW;
+  List<int>       get edgesNS         => _edgesNS;
+  BoardContents   get cellColorCodes  => _cellColorCodes;
+  List<List<int>> get cagePerimeters  => _cagePerimeters;
 
-  // This gives the result of Puzzle generation, but Flutter build may be busy.
+  List<RoundCell> get roundCells3D    => _roundCells3D;
+  double          get baseScale3D     => _baseScale3D;
+
+  // This is the Puzzle Generator's return value, but Flutter build may be busy.
   Message delayedMessage = Message('', '');
 
   // This is needed to help co-ordinate Puzzle generation and Flutter painting.
@@ -90,23 +93,24 @@ class Puzzle with ChangeNotifier
     return;
   }
 
-  void generatePuzzle(PuzzlePlayer puzzlePlayer,
-                      Difficulty difficulty, Symmetry symmetry)
+  void generatePuzzle(Difficulty difficulty, Symmetry symmetry)
   {
-    PuzzleGenerator generator = PuzzleGenerator();
+    PuzzleGenerator puzzleGenerator = PuzzleGenerator();
 
     // If the starting status is NotStarted, Flutter will begin to paint the
     // PuzzleView and board and it will be necessary to avoid notifyListeners().
     _startingStatus = _puzzlePlayer.puzzlePlay;
+
+    // Clear the PuzzlePlayer state.
+    puzzlePlayer.initialise(puzzleMap, this);
 
     // Generate a puzzle of the required layout type, difficulty and symmetry.
     // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
     // The result-message either informs the user about the puzzle generated or
     // asks whether to Accept or Retry when the requirements have not been met.
     // The message is stashed, in case the Puzzle View is currently painting.
-    delayedMessage = generator.generatePuzzle(
-                                 this, _puzzleMap, puzzlePlayer,
-                                 difficulty, symmetry);
+    delayedMessage = _puzzleGenerator.generatePuzzle(puzzleMap, puzzlePlayer,
+                                                     difficulty, symmetry);
 
     if (_puzzleMap.cageCount() > 0) {
       // Get the cage-layouts for Mathdoku and Killeri Sudoku puzzles.
@@ -117,19 +121,38 @@ class Puzzle with ChangeNotifier
 
     if (_startingStatus == Play.NotStarted) {
       return;		// Avoid notifyListeners() during Flutter's first build.
+      // Flutter will be already painting. Issuing a message causes a crash.
+      // The message is issued later in PuzzleBoardView.executeAfterBuild().
     }
-    notifyListeners();	// Make sure PuzzleView issues the delayedMessage.
 
-    // NOTE - Flutter may be already painting. So issuing a message right now
-    //        causes a crash and notifyListeners() also causes Flutter errors.
-    //        The delayed message will appear in PuzzleView.executeAfterBuild().
+    notifyListeners();	// Make sure PuzzleView issues the delayedMessage.
+  }
+
+  int checkPuzzle()
+  {
+    PuzzleGenerator puzzleGenerator = PuzzleGenerator();
+
+    return puzzleGenerator.checkPuzzle(puzzleMap, puzzlePlayer);
+  }
+
+  void convertDataToPuzzle()
+  {
+    PuzzleGenerator puzzleGenerator = PuzzleGenerator();
+
+    puzzleGenerator.convertDataToPuzzle(puzzleMap, puzzlePlayer);
+
+    // Make sure there is a repaint. Cell and ControlBar views must change.
+    notifyListeners();
   }
 
 } // End Puzzle class.
 
 class PuzzleGenerator
 {
-  // Generate a puzzle of the required layout type, difficulty and symmetry.
+  // Generates a puzzle of the required layout type, difficulty and symmetry
+  // OR checks that a tapped-in puzzle has a unique solution and (optionally)
+  // converts it into a playable puzzle.
+
   // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
 
   PuzzleGenerator();
@@ -142,19 +165,19 @@ class PuzzleGenerator
   // has made a number of attempts to meet the user's requirementsr. Then it
   // is time to ask them to accept the best result so far - or try again.
 
-  // That situation is more likely to arise if the Difficulty and Symmetry
-  // are high or the puzzle-type is large and complex.
+  // That situation is more likely to arise if the Difficulty and Symmetry are
+  // high and/or the puzzle-type is large and complex.
 
-  BoardContents _puzzleGiven  = [];	// Starting state of generated puzzle.
-  BoardContents _solution     = [];	// Finishing state of generated puzzle.
+  // RESULTS OF GENERATING A PUZZLE (BoardContents is typedef List<int>).
+  BoardContents _puzzleGiven  = [];	// Starting state of puzzle.
+  BoardContents _solution     = [];	// Finishing state of puzzle.
   List<int>     _sudokuMoves  = [];	// Move-list: for hints.
 
-  Message generatePuzzle(Puzzle puzzle, PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer,
+  Message generatePuzzle(PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer,
                          Difficulty difficulty, Symmetry symmetry)
   // Generate a new puzzle of the type and size selected by the user.
   {
-    // Clear the PuzzlePlayer state. Fill _puzzleGiven with empty cells.
-    puzzlePlayer.initialise(puzzleMap, puzzle);
+    // Get a board of the required layout and size, filled with empty cells.
     _puzzleGiven = [...puzzleMap.emptyBoard];
 
     Message response = Message('', '');
@@ -240,10 +263,10 @@ class PuzzleGenerator
    * @retval -2           Wrong solution.
    * @retval -3           More than one solution.
    */
-/* ********************* TEMPORARILY DISABLED BACK IN PuzzleView...
+
   int checkPuzzle(PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer)
   {
-    // Check that a puzzle tapped in or loaded by user has a proper solution.
+    // Check that a puzzle tapped in or loaded by a user has a proper solution.
     debugPrint('ENTERED checkPuzzle().');
     SudokuSolver solver = SudokuSolver(puzzleMap: puzzleMap);
     BoardContents stateOfPlay = puzzlePlayer.stateOfPlay;
@@ -257,7 +280,28 @@ class PuzzleGenerator
     solver.cleanUp();
     return error;
   }
-*/
+
+  void convertDataToPuzzle(PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer)
+  {
+    debugPrint('ENTERED convertDataToPuzzle().');
+    // Retrieve the data the user has tapped in.
+    BoardContents _puzzleGiven = [...puzzlePlayer.stateOfPlay];
+
+    SudokuSolver solver = SudokuSolver(puzzleMap: puzzleMap);
+    _solution = solver.solveBoard(_puzzleGiven, GuessingMode.Random);
+    solver.cleanUp();
+
+    // TODO - We should provide Hints... but how?
+    _sudokuMoves.clear();
+
+    puzzlePlayer.makeReadyToPlay(_puzzleGiven, _solution, _sudokuMoves);
+    // PuzzlePlayer calls notifyListeners() and the puzzle clues appear...
+
+    // Release PuzzleGenerator storage.
+    _puzzleGiven.clear();
+    _solution.clear();
+    _sudokuMoves.clear();
+  }
 
 } // End PuzzleGenerator class.
 
@@ -483,6 +527,7 @@ class PuzzlePlayer with ChangeNotifier
       // about this, but not until we are back in the Puzzle View and the widget
       // building flow. Issuing a message any earlier makes Flutter crash.
       _puzzlePlay = Play.BeingEntered;
+      debugPrint('Change Play status to $_puzzlePlay.BeingEntered');
     }
 
     // Make the move.
