@@ -168,6 +168,7 @@ int maxYn = -1;
     // Sort the centres of the spheres into Z order, so that, when painting the
     // Canvas, the furthest-away spheres are painted first and the nearest last.
     rotated.sort((s1, s2) => s1.xyz[2].compareTo(s2.xyz[2]));
+
     // ?????? cellLookup.clear();	// NOT NEEDED...
     // ?????? cellLookup = List.filled(rotated.length, 0, growable: false);
     // ?????? for (int n = 0; n < rotated.length; n++) {
@@ -177,18 +178,14 @@ int maxYn = -1;
     // ?????? print(cellLookup);
   }
 
-  // ?????? List<RoundCell> calculateProjection(Rect puzzleRect)
   List<RoundCell> calculate2DProjection()
   {
     List<RoundCell> result = [];
 
     // Calculate the scale required to fit all circles within the puzzle-area.
-    int nCircles = rotated.length;
 
     // Spheres started with diameter 2: now inflated as per PuzzleMap specs.
-    // ?????? double scale  = 0.95 * puzzleRect.height / (_maxRange + _rawDiameter);
     _baseScale3D  = 1.0 / (_maxRange + _rawDiameter);
-    // ?????? debugPrint('Scaled ranges ${scale * _rangeX} ${scale * _rangeY} puzzleRect ${puzzleRect.size}');
     debugPrint('Scaled ranges ${_baseScale3D * _rangeX} ${_baseScale3D * _rangeY}');
 /* ??????
     Offset origin = puzzleRect.center;
@@ -200,22 +197,14 @@ int maxYn = -1;
     debugPrint('Centering $centering');
     for (int n = 0; n < rotated.length; n++) {
       Sphere s = rotated[n];
-      // ?????? Offset proj = Offset(
-                      // s.used ?  scale * s.xyz[0] + centering.dx : 0.0,	// X.
-                      // s.used ? -scale * s.xyz[1] + centering.dy : 0.0);	// Y.
       Offset proj = Offset(
-                      s.used ?  _baseScale3D * s.xyz[0] + centering.dx : 0.0,	// X.
-                      s.used ? -_baseScale3D * s.xyz[1] + centering.dy : 0.0);	// Y.
-if ((s.index == 6) || (s.index == 20)) {
-      print('Sphere ${s.index}: ${s.xyz[0]} ${s.xyz[1]} ${s.xyz[2]}');
-      print('Projection $proj');
-}
+              s.used ?  _baseScale3D * s.xyz[0] + centering.dx : 0.0,	// X.
+              s.used ? -_baseScale3D * s.xyz[1] + centering.dy : 0.0);	// Y.
       result.add(RoundCell(
                    s.index,
                    s.used,
                    proj,
                    _baseScale3D * s.diameter));			// Diameter.
-                   // ?????? scale * s.diameter));			// Diameter.
     }
     return result;
   }
@@ -224,116 +213,38 @@ if ((s.index == 6) || (s.index == 20)) {
   {
     return Offset(rotated[n].xyz[0], rotated[n].xyz[1]);
   }
-/* ??????
-  int whichSphere(Offset hitPos)
+
+  // TODO - Icons --- Arrow Back, Arrow Forward, Arrow Upward, Arrow Downward.
+  //               OR Keyboard Arrow Left, Right, Up or Down.
+  //               OR Double Keyboard Arrow Left, Right, Up or Down.
+
+  void hit3DViewControl(int buttonID)
   {
-    // debugPrint('whichSphere: hitPos = $hitPos');
-    // Scale back and translate to "List<Sphere> rotated" co-ordinates.
-    Offset hitXY = hitPos - _origin;
-    // debugPrint('hitXY = $hitXY relative to origin $_origin');
-    hitXY = Offset(hitXY.dx / _scale, -hitXY.dy / _scale);
-    // debugPrint('hitXY scaled back by factor $_scale = $hitXY');
+    // The user has hit one of the outward-pointing arrows. So rotate the
+    // puzzle by +90 or -90 deg in the corresponding direction and signal
+    // the Puzzle model to trigger a repaint (via Provider).
 
-    double d = _rawDiameter;
-    Rect r = Rect.fromCenter(center: hitXY, width: d, height: d);
-    List<Sphere> possibles = [];
-    for (Sphere s in rotated) {
-      if (! s.used) {
-        continue;
-      }
-      // if (r.contains(Offset(s.xyz[0], s.xyz[1]))) return s.index;
-      if (r.contains(Offset(s.xyz[0], s.xyz[1]))) possibles.add(s);
+    debugPrint('ENTERED BoardLayout.hit3DViewControl(): buttonID $buttonID.');
+    switch(buttonID) {
+      case 0:			// Rotate Left around Y axis.
+        debugPrint('ROTATE CENTRES rotationM.rotateY(-pi/2.0)');
+        rotationM.rotateY(-pi/2.0);
+        break;
+      case 1:			// Rotate Right around Y axis.
+        debugPrint('ROTATE CENTRES rotationM.rotateY(pi/2.0)');
+        rotationM.rotateY(pi/2.0);
+        break;
+      case 2:			// Rotate Right around X axis.
+        debugPrint('ROTATE CENTRES rotationM.rotateX(pi/2.0)');
+        rotationM.rotateX(-pi/2.0);
+        break;
+      case 3:			// Rotate Right around X axis.
+        debugPrint('ROTATE CENTRES rotationM.rotateX(-pi/2.0)');
+        rotationM.rotateX(pi/2.0);
+        break;
     }
-    if (possibles.isEmpty) {
-      return -1;
-    }
-    else if (possibles.length == 1) {
-      debugPrint('whichSphere: SINGLE POSSIBILITY ${possibles[0].index}');
-      return possibles[0].index;
-    }
-    Sphere closestZ  = possibles[0];
-    Sphere closestXY = possibles[0];
-    double bestZ     = closestZ.xyz[2];
-    Point p          = Point(hitXY.dx, hitXY.dy);
-    double bestXY    = 10000.0;
-
-    for (Sphere s in possibles) {
-      if (s.xyz[2] > bestZ) {
-        bestZ = s.xyz[2];
-        closestZ = s;
-      }
-      Point xy = Point(s.xyz[0], s.xyz[1]);
-      double d = p.distanceTo(xy);
-      if (d < bestXY) {
-        bestXY = d;
-        closestXY = s;
-      }
-    }
-    debugPrint('POSSIBLES $possibles');
-    debugPrint('Closest Z $bestZ: sphere ${closestZ.index}');
-    debugPrint('Closest XY $bestXY: sphere ${closestXY.index}');
-    return closestZ.index;
+    rotateCentresOfSpheres();
+    return;
   }
-?????? */
-/* This belongs in a View class...
-  final List<Path> _arrowList = [];
-
-  void add3DViewControls(Canvas canvas)
-  {
-    // Add an outward-pointing arrow at each midpoint of the puzzleRect edges.
-    double aS = puzzleRect.width / 40.0;	// Arrow size.
-    _arrowList.clear();
-    Offset p = puzzleRect.topCenter;
-    drawAnArrow(canvas,
-                [Offset(-aS,0.0) + p, Offset(0.0,-aS) + p, Offset(aS,0.0) + p]);
-    p = puzzleRect.centerRight;
-    drawAnArrow(canvas,
-                [Offset(0.0,-aS) + p, Offset(aS,0.0) + p, Offset(0.0,aS) + p]);
-    p = puzzleRect.bottomCenter;
-    drawAnArrow(canvas,
-                [Offset(aS,0.0) + p, Offset(0.0,aS) + p, Offset(-aS,0.0) + p]);
-    p = puzzleRect.centerLeft;
-    drawAnArrow(canvas,
-                [Offset(0.0,aS) + p, Offset(-aS,0.0) + p, Offset(0.0,-aS) + p]);
-  }
-
-  void drawAnArrow(Canvas canvas, List<Offset> points)
-  {
-    Path arrow = Path();
-    bool close = true;
-    arrow.addPolygon(points, close);
-    canvas.drawPath(arrow, boldLinePaint);
-    _arrowList.add(arrow);
-  }
-
-  bool hit3DViewControl(Offset hitPos)
-  {
-    // Find out if the user has hit one of the outward-pointing arrows and, if
-    // so, rotate the puzzle by +90 or -90 deg in the corresponding direction
-    // and signal the Puzzle model to trigger a repaint (via Provider).
-
-    for (int n = 0; n < _arrowList.length; n++) {
-      if (_arrowList[n].contains(hitPos)) {
-        switch(n) {
-          case 0:
-            rotationM.rotateX(-pi/2.0);
-            break;
-          case 1:
-            rotationM.rotateY(pi/2.0);
-            break;
-          case 2:
-            rotationM.rotateX(pi/2.0);
-            break;
-          case 3:
-            rotationM.rotateY(-pi/2.0);
-            break;
-        }
-        rotateCentresOfSpheres();
-        return true;
-      }
-    }
-    return false;
-  }
-  ******************************************** */
 
 } // End class Puzzle3D.

@@ -52,10 +52,13 @@ class PuzzleBoardView extends StatelessWidget
     puzzlePlayer        = context.read<PuzzlePlayer>();
     GameTheme gameTheme = context.watch<GameTheme>();
 
+    Color foreground    = gameTheme.boldLineColor;
+
     PuzzleMap map = puzzle.puzzleMap;
 
     Rect boardSpace = const Offset(0.0, 0.0) & Size(boardSide, boardSide);
-    // debugPrint('PuzzleBoardView: Context size ${MediaQuery.of(context).size} board space $boardSpace');
+    // debugPrint('PuzzleBoardView: Context size ${MediaQuery.of(context).size}'
+               // ' board space $boardSpace');
 
     // Find out if the System (O/S) or Flutter colour Theme is dark or light.
     bool isDarkMode = (Theme.of(context).brightness == Brightness.dark);
@@ -64,10 +67,15 @@ class PuzzleBoardView extends StatelessWidget
     WidgetsBinding.instance.addPostFrameCallback((_)
                             {executeAfterBuild(context);});
 
-    if (map.specificType == SudokuType.Roxdoku) {	// 3D Puzzle.
-      // ?????? BoardLayout3D boardLayout3D = BoardLayout3D(map);
-      // ?????? boardLayout3D.calculate3DLayout();
+    // TODO - Re-activate debugPrints and check where repaints are occurring.
 
+    // Fill the board area with a 3D Roxdoku Puzzle (in simulated 3D).
+    if (map.specificType == SudokuType.Roxdoku) {
+    // TODO - Tune the layouts of 3D puzzles, especially the rotation buttons.
+    //        Allow the board area to be rectangular if required. BoardLayout3D
+    //        is probably where the underlying problems are.
+    // TODO - If green (special) circles are GIVENs, put a darker green
+    //        on the outside, not a darker amber.
       List<Positioned> roundCellViews = [];
       List<RoundCell> roundCells = puzzle.roundCells3D;
       for (RoundCell c in roundCells) {
@@ -85,6 +93,13 @@ class PuzzleBoardView extends StatelessWidget
           );
         }
       }
+
+      // Add rotation buttons (left, right, upward, downward) to the view.
+      double size = 30.0;
+      for (int n = 0; n < 4; n++) {
+        roundCellViews.add(rotationButton(n, boardSpace, size, foreground));
+      }
+
       // We wish to fill the parent, in either Portrait or Landscape layout.
       debugPrint('PuzzleBoardView: Paint 3D Puzzle, boardSide $boardSide.');
       return SizedBox(
@@ -95,7 +110,9 @@ class PuzzleBoardView extends StatelessWidget
         ),
       );
     }
-    else {		// 2D Sudoku variant, Killer Sudoku or Mathdoku puzzle.
+
+   // Fill the board area with a 2D Sudoku variant, Killer Sudoku or Mathdoku.
+    else {
       int    n = puzzle.puzzleMap.sizeY;
       double cellSide = boardSide / n;
       debugPrint('PuzzleBoardView: Paint 2D Puzzle, boardSide $boardSide;');
@@ -122,6 +139,59 @@ class PuzzleBoardView extends StatelessWidget
       );
     }
   } // End Widget build()
+
+  Positioned rotationButton(int buttonID, Rect boardSpace, double buttonSize,
+                            Color foreground)
+  {
+    Icon   icon;
+    String tooltip;
+    Offset center;
+
+    if (buttonID == 0) {
+      icon    = const Icon(Icons.arrow_circle_left);
+      tooltip = 'Rotate Left';
+      center  = boardSpace.centerLeft + Offset(buttonSize, 0.0);
+    }
+    else if (buttonID == 1) {
+        icon    = const Icon(Icons.arrow_circle_right);
+        tooltip = 'Rotate Right';
+        center  = boardSpace.centerRight + Offset(-buttonSize, 0.0);
+    }
+    else if (buttonID == 2) {
+        icon    = const Icon(Icons.arrow_circle_up);
+        tooltip = 'Rotate Upward';
+        center  = boardSpace.topCenter + Offset(0.0, buttonSize);
+    }
+    else if (buttonID == 3) {
+        icon    = const Icon(Icons.arrow_circle_down);
+        tooltip = 'Rotate Downward';
+        center  = boardSpace.bottomCenter + Offset(0.0, -buttonSize);
+    }
+    else {
+        icon    = const Icon(Icons.arrow_circle_down);
+        tooltip = 'Rotate Downward';
+        center  = boardSpace.bottomCenter + Offset(0.0, -buttonSize);
+    }
+
+    Rect r = Rect.fromCenter(
+               center: center,
+               width:  buttonSize * 2,
+               height: buttonSize * 2,
+             );
+    return Positioned.fromRect(		// A Positioned IconButton.
+             rect:  r,
+             child: IconButton(
+               icon: icon,
+               iconSize: buttonSize,
+               tooltip: tooltip,
+               color: foreground,
+               onPressed: () {
+                 print('Button ID: $buttonID');
+                 puzzle.rotateLayout3D(buttonID);
+               }
+             ),
+           );
+  }
 
   Future<void> executeAfterBuild(BuildContext context) async
   {

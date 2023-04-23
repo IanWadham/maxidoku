@@ -23,22 +23,21 @@ class Puzzle with ChangeNotifier
   final PuzzleGenerator _puzzleGenerator = PuzzleGenerator();
 
   late BoardLayout2D _boardLayout2D;
-  // ?????? late BoardLayout3D _boardLayout3D;
+  late BoardLayout3D _boardLayout3D;
 
   // Layout data for 2D Puzzles: stays empty in 3D, set ONCE in Puzzle lifetime.
   List<int>       _edgesEW = [];	// East-West edges of cells in 2D.
   List<int>       _edgesNS = [];	// North-South edges of cells in 2D.
-  BoardContents   _cellColorCodes = [];	// Codes for colours to paint cells.
   List<List<int>> _cagePerimeters = [];	// Cage-layouts for Mathdoku and Killer.
 
   // Layout data for 3D Puzzles: stays empty in 2D, set ONCE when the Puzzle
   //starts  and again whenever the user turns or tilts the Puzzle by 90 degrees.
   List<RoundCell> _roundCells3D = [];
-  // TODO - baseScale2D is very likely NOT NEEDED.
-  // TODO - baseScale3D currently used only locally in layouts/board_layout_3D.
-  double          _baseScale3D  = 1.0;
 
-  // TODO - Should probably KEEP the 3D Layout object - ready for pi/4 flips.
+  // TODO - Separate procedure for setting _cellColorCodes from 2D layout.
+  // TODO - USE the _cellColorCodes, NOT the function in PuzzleMap.
+  // Colour-coding data for both 2D and 3D cells.
+  BoardContents   _cellColorCodes = [];
 
   PuzzleMap       get puzzleMap       => _puzzleMap;
   PuzzleGenerator get puzzleGenerator => _puzzleGenerator;
@@ -46,11 +45,11 @@ class Puzzle with ChangeNotifier
 
   List<int>       get edgesEW         => _edgesEW;
   List<int>       get edgesNS         => _edgesNS;
-  BoardContents   get cellColorCodes  => _cellColorCodes;
   List<List<int>> get cagePerimeters  => _cagePerimeters;
 
   List<RoundCell> get roundCells3D    => _roundCells3D;
-  double          get baseScale3D     => _baseScale3D;
+
+  BoardContents   get cellColorCodes  => _cellColorCodes;
 
   // This is the Puzzle Generator's return value, but Flutter build may be busy.
   Message delayedMessage = Message('', '');
@@ -84,13 +83,23 @@ class Puzzle with ChangeNotifier
       _boardLayout2D.calculateLayout(_edgesEW, _edgesNS, _cellColorCodes);
     }
     else {
-      BoardLayout3D _boardLayout3D = BoardLayout3D(_puzzleMap);
+      _boardLayout3D = BoardLayout3D(_puzzleMap);
       _boardLayout3D.calculate3DLayout();
-      _roundCells3D = _boardLayout3D.calculate2DProjection(); // One step?
-      _baseScale3D  = _boardLayout3D.baseScale3D;
+      _roundCells3D = _boardLayout3D.calculate2DProjection();
     }
 
     return;
+  }
+
+  void rotateLayout3D(int buttonID)
+  {
+    // Directions are 0 = Left, 1 = Right, 2 = Upward, 3 = Downward.
+    if (_roundCells3D.isEmpty || (buttonID < 0) || (buttonID > 3)) {
+      return;
+    }
+    _boardLayout3D.hit3DViewControl(buttonID);	// Rotate the spheres.
+    _roundCells3D = _boardLayout3D.calculate2DProjection();
+    notifyListeners();
   }
 
   void generatePuzzle(Difficulty difficulty, Symmetry symmetry)

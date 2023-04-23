@@ -217,7 +217,7 @@ class PuzzleView extends StatelessWidget
     ]; // End list of action icons
 
     // Paint the puzzle with the action icons and timer in a row at the top.
-    // In Portrait mode, put a horizantal control-bar under the puzzle board.
+    // In Portrait mode, put a horizontal control-bar under the puzzle board.
     // In Landscape mode. put it vertically to the right of the puzzle board.
 
     if (portrait) {		// Portrait mode.
