@@ -22,6 +22,21 @@ class Puzzle with ChangeNotifier
   final PuzzlePlayer    _puzzlePlayer    = PuzzlePlayer();
   final PuzzleGenerator _puzzleGenerator = PuzzleGenerator();
 
+  // The Puzzle's interface to the Game Timeri model.
+  // The time appears (optionally) in the PuzzleView screen once per second.
+  // The clock is started by a user's response to a message in PuzzleBoardView.
+  // It stops when the user finishes the puzzle or abandons it. It is reset to
+  // zero by PuzzlePlayer.initialise().
+
+  GameTimer  _puzzleTimer    =  GameTimer();	// This is the only instance.
+  void       startClock()    => _puzzleTimer.startClock();
+  void       clearClock()    => _puzzleTimer.clearClock();
+  void       stopClock()     => _puzzleTimer.stopClock();
+
+  // This getter is available for reading the time after the game is over. The
+  // Timer Widget optionally displays it while the game is in progress.
+  String get userTimeDisplay => _puzzleTimer.userTimeDisplay;
+
   late BoardLayout2D _boardLayout2D;
   late BoardLayout3D _boardLayout3D;
 
@@ -34,7 +49,7 @@ class Puzzle with ChangeNotifier
   //starts  and again whenever the user turns or tilts the Puzzle by 90 degrees.
   List<RoundCell> _roundCells3D = [];
 
-  // TODO - Separate procedure for setting _cellColorCodes from 2D layout.
+  // TODO - Separate the procedure for setting _cellColorCodes from 2D layout.
   // TODO - USE the _cellColorCodes, NOT the function in PuzzleMap.
   // Colour-coding data for both 2D and 3D cells.
   BoardContents   _cellColorCodes = [];
@@ -42,6 +57,7 @@ class Puzzle with ChangeNotifier
   PuzzleMap       get puzzleMap       => _puzzleMap;
   PuzzleGenerator get puzzleGenerator => _puzzleGenerator;
   PuzzlePlayer    get puzzlePlayer    => _puzzlePlayer;
+  GameTimer       get gameTimer       => _puzzleTimer;
 
   List<int>       get edgesEW         => _edgesEW;
   List<int>       get edgesNS         => _edgesNS;
@@ -87,6 +103,8 @@ class Puzzle with ChangeNotifier
       _boardLayout3D.calculate3DLayout();
       _roundCells3D = _boardLayout3D.calculate2DProjection();
     }
+
+    _puzzleTimer.init();
 
     return;
   }
@@ -376,16 +394,6 @@ class PuzzlePlayer with ChangeNotifier
   int? selectedCell;		// Null means no valid cell to play.
   bool notesMode       = false;
 
-  // The View's interface to the Game Timer.
-  // The time appears (optionally) in the PuzzleView screen once per second.
-  // The clock is started by user's response to a message in PuzzleBoardView.
-  // It stops when the user finishes the puzzle or abandons it. It is reset to
-  // zero by PuzzlePlayer.initialise().
-
-  GameTimer  _puzzleTimer    =  GameTimer();
-  String get userTimeDisplay => _puzzleTimer.userTimeDisplay;
-  void       startClock()    => _puzzleTimer.startClock();
-
   initialise(PuzzleMap puzzleMap, Puzzle puzzle)
   {
     // Set references to the Puzzle Map and the Puzzle.
@@ -414,12 +422,12 @@ class PuzzlePlayer with ChangeNotifier
     notesMode       = false;
 
     _puzzlePlay = Play.NotStarted;
-
-    _puzzleTimer.init();
   }
 
   void resetPlayStatus()
   {
+    debugPrint('CLEAR Clock.');
+    _puzzle.clearClock();
     _puzzlePlay = Play.NotStarted;
     debugPrint('PuzzlePlayer: RESET STATUS TO $_puzzlePlay');
   }
@@ -550,7 +558,8 @@ class PuzzlePlayer with ChangeNotifier
 
       // Stop the clock when changing to Solved status.
       if (_puzzlePlay == Play.Solved) {
-        /////////// ????????????? _puzzleTimer.stopClock();
+        debugPrint('STOP Clock.');
+        _puzzle.stopClock();
       }
 
       if ((_puzzlePlay == Play.Solved) || (_puzzlePlay == Play.HasError)) {
@@ -823,7 +832,8 @@ class PuzzlePlayer with ChangeNotifier
     // an error when the Timer runs on and the Puzzle object no longer exists.
     debugPrint('Puzzle DISPOSED');
 
-    ////////// ??????????????  _puzzleTimer.stopClock();
+    debugPrint('STOP Clock.');
+    _puzzle.stopClock();
 
     super.dispose();
   }

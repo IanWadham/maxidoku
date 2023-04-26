@@ -52,7 +52,7 @@ class PuzzleView extends StatelessWidget
 
   PuzzleView(this.puzzle, this.isDarkMode, {required this.settings, Key? key,}) : super(key: key);
 
-  final bool timerVisible = false;	// TODO - Make this a Setting...
+  final bool timerVisible = true;	// TODO - Make this a Setting...
 
   bool tappedInPuzzle = false;		// Whether the user tapped in a Puzzle.
 
@@ -152,7 +152,6 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Return to list of puzzles',
         color:   foreground,
         onPressed: () {
-          debugPrint('PuzzleView: RETURN TO LIST OF PUZZLES - exitScreen();');
           exitScreen(context);
         },
       ),
@@ -208,7 +207,7 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(Icons.devices_outlined),
         iconSize: iconSize,
-        tooltip: 'Create a new puzzle',	// TODO - How to vary this tooltip?
+        tooltip: 'Create a new puzzle',
         color:   foreground,
         onPressed: () {
           createPuzzle(context);
@@ -232,7 +231,7 @@ class PuzzleView extends StatelessWidget
               InkWell(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: actionIcons, // [TimerWidget(), actionIcons,]
+                  children: actionIcons,
                 ),
               ),
               const Spacer(),
@@ -257,7 +256,7 @@ class PuzzleView extends StatelessWidget
             InkWell(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: actionIcons, // [TimerWidget(), actionIcons,]
+                children: actionIcons,
               ),
             ),
             // ?????? Spacer(),
@@ -352,6 +351,9 @@ class PuzzleView extends StatelessWidget
     debugPrint('PuzzleView: New puzzle OK $newPuzzleOK,'
                ' play status ${puzzlePlayer.puzzlePlay}.');
     if (newPuzzleOK) {
+      // Erase the time-display and stop the clock, if it is running.
+      debugPrint('CLEAR Clock.');
+      puzzle.clearClock();
       Difficulty difficulty = settings.difficulty;
       Symmetry   symmetry   = settings.symmetry;
       puzzle.generatePuzzle(difficulty, symmetry);
@@ -426,6 +428,7 @@ class PuzzleView extends StatelessWidget
                  );
     }
     if (okToQuit && context.mounted) {
+      debugPrint('PuzzleView: RETURN TO LIST OF PUZZLES - exitScreen();');
       puzzlePlayer.resetPlayStatus();	// Needed in next build of PuzzleView.
       Navigator.pop(context);
     }

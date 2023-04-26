@@ -16,16 +16,22 @@ class GameTimer with ChangeNotifier
   {
     _ticker?.cancel();
     _ticker = null;
+    clearClock();
+  }
+
+  void clearClock()
+  {
+    stopClock();
+    userTimeDisplay = '';
+    notifyListeners();				// Erase time display (if reqd).
   }
 
   void startClock()
   {
-    return;	// Hook to disable Timer when testing BoardView, CellView, etc.
-
-    // TODO - Test to make sure that this assert does not trigger.
     assert(_ticker == null, 'ASSERT ERROR startClock(): _ticker is NOT null.');
-    debugPrint('START THE CLOCK!!!');
     _userTime.reset();
+    userTimeDisplay = '0:00';
+    notifyListeners();				// Display zero time (if reqd).
     _userTime.start();
     // Start a 1-second ticker, but only if it is null (not already running).
     _ticker ??= Timer.periodic(const Duration(seconds: 1), (_ticker)
@@ -35,27 +41,32 @@ class GameTimer with ChangeNotifier
         userTimeDisplay = '${t.toString().split('.').first}'; // (h)h:mm:ss
         if (t < Duration(hours: 1)) {
           // Remove leading zero(s) and colon.
-          int xxx = userTimeDisplay.indexOf(':') + 1;
+          int index = userTimeDisplay.indexOf(':') + 1;
           if (t < Duration(minutes: 10)) {
-            xxx++;
+            index++;
           }
-          userTimeDisplay = userTimeDisplay.substring(xxx /* to end */);
+          userTimeDisplay = userTimeDisplay.substring(index /* to end */);
         }
-        notifyListeners();			// Display the time (if reqd).
+        notifyListeners();			// Bump time display (if reqd).
       }
     );
   }
 
   void stopClock()
   {
-    return;	// Hook to disable Timer when testing BoardView, CellView, etc.
+    // Stop the clock, but only if it is running, otherwise do nothing. This
+    // makes it easy to interrupt the game, regardless of its current Play
+    // status and of whether the player has won, is quitting or is restarting.
 
-    // TODO - Test to make sure that this assert does not trigger.
-    assert(_ticker != null, 'ASSERT ERROR stopClock(): _ticker IS NULL.');
-    _userTime.stop();
-    _ticker?.cancel();
-    _ticker = null;
-    debugPrint('STOP THE CLOCK!!!');
+    if (_ticker != null) {
+      _userTime.stop();
+      _ticker?.cancel();
+      _ticker = null;
+      debugPrint('Clock STOPPED.');
+    }
+    else {
+      debugPrint('DO NOTHING. Clock is not running.');
+    }
   }
 
 } // End class GameTimer.

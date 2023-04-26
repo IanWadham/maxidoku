@@ -16,15 +16,19 @@ class TimerWidget extends StatelessWidget
   final bool   visible;
   final Color? textColor;	// If null, default to Flutter-theme color.
 
-  // ??? late Puzzle puzzle;	// Located by Provider's watch function.
+  String userTime = ' ';
+
+  // late Puzzle puzzle;	// Located by Provider's read function.
+  late GameTimer gameTimer;	// Located by Provider's watch function.
 
   @override
   Widget build(BuildContext context) {
 
-    // TODO GameTimer is now its own class and will have its own Provider.
-    // ************* DISABLED...    Puzzle puzzle   = context.watch<Puzzle>();
-    // ************* DISABLED...    String userTime = puzzle.userTimeDisplay;
-    String userTime = ' ';
+    gameTimer = context.read<GameTimer>();
+
+    // Test whether the Timer has incremented. If so, display it (optionally).
+    userTime  = context.select((GameTimer gameTimer)
+                        => gameTimer.userTimeDisplay);
 
     if (visible) {
       return Text(userTime,	// Show the timer, if it has started, else ''.

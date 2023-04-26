@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-// import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 // IDW TODO import 'app_lifecycle/app_lifecycle.dart';
 
 import 'models/puzzle.dart';
+import 'models/game_timer.dart';
+
 import 'views/puzzle_view.dart';
 import 'views/puzzle_list_view.dart';
+
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 import 'settings/game_theme.dart';
@@ -118,6 +120,10 @@ class MaxiDokuApp extends StatelessWidget {
                         // Access to model of gameplay in PuzzlePlayer class.
                         ChangeNotifierProvider.value(
                           value: puzzle.puzzlePlayer,
+                        ),
+                        // Access to model of timer in GameTimer class.
+                        ChangeNotifierProvider.value(
+                          value: puzzle.gameTimer,
                         ),
                         // Access to Game Theme colours.
                         Provider(

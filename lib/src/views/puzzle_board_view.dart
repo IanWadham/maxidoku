@@ -234,7 +234,8 @@ class PuzzleBoardView extends StatelessWidget
       }
       else {
         // A puzzle was selected, generated and accepted, so start the clock!
-        // TODO - DISABLED...   puzzle.puzzlePlayer._puzzleTimer.startClock();
+        debugPrint('START Clock.');
+        puzzle.startClock();
       }
       return;
     }
@@ -255,11 +256,10 @@ class PuzzleBoardView extends StatelessWidget
     // TODO - Expand this message a bit. Make it more explanatory.
     }
     else if (playNow == Play.Solved) {
-      // puzzle.stopClock();	// REDUNDANT???? Hasn't Puzzle already done it.
       await infoMessage(context,
-                        'CONGRATULATIONS!!!',
+                        'WELL DONE!!!',
                         'You have reached the end of the puzzle!'
-                        ' Well done!!');
+                        ' Congratulations!!!');
     }
     else if (playNow == Play.HasError) {
       await infoMessage(context,
