@@ -214,15 +214,10 @@ int maxYn = -1;
     return Offset(rotated[n].xyz[0], rotated[n].xyz[1]);
   }
 
-  // TODO - Icons --- Arrow Back, Arrow Forward, Arrow Upward, Arrow Downward.
-  //               OR Keyboard Arrow Left, Right, Up or Down.
-  //               OR Double Keyboard Arrow Left, Right, Up or Down.
-
   void hit3DViewControl(int buttonID)
   {
-    // The user has hit one of the outward-pointing arrows. So rotate the
-    // puzzle by +90 or -90 deg in the corresponding direction and signal
-    // the Puzzle model to trigger a repaint (via Provider).
+    // The user has hit one of the outward-pointing arrows. So rotate the 3D
+    // puzzle by +90 or -90 deg in the corresponding direction.
 
     debugPrint('ENTERED BoardLayout.hit3DViewControl(): buttonID $buttonID.');
     switch(buttonID) {
@@ -234,12 +229,12 @@ int maxYn = -1;
         debugPrint('ROTATE CENTRES rotationM.rotateY(pi/2.0)');
         rotationM.rotateY(pi/2.0);
         break;
-      case 2:			// Rotate Right around X axis.
-        debugPrint('ROTATE CENTRES rotationM.rotateX(pi/2.0)');
+      case 2:			// Rotate Upward around X axis.
+        debugPrint('ROTATE CENTRES rotationM.rotateX(-pi/2.0)');
         rotationM.rotateX(-pi/2.0);
         break;
-      case 3:			// Rotate Right around X axis.
-        debugPrint('ROTATE CENTRES rotationM.rotateX(-pi/2.0)');
+      case 3:			// Rotate Downward around X axis.
+        debugPrint('ROTATE CENTRES rotationM.rotateX(pi/2.0)');
         rotationM.rotateX(pi/2.0);
         break;
     }
