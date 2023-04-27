@@ -1,3 +1,9 @@
+/*
+    SPDX-FileCopyrightText: 2015      Ian Wadham <iandw.au@gmail.com>
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 // ignore_for_file: constant_identifier_names
 // Flutter likes names of constants to start in lower-case then use Camel Case.
 
@@ -6,23 +12,6 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import '../globals.dart';
 import '../models/puzzle_map.dart';
 import 'dlx_solver.dart';
-
-/* **************************************************************************
- *    Copyright 2015  Ian Wadham <iandw.au@gmail.com>                       *
- *                                                                          *
- *    This program is free software; you can redistribute it and/or         *
- *    modify it under the terms of the GNU General Public License as        *
- *    published by the Free Software Foundation; either version 2 of        *
- *    the License, or (at your option) any later version.                   *
- *                                                                          *
- *    This program is distributed in the hope that it will be useful,       *
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *    GNU General Public License for more details.                          *
- *                                                                          *
- *    You should have received a copy of the GNU General Public License     *
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
- ****************************************************************************/
 
 /*
  * This class and its methods do all the work of generating a Mathdoku or

@@ -1,3 +1,8 @@
+/*
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
 
 import '../globals.dart';
@@ -22,7 +27,7 @@ class Puzzle with ChangeNotifier
   final PuzzlePlayer    _puzzlePlayer    = PuzzlePlayer();
   final PuzzleGenerator _puzzleGenerator = PuzzleGenerator();
 
-  // The Puzzle's interface to the Game Timeri model.
+  // The Puzzle's interface to the Game Timer model.
   // The time appears (optionally) in the PuzzleView screen once per second.
   // The clock is started by a user's response to a message in PuzzleBoardView.
   // It stops when the user finishes the puzzle or abandons it. It is reset to

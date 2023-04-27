@@ -1,3 +1,8 @@
+/*
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -16,6 +21,7 @@ import 'settings/settings_view.dart';
 import 'settings/game_theme.dart';
 
 class MaxiDokuApp extends StatelessWidget {
+  // Adapted from the Flutter create command's "skeleton" example.
 
   const MaxiDokuApp(
     Puzzle this.puzzle, {

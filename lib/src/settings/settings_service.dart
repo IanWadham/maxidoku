@@ -1,3 +1,8 @@
+/*
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -6,6 +11,8 @@ import '../globals.dart';
 /// A service that stores and retrieves user settings.
 class SettingsService
 {
+  // Adapted from the Flutter create command's "skeleton" example.
+
   // TODO - Is there some way to make _prefs = GetStorage() a const expression?
   //        Because of it, neither the controller nor the service can have const
   //        constructors. Maybe get the _prefs reference in main.dart and pass

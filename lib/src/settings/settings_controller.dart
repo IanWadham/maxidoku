@@ -1,3 +1,8 @@
+/*
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/material.dart';
 
 import '../globals.dart';
@@ -5,7 +10,9 @@ import 'settings_service.dart';
 
 /// A class that many Widgets can interact with to read user settings, update
 /// user settings, or listen to user settings changes.
+
 class SettingsController with ChangeNotifier {
+  // Adapted from the Flutter create command's "skeleton" example.
 
   // ?????? const SettingsController(this._service);	// Constructor.
   // Can't be const. See comments in settings_service.dart...
