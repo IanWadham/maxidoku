@@ -1,46 +1,49 @@
+/*
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/material.dart';
 
 import 'board_grid_view.dart';
-import 'cell_view.dart';
+import 'symbol_view.dart';
 
 import '../models/puzzle_map.dart';
 
-// TODO - This only going to work on a 2D board.
-
-class BoardView2D extends StatefulWidget
+class BoardView2D extends StatelessWidget
 {
-  const BoardView2D(this.n, this.f, {Key? key})
+  const BoardView2D(this._map, this._cellSide, {Key? key})
         : super(key: key);
 
-  final int n;
-  final double f;
+  final PuzzleMap _map;
+  final double    _cellSide;	// Height and width of each cell.
 
-  @override
-  State<BoardView2D> createState() => _BoardState2D();
-  
-} // End class BoardView
-
-class _BoardState2D extends State<BoardView2D>
-{
   @override
   Widget build(BuildContext context)
   {
+    // PuzzleMap map = _map;
+    int sizeY = _map.sizeY;
+    int sizeX = _map.sizeX;
+    int index = 0;
+
+    debugPrint('BoardView2D: Paint $sizeX x $sizeY cells, cellSide $_cellSide.');
     return AspectRatio(
       aspectRatio: 1.0,
-      // A Stack widget arranges its children to fit the space available.
+      // This Stack arranges its children to fit a grid in the space available.
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // BoardGridView(puzzleMap: widget.puzzleMap),
-          Column(
+          Row(
             children: [
-              for (int y = 0; y < widget.n; y++)
+              for (int x = 0; x < sizeX; x++)
                 Expanded(
-                  child: Row(
+                  child: Column(
+                    // In Maxidoku cells go into the grid a column at a time.
                     children: [
-                      for (int x = 0; x < widget.n; x++)
+                      // So Y varies faster than X in this convention.
+                      for (int y = 0; y < sizeY; y++)
                         Expanded(
-                          child: CellView(x, y, widget.f),
+                          child: SymbolView('2D', _map, index++, _cellSide),
                         ),
                     ],
                   ),

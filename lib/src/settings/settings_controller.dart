@@ -1,11 +1,21 @@
+/*
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/material.dart';
 
-import 'settings_service.dart';
 import '../globals.dart';
+import 'settings_service.dart';
 
 /// A class that many Widgets can interact with to read user settings, update
 /// user settings, or listen to user settings changes.
+
 class SettingsController with ChangeNotifier {
+  // Adapted from the Flutter create command's "skeleton" example.
+
+  // ?????? const SettingsController(this._service);	// Constructor.
+  // Can't be const. See comments in settings_service.dart...
 
   SettingsController(this._service);	// Constructor.
 
@@ -16,33 +26,37 @@ class SettingsController with ChangeNotifier {
   final String themeModeKey      = 'ThemeMode';
   final String difficultyKey     = 'Difficulty';
   final String symmetryKey       = 'Symmetry';
+  final String puzzleRangeKey    = 'PuzzleRange';
   final String selectedPuzzleKey = 'SelectedPuzzleIndex';
   final String puzzleSpecIDKey   = 'PuzzleSpecID';
   final String mathdokuSizeKey   = 'MathdokuSize';
 
   // Default Values of Settings.
-  final ThemeMode  themeModeDefault      = ThemeMode.system;
-  final Difficulty difficultyDefault     = Difficulty.Easy;
-  final Symmetry   symmetryDefault       = Symmetry.RANDOM_SYM;
-  final int        selectedIndexDefault  = 0;
-  final String     puzzleSpecIDDefault   = '0';
-  final int        mathdokuSizeDefault   = 6;
+  static const ThemeMode  themeModeDefault      = ThemeMode.system;
+  static const Difficulty difficultyDefault     = Difficulty.Easy;
+  static const Symmetry   symmetryDefault       = Symmetry.RANDOM_SYM;
+  static const int        puzzleRangeDefault    = 0; // Beginners' puzzle types.
+  static const int        selectedIndexDefault  = 0;
+  static const String     puzzleSpecIDDefault   = '0';
+  static const int        mathdokuSizeDefault   = 6;
 
   // Getters for settings.
   ThemeMode  get themeMode     => _themeMode;      // Light or dark colours.
   Difficulty get difficulty    => _difficulty;	   // Reqd. puzzle difficulty.
   Symmetry   get symmetry      => _symmetry;	   // Symmetry of Givens layout.
+  int        get puzzleRange   => _puzzleRange;    // Selected range of puzzles.
   int        get selectedIndex => _selectedIndex;  // Last puzzle-type selected.
   String     get puzzleSpecID  => _puzzleSpecID;   // ID of last puzzlei-type.
   int        get mathdokuSize  => _mathdokuSize;   // Reqd. size of Mathdoku.
 
   // Private values of settings.
-  late ThemeMode  _themeMode;
-  late Difficulty _difficulty;
-  late Symmetry   _symmetry;
-  late int        _selectedIndex;
-  late String     _puzzleSpecID;
-  late int        _mathdokuSize;
+  static ThemeMode  _themeMode     = themeModeDefault;
+  static Difficulty _difficulty    = difficultyDefault;
+  static Symmetry   _symmetry      = symmetryDefault;
+  static int        _puzzleRange   = puzzleRangeDefault;
+  static int        _selectedIndex = selectedIndexDefault;
+  static String     _puzzleSpecID  = puzzleSpecIDDefault;
+  static int        _mathdokuSize  = mathdokuSizeDefault;
 
   // Setters for settings - extended to store values persistently (on disk).
 
@@ -55,7 +69,13 @@ class SettingsController with ChangeNotifier {
     if (newThemeMode == _themeMode) return;
     _themeMode = newThemeMode;
     _service.storeThemeMode(themeModeKey, newThemeMode);
-    notifyListeners();
+    notifyListeners();	// Repaint needed: tell AnimationBuilder in app.dart.
+  }
+
+  set puzzleRange(int range) {
+    _puzzleRange = range;
+    _service.storeInt(puzzleRangeKey, range);
+    notifyListeners();	// Repaint needed: tell AnimationBuilder in app.dart.
   }
 
   set difficulty(Difficulty newDifficulty) => setDifficulty(newDifficulty);
@@ -63,7 +83,7 @@ class SettingsController with ChangeNotifier {
   setDifficulty(Difficulty newDifficulty) {
     _difficulty = newDifficulty;
     _service.storeDifficulty(difficultyKey, newDifficulty);
-    notifyListeners();
+    notifyListeners();	// Need to update button's options in PuzzleListView.
   }
 
   set symmetry(Symmetry newSymmetry) => setSymmetry(newSymmetry);
@@ -71,25 +91,22 @@ class SettingsController with ChangeNotifier {
   setSymmetry(Symmetry newSymmetry) {
     _symmetry = newSymmetry;
     _service.storeSymmetry(symmetryKey, newSymmetry);
-    notifyListeners();
+    notifyListeners();	// Need to update button's options in PuzzleListView.
   }
 
   set selectedIndex(int index) {
     _selectedIndex = index;
     _service.storeInt(selectedPuzzleKey, index);
-    notifyListeners();
   }
 
   set puzzleSpecID(String specID) {
     _puzzleSpecID = specID;
     _service.storeString(puzzleSpecIDKey, specID);
-    // notifyListeners(); Maybe not needed? Not seen, but sets up Puzzle type.
   }
 
   set mathdokuSize(int newSize) {
     _mathdokuSize = newSize;
     _service.storeInt(mathdokuSizeKey, newSize);
-    // notifyListeners();Maybe not needed?
   }
 
   /// Load the user's saved settings from the SettingsService. It may load
@@ -99,11 +116,14 @@ class SettingsController with ChangeNotifier {
     _themeMode     = _service.loadThemeMode(themeModeKey, themeModeDefault);
     _difficulty    = _service.loadDifficulty(difficultyKey, difficultyDefault);
     _symmetry      = _service.loadSymmetry(symmetryKey, symmetryDefault);
+    _puzzleRange   = _service.loadInt(puzzleRangeKey, puzzleRangeDefault);
     _selectedIndex = _service.loadInt(selectedPuzzleKey, selectedIndexDefault);
     _puzzleSpecID  = _service.loadString( puzzleSpecIDKey, puzzleSpecIDDefault);
     _mathdokuSize  = _service.loadInt(mathdokuSizeKey, mathdokuSizeDefault);
 
-    // Important! Inform listeners that a change has occurred.
-    notifyListeners();
+    // NOTE: main.dart loads the settings from file. The App and screens are
+    //       then expected to read the settings during their initialization.
+    //       Thus the settings are restored to what the user saw in the last
+    //       session and there is no need to call notifyListeners() here.
   }
 }

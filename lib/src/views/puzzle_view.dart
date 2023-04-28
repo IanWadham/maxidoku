@@ -1,3 +1,8 @@
+/*
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,17 +11,19 @@ import 'package:community_material_icon/community_material_icon.dart';
 import 'dart:async';
 import 'messages.dart';
 
+import '../settings/settings_controller.dart';
 import '../settings/settings_view.dart';
+import '../settings/game_theme.dart';
 
 import '../globals.dart';
 import '../models/puzzle.dart';
+// import '../models/puzzle_generator.dart';
+// import '../models/puzzle_player.dart';
+import '../models/puzzle_map.dart';
 
-import 'timer_widget.dart';
 import 'puzzle_board_view.dart';
-
-/* ************************************************************************** **
-   ICON BUTTONS - Mark and go back to Mark???
-** ************************************************************************** */
+import 'puzzle_control_bar.dart';
+import 'timer_widget.dart';
 
 /* ************************************************************************** **
   // Can get device/OS/platform at https://pub.dev/packages/device_info_plus
@@ -44,46 +51,107 @@ class PuzzleView extends StatelessWidget
 // and later handled by a postFrameCallback() procedure in the PuzzleBoardView's
 // Widget build(). PuzzleBoardView is a sub-Widget of the PuzzleView Widget.
 
-  final bool darkMode;		// Display in dark theme-mode colours or light.
+  final bool isDarkMode;	// Display in dark theme-mode colours or light.
+  final SettingsController settings;
+  Puzzle puzzle;
 
-  /* const */ PuzzleView(this.darkMode, {Key? key,}) : super(key: key);
+  PuzzleView(this.puzzle, this.isDarkMode, {required this.settings, Key? key,}) : super(key: key);
 
-  final bool timerVisible = true;
+  final bool timerVisible = true;	// TODO - Make this a Setting...
+
+  bool tappedInPuzzle = false;		// Whether the user tapped in a Puzzle.
+
+  late PuzzlePlayer puzzlePlayer;
+
+  Size   screenSize    = Size(0.0, 0.0);
+  double edgeFactor    = 0.025;
+  double edgePadding   = 5.0;
+  double boardSide     = 200.0;
+  double controlSide   = 18.0;
+  int    nSymbols      = 9;
+  double iconSize      = 8.0;
 
   @override
   Widget build(BuildContext context) {
+    // Receive the parameters of the selected puzzle-type via the Navigator.
+    final List<int> parameters =
+                      ModalRoute.of(context)!.settings.arguments as List<int>;
+    final int puzzleIndex = parameters.last;
+    final int playOrTapIn = parameters.first;
+
+    debugPrint('Build PuzzleView: puzzleIndex = $puzzleIndex,'
+               ' playOrTapIn $playOrTapIn.');
+
+    // Find the Puzzle and PuzzlePlayer models, as set up by Providers.
+
+    // TODO - Maybe this should be one or more selects on Puzzle. A full build
+    //        of PuzzleBoardView is needed after generating a puzzle, but not
+    //        after the board was filled with a correct or incorrect solution.
+    puzzle              = context.watch<Puzzle>();
+    puzzlePlayer        = context.read<PuzzlePlayer>();
+    // GameTheme gameTheme = context.read<GameTheme>();
+    GameTheme gameTheme = context.watch<GameTheme>();
+                      // ?????? final value = context.watch<GameTheme>();
+
+    debugPrint('PuzzleView: FOUND PUZZLE STATUS ${puzzlePlayer.puzzlePlay}.');
+    debugPrint('PuzzleView: GameTheme.isDarkMode is ${gameTheme.isDarkMode}.');
+    debugPrint('PuzzleView: THIS.isDarkMode is ${this.isDarkMode}.');
 
     // Set portrait/landscape, depending on the device or window-dimensions.
     Orientation orientation = MediaQuery.of(context).orientation;
+    screenSize = MediaQuery.of(context).size;
 
-    // Find the Puzzle objecti (the model), which has been created by Provider.
-    Puzzle puzzle = context.read<Puzzle>();
+    // If a new puzzle has been requested, create a puzzle and board, else just
+    // do a repaint, but DO NOT clobber puzzle play by creating a new puzzle!
+
+    if (puzzlePlayer.puzzlePlay == Play.NotStarted) {
+      // Create a Puzzle and board where all the cells are empty or unusable.
+      // Internally this initializes the Puzzle model and creates the PuzzleMap.
+
+      puzzle.createState(puzzleIndex);
+
+      // Generate a puzzle of the required type and difficulty.
+      // Deliver the results to the PuzzlePlayer object.
+      // TODO - Compute-bound, maybe a few seconds, usually < 1 sec. What to do?
+
+      if (playOrTapIn == forPlay) {
+        tappedInPuzzle = false;
+        debugPrint('\nPuzzleView: GENERATE PUZZLE, index $puzzleIndex.');
+        puzzle.generatePuzzle(settings.difficulty, settings.symmetry);
+      }
+      else if (playOrTapIn == forTapIn) {
+        tappedInPuzzle = true;
+        debugPrint('\nPuzzleView: TAP IN PUZZLE, index $puzzleIndex.');
+        puzzlePlayer.initialise(puzzle.puzzleMap, puzzle);
+      }
+    }
+    else {
+      debugPrint('\nPuzzleView: REPAINT PUZZLE - DO NOT re-generate it.');
+    }
+
+    // The information for configuring the Puzzle Board View is now available.
+    PuzzleMap map = puzzle.puzzleMap;
 
     // Save the orientation, for later use by PuzzlePainters and paint().
     // A setter in Puzzle saves "portrait" in either 2D or 3D PaintingSpecs.
-    puzzle.portrait = (orientation == Orientation.portrait);
+    bool portrait = (orientation == Orientation.portrait);
 
     // Set up Puzzle's theme in dark/light mode and get the icon button colours.
-    puzzle.setTheme(darkMode);
-    Color background = Color(puzzle.background);
-    Color foreground = Color(puzzle.foreground);
+    Color background = gameTheme.backgroundColor;
+    Color foreground = gameTheme.boldLineColor;
 
-    // Create the list of action-icons, making the icons resizeable.
-    double iconSize = MediaQuery.of(context).size.shortestSide;
-    double nIcons = 10.0;
-    iconSize = 0.4 * iconSize / nIcons;
-    // TODO: Work out required width of timer: visible or not visible.
-    //       Allow for padding, etc. Allow space for 99:59:59... ? Maybe
-    //       give the clock a pseudo-fixed font, based on puzzle digit sizes?
-    //       At least we must center the timer in a SizedBox, so that the
-    //       whole row of icons does not dart about as the text-width changes.
+    // Provide some layout hints for Flutter, including 3D layout if applicable.
+    calculateLayoutHints(map, portrait);
 
-    // List<IconButton> actionIcons = [
+    // TODO - Can we put Icon list away somewhere and access list.length above?
+
+    // Create the list of timer widget and action-icons.
     List<Widget> actionIcons = [
-      SizedBox(
-        width: 3.0 * iconSize,
+      SizedBox(	// If the timer is invisible, shrink it and center the icons.
+        width: timerVisible ? 4.0 * iconSize : 1,
         child: TimerWidget(
-          visible:  timerVisible,
+          visible:   timerVisible,
+          textColor: foreground,
         ),
       ),
       IconButton(
@@ -92,40 +160,29 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Return to list of puzzles',
         color:   foreground,
         onPressed: () {
-          exitScreen(context, puzzle);
+          exitScreen(context);
         },
       ),
       IconButton(
         icon: const Icon(Icons.settings_outlined),
         iconSize: iconSize,
-        tooltip: 'Settings',
+        // tooltip: 'Settings',
+        tooltip: 'Temporarily out of action',
         color:   foreground,
         onPressed: () {
           // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
+          // debugPrint('PuzzleView: Go to Settings screen.');
+          // Navigator.restorablePushNamed(
+            // context, SettingsView.routeName);
         },
       ),
       IconButton(
         icon: const Icon(Icons.save_outlined),
         iconSize: iconSize,
-        tooltip: 'Save puzzle',
+        // tooltip: 'Save puzzle',
+        tooltip: 'Not yet implemented',
         color:   foreground,
         onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.file_download),
-        iconSize: iconSize,
-        tooltip: 'Restore puzzle',
-        color:   foreground,
-        onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
         },
       ),
       IconButton(
@@ -134,7 +191,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Get a hint',
         color:   foreground,
         onPressed: () {
-          puzzle.hint();
+          puzzlePlayer.hint();
         },
       ),
       IconButton(
@@ -143,7 +200,7 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Undo a move',
         color:   foreground,
         onPressed: () {
-          puzzle.undo();
+          puzzlePlayer.undo();
         },
       ),
       IconButton(
@@ -152,87 +209,170 @@ class PuzzleView extends StatelessWidget
         tooltip: 'Redo a move',
         color:   foreground,
         onPressed: () {
-          puzzle.redo();
+          puzzlePlayer.redo();
         },
       ),
       IconButton(
         icon: const Icon(Icons.devices_outlined),
         iconSize: iconSize,
-        tooltip: 'Generate a new puzzle',
+        tooltip: 'Create a new puzzle',
         color:   foreground,
         onPressed: () {
-          generatePuzzle(puzzle, context);
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.check_circle_outline_outlined),
-        iconSize: iconSize,
-        tooltip: 'Check that the puzzle you have entered is valid',
-        color:   foreground,
-        onPressed: () async {
-          checkPuzzle(puzzle, context);
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.restart_alt_outlined),
-        iconSize: iconSize,
-        tooltip: 'Start solving this puzzle again',
-        color:   foreground,
-        onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
+          createPuzzle(context);
         },
       ),
     ]; // End list of action icons
 
-    // Paint the puzzle with the action icons in a row at the top.
-    return Scaffold(		// Omit AppBar, to maximize real-estate.
-      body: Column(
-        children: <Widget> [
-          Ink( // Give puzzle-background colour to row of IconButtons.
-            color: background,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: actionIcons, // [TimerWidget(), actionIcons,]
+    // Paint the puzzle with the action icons and timer in a row at the top.
+    // In Portrait mode, put a horizontal control-bar under the puzzle board.
+    // In Landscape mode. put it vertically to the right of the puzzle board.
+
+    if (portrait) {		// Portrait mode.
+      debugPrint('PuzzleView: Paint puzzle view, portrait mode.');
+      return Scaffold(		// Omit AppBar, to maximize real-estate.
+        // Give puzzle-background colour to whole screen, including icons.
+        backgroundColor: background,
+        body: Padding(
+          padding: EdgeInsets.all(edgePadding),
+            child: Column(
+              children: <Widget> [
+              InkWell(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: actionIcons,
+                ),
+              ),
+              const Spacer(),
+              PuzzleBoardView(puzzle, boardSide, settings: settings),
+              Padding(padding: EdgeInsets.only(top: edgePadding * 5.0)),
+              PuzzleControlBar(boardSide, map,
+                               horizontal: true,
+                               hideNotes: puzzlePlayer.hideNotes),
+              const Spacer(),
+            ],
+          ), // End body: Column(
+        ), // End Padding(
+      ); // End return Scaffold(
+    }
+    else {			// Landscape mode.
+      debugPrint('PuzzleView: Paint puzzle view, landscape mode.');
+      return Scaffold(		// Omit AppBar, to maximize real-estate.
+        // Give puzzle-background colour to whole screen, including icons.
+        backgroundColor: background,
+        body: Column(
+          children: <Widget> [
+            InkWell(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: actionIcons,
+              ),
             ),
-          ),
-          Expanded(
-            child: PuzzleBoardView(),
-          ),
-        ],
-      ), // End body: Column(
-    ); // End return Scaffold(
+            // ?????? Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget> [
+                PuzzleBoardView(puzzle, boardSide, settings: settings),
+                Padding(padding: EdgeInsets.only(left: edgePadding * 5.0)),
+                PuzzleControlBar(boardSide, map,
+                                 horizontal: false,
+                                 hideNotes: puzzlePlayer.hideNotes),
+              ],
+            ), // End Row(.
+            // ?????? Spacer(),
+          ],
+        ), // End body: Column(
+      ); // End return Scaffold(
+    }
   } // End Widget build
 
+  void calculateLayoutHints(PuzzleMap map, bool portrait)
+  {
+    double longSide     = screenSize.longestSide;
+    double shortSide    = screenSize.shortestSide;
+    double edgePadding  = shortSide * edgeFactor;
+    shortSide           = shortSide - 2.0 * edgePadding;
+    longSide            = longSide  - 2.0 * edgePadding;
+    double nIcons       = 10.0;
+    iconSize            = 0.5  * shortSide / nIcons;
+    // debugPrint('Layout long $longSide short $shortSide, '
+          // 'nIcons $nIcons, iconSize $iconSize edgePadding $edgePadding');
+    nSymbols            = map.nSymbols;
+
+////////////////////////////////////////////////////////////////////////////////
+// TODO - Calculations need fine-tuning, also the widget-trees (pads? spacers?).
+////////////////////////////////////////////////////////////////////////////////
+
+    if (portrait) {
+      // Vertical layout: icons, board, empty space, control bar.
+      boardSide = longSide - (2.0 * iconSize) - edgePadding - controlSide;
+      if (boardSide > shortSide) {
+        boardSide = shortSide;
+      }
+    }
+    else {
+      // Horizontal layout: icons at top, board, empty space, control bar below.
+      boardSide = longSide - edgePadding - controlSide;
+      // double testValue = shortSide - (2.0 * iconSize) - edgePadding;
+      double testValue = shortSide - (1.0 * iconSize); // - edgePadding;
+      // debugPrint('testValue $testValue boardSide $boardSide');
+      if (boardSide > testValue) {
+        boardSide = testValue;
+      }
+    }
+    if (nSymbols <= 6) {
+      boardSide = nSymbols * (boardSide / 6.0);
+    }
+    controlSide = boardSide / (nSymbols + 2.0);;
+/*
+    if (map.specificType == SudokuType.Roxdoku) {	// 3D Puzzle.
+      // Calculate the dimensions of the puzzle's arrangement of spheres.
+    }
+*/
+  }
 
   // PROCEDURES FOR ICON ACTIONS AND USER MESSAGES.
 
-  void generatePuzzle(Puzzle puzzle, BuildContext context)
+  void createPuzzle(context)
   async
   {
-    // Generate a puzzle of the requested level of difficulty.
-    debugPrint('GENERATE Puzzle: Play status ${puzzle.puzzlePlay}');
-    bool newPuzzleOK = (puzzle.puzzlePlay == Play.NotStarted) ||
-                       (puzzle.puzzlePlay == Play.ReadyToStart);
+    // Generate a puzzle of the requested level of difficulty
+    // OR check a tapped-in puzzle and maybe make it into a playable puzzle.
+
+    debugPrint('CREATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
+    if (puzzlePlayer.puzzlePlay == Play.BeingEntered) {
+      checkPuzzle(context);
+      return;
+    }
+
+    bool newPuzzleOK = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
+                       (! tappedInPuzzle && (puzzlePlayer.puzzlePlay
+                                                == Play.ReadyToStart)) ||
+                       (puzzlePlayer.puzzlePlay == Play.Solved);
     if (! newPuzzleOK) {
       newPuzzleOK = await questionMessage(
         context,
-        'Generate a new puzzle?',
+        'Start a new puzzle?',
         'You could lose your work so far. Do you '
-        ' really want to generate a new puzzle?',
+        ' really want to start a new puzzle?',
       );
     }
+    debugPrint('PuzzleView: New puzzle OK $newPuzzleOK,'
+               ' play status ${puzzlePlayer.puzzlePlay}.');
     if (newPuzzleOK) {
-      puzzle.generatePuzzle();
+      // Erase the time-display and stop the clock, if it is running.
+      debugPrint('CLEAR Clock.');
+      puzzle.clearClock();
+      Difficulty difficulty = settings.difficulty;
+      Symmetry   symmetry   = settings.symmetry;
+      puzzle.generatePuzzle(difficulty, symmetry);
     }
   }
 
-  void checkPuzzle(Puzzle puzzle, BuildContext context)
+  void checkPuzzle(BuildContext context)
   async
   {
     // Validate a puzzle that has been tapped in or loaded by the user.
-    debugPrint('CHECK Puzzle: Play status ${puzzle.puzzlePlay}');
+    debugPrint('CHECK Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
     int error = puzzle.checkPuzzle();
     switch(error) {
       case 0:
@@ -243,7 +383,7 @@ class PuzzleView extends StatelessWidget
           ' Would you like to make it into a finished puzzle, ready to'
           ' solve, or continue working on it?',
           okText:     'Finish Up',
-          cancelText: 'Continue',
+          cancelText: 'Continue Working',
         );
         if (finished) {
           // Convert the entered data into a Puzzle and re-display it.
@@ -261,6 +401,7 @@ class PuzzleView extends StatelessWidget
         );
         return;
       case -2:
+        // Checking a puzzle retrieved from a file NOT IMPLEMENTED YET.
         await infoMessage(
           context,
           '',
@@ -280,13 +421,13 @@ class PuzzleView extends StatelessWidget
     }
   }
 
-  void exitScreen(BuildContext context, Puzzle puzzle)
+  void exitScreen(BuildContext context)
   async
   {
-    // Quit the Puzzle screen, maybe leaving a puzzle unfinished.
-    bool okToQuit = (puzzle.puzzlePlay == Play.NotStarted) ||
-                    (puzzle.puzzlePlay == Play.ReadyToStart) ||
-                    (puzzle.puzzlePlay == Play.Solved);
+    // Quit the PuzzleView screen, maybe leaving a puzzle unfinished.
+    bool okToQuit = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
+                    (puzzlePlayer.puzzlePlay == Play.ReadyToStart) ||
+                    (puzzlePlayer.puzzlePlay == Play.Solved);
     if (! okToQuit) {
       okToQuit = await questionMessage(
                  context,
@@ -295,6 +436,8 @@ class PuzzleView extends StatelessWidget
                  );
     }
     if (okToQuit && context.mounted) {
+      debugPrint('PuzzleView: RETURN TO LIST OF PUZZLES - exitScreen();');
+      puzzlePlayer.resetPlayStatus();	// Needed in next build of PuzzleView.
       Navigator.pop(context);
     }
   }

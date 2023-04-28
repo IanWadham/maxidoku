@@ -1,32 +1,19 @@
+/*
+    SPDX-FileCopyrightText: 2005-2007 Francesco Rossi <redsh@email.it>
+    SPDX-FileCopyrightText: 2006      Mick Kappenburg <ksudoku@kappendburg.net>
+    SPDX-FileCopyrightText: 2006-2008 Johannes Bergmeier <johannes.bergmeier@gmx.net>
+    SPDX-FileCopyrightText: 2012      Ian Wadham <iandw.au@gmail.com>
+    SPDX-FileCopyrightText: 2015      Ian Wadham <iandw.au@gmail.com>
+    SPDX-FileCopyrightText: 2023 Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 // ignore_for_file: constant_identifier_names
 
 import 'package:flutter/foundation.dart' show debugPrint;
 
 import 'dart:math';		// For random-number generator Random class.
 import '../globals.dart';
-
-/* *************************************************************************
- *   Copyright 2005-2007 Francesco Rossi <redsh@email.it>                  *
- *   Copyright 2006      Mick Kappenburg <ksudoku@kappendburg.net>         *
- *   Copyright 2006-2008 Johannes Bergmeier <johannes.bergmeier@gmx.net>   *
- *   Copyright 2012      Ian Wadham <iandw.au@gmail.com>                   *
- *   Copyright 2015      Ian Wadham <iandw.au@gmail.com>                   *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
- ***************************************************************************/
 
 /*
  * @class PuzzleMap
@@ -114,31 +101,55 @@ class PuzzleMap
   // The file has one string per puzzle-type specification, containing Name,
   // Description and layout details for the puzzle map.
 
-  PuzzleMap({required List<String> specStrings})
-    :
-      _name = '',
-      _specificType = SudokuType.Invalid,
-      _sizeX        = 0,
-      _sizeY        = 0,
-      _sizeZ        = 0,
-      _size         = 0,
-      _blockSize    = 0,
-      _nGroups      = 0,
-      _nSymbols     = 0,
-      _hideOperators = false
+  PuzzleMap();
+
+  void buildPuzzleMap({required List<String> specStrings})
   {
-    bool   mapStarted = false;
-    int    index = 0;
-    int    nSpecs = specStrings.length;
-    if (nSpecs < 1) return;
+    // Start by initializing or re-initializing the Puzzle configuration data.
+
+    int    nSpecs     = specStrings.length;
+    if (nSpecs < 1) {
+      return;
+    }
+
+    // Initialize the Properties of the PuzzleMap, using invalid values.
+    _name             = '';
+    _specificType     = SudokuType.Invalid;
+    _sizeX            = 0;
+    _sizeY            = 0;
+    _sizeZ            = 0;
+    _size             = 0;
+    _blockSize        = 0;
+    _nGroups          = 0;
+    _nSymbols         = 0;
+
+    // Reset the default values for Mathdoku and 3D Puzzle spheres.
+    _hideOperators    = false;
+    _diameter         = 350;
+    _rotateX          = 15;
+    _rotateY          = 27;
+
+    // Clear the configuration Lists.
+    _specialCells.clear();
+    _structureTypes.clear();
+    _structurePositions.clear();
+    _structuresWithBlocks.clear();
+    _groups.clear();
+    _cages.clear();
+    _indexOfCellsToGroups.clear();
+    // _emptyBoard.clear();	// Gets cleared when keyword PuzzleMap is seen.
+
     RegExp whiteSpace = RegExp(r'(\s+)');
+    bool   mapStarted = false;
+    int    specIndex  = 0;
 
-    while (index < nSpecs) {
-      // debugPrint('Index: $index of $nSpecs');
-      String specLine = specStrings[index];
+    while (specIndex < nSpecs) {
+      // debugPrint('Index: $specIndex of $nSpecs');
+      String specLine = specStrings[specIndex];
 
-      if (specLine.isEmpty) { index++; continue; }	// Skip empty line(s).
+      if (specLine.isEmpty) { specIndex++; continue; }	// Skip empty line(s).
 
+      // debugPrint(specLine);
       List<String> fields = specLine.split(whiteSpace);
       int nFields = fields.length;
       if (nFields < 1) { break; }	// Must have one or more fields.
@@ -295,7 +306,7 @@ class PuzzleMap
           // Skip unused or obsolete tags in puzzle_types.dart.
           break;
       }
-      index++;
+      specIndex++;
     }
 
     // Finalise the number of groups.
@@ -307,7 +318,7 @@ class PuzzleMap
     // Create an index to help puzzle generators and solvers.
     _createIndexOfCellsToGroups();
 
-  } // End of PuzzleMap constructor.
+  } // End of buildPuzzleMap().
 
   // Getters for PuzzleMap properties.
   int get nSymbols   => _nSymbols;
@@ -443,15 +454,15 @@ class PuzzleMap
         }
   }
 
-  // Private values and methods.
+  // PuzzleMap Properties - Private values and methods.
 
-  int _sizeX;
-  int _sizeY;
-  int _sizeZ;
-  int _size;		// Size of puzzle's whole area or volume (the board).
-  int _blockSize;	// Edge-length of a square 2D block or 3D cube.
-  int _nGroups;		// Number of groups (cliques) in the puzzle.
-  int _nSymbols;	// Number of symbols (4 9 16 25: 0-4, 0-9, A-P or A-Y).
+  int _sizeX      = 0;
+  int _sizeY      = 0;
+  int _sizeZ      = 0;
+  int _size       = 0;	// Size of puzzle's whole area or volume (the board).
+  int _blockSize  = 0;	// Edge-length of a square 2D block or 3D cube.
+  int _nGroups    = 0;	// Number of groups (cliques) in the puzzle.
+  int _nSymbols   = 9;	// Number of symbols (4 9 16 25: 0-4, 0-9, A-P or A-Y).
 
   bool _hideOperators = false;	// Default Mathdoku option: operators are SHOWN.
 

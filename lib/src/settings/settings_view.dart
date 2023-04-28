@@ -1,3 +1,8 @@
+/*
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/material.dart';
 
 import 'settings_controller.dart';
@@ -6,7 +11,10 @@ import 'settings_controller.dart';
 ///
 /// When a user changes a setting, the SettingsController is updated and
 /// Widgets that listen to the SettingsController are rebuilt.
+
 class SettingsView extends StatelessWidget {
+  // Adapted from the Flutter create command's "skeleton" example.
+
   const SettingsView({Key? key, required this.controller}) : super(key: key);
 
   static const routeName = '/settings';

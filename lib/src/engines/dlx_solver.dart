@@ -1,23 +1,11 @@
+/*
+    SPDX-FileCopyrightText: 2015      Ian Wadham <iandw.au@gmail.com>
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import '../globals.dart';
 import '../models/puzzle_map.dart';
-
-/* **************************************************************************
- *    Copyright 2015  Ian Wadham iandw dot au at gmail com                  *
- *    Copyright 2022  Ian Wadham iandw dot au at gmail com                  *
- *                                                                          *
- *    This program is free software; you can redistribute it and/or         *
- *    modify it under the terms of the GNU General Public License as        *
- *    published by the Free Software Foundation; either version 2 of        *
- *    the License, or (at your option) any later version.                   *
- *                                                                          *
- *    This program is distributed in the hope that it will be useful,       *
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *    GNU General Public License for more details.                          *
- *                                                                          *
- *    You should have received a copy of the GNU General Public License     *
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
- ****************************************************************************/
 
 // const bool DLX_LOG = false;
 
@@ -39,7 +27,7 @@ class DLXNode			// Represents a 1 in a sparse matrix
  * @short Provides a solver, based on the DLX algorithm, for Sudoku variants.
  *
  * This solver can potentially handle all variants of Sudoku puzzles supported
- * by Multidoku, including classical 9x9 Sudokus, 2-D variants, 3-D variants,
+ * by Maxidoku, including classical 9x9 Sudokus, 2-D variants, 3-D variants,
  * Killer Sudoku and Mathdoku (aka Kenken TM). However, it is used only to solve
  * and check the solutions of Mathdoku and Killer Sudoku puzzles. The other
  * types of puzzle use the SudokuGenerator and SudokuSolver classes, because
@@ -250,7 +238,7 @@ class DLXSolver
     // predecessor (if there is one), but if the solution is unique it will stay
     // in place until the DLXSolver has exhausted all other possibilities.
     //
-    // In MultiDoku (ie. Sudoku-style puzzles) solutions are of interest ONLY if
+    // In MaxiDoku (ie. Sudoku-style puzzles) solutions are of interest ONLY if
     // they are UNIQUE. In that case, after the DLXSolver has run to completion,
     // the caller can retrieve the solution and the moves by using the getters
     // DLXSolver.currentSolution and DLXSolver.solutionMoves (defined earlier).

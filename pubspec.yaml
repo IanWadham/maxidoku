@@ -1,4 +1,4 @@
-name: multidoku
+name: maxidoku
 description: A new Flutter project.
 
 # Prevent accidental publishing to pub.dev.
@@ -22,9 +22,9 @@ dependencies:
 
   flutter_localizations:
     sdk: flutter
-  get_storage: ^2.0.3
+  get_storage: ^2.0.3 # New version 2.1.1 avail Feb '23.
   provider: ^6.0.2
-  shared_preferences: ^2.0.13
+  shared_preferences: ^2.0.13 # NOT USED.
 
   # If you don't need one of the following dependencies,
   # delete the relevant line below, and get rid of any Dart code

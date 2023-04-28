@@ -1,101 +1,54 @@
+/*
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-// import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 // IDW TODO import 'app_lifecycle/app_lifecycle.dart';
 
 import 'models/puzzle.dart';
+
 import 'views/puzzle_view.dart';
 import 'views/puzzle_list_view.dart';
+
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
+import 'settings/game_theme.dart';
 
-/// The Widget that configures your application.
-class MyApp extends StatelessWidget {
+class MaxiDokuApp extends StatelessWidget {
+  // Adapted from the Flutter create command's "skeleton" example.
 
-/* IDW GoRouter disabled for now.
-  static final _router = GoRouter(
-    routes: [
-      GoRoute(
-          path: '/',
-          builder: (context, state) =>
-              const MainMenuScreen(key: Key('main menu')),
-          routes: [
-            GoRoute(
-                path: 'play',
-                pageBuilder: (context, state) => buildMyTransition<void>(
-                      child: const LevelSelectionScreen(
-                          key: Key('level selection')),
-                      color: context.watch<Palette>().backgroundLevelSelection,
-                    ),
-                routes: [
-                  GoRoute(
-                    path: 'session/:level',
-                    pageBuilder: (context, state) {
-                      final levelNumber = int.parse(state.params['level']!);
-                      final level = gameLevels
-                          .singleWhere((e) => e.number == levelNumber);
-                      return buildMyTransition<void>(
-                        child: PlaySessionScreen(
-                          level,
-                          key: const Key('play session'),
-                        ),
-                        color: context.watch<Palette>().backgroundPlaySession,
-                      );
-                    },
-                  ),
-                  GoRoute(
-                    path: 'won',
-                    pageBuilder: (context, state) {
-                      final map = state.extra! as Map<String, dynamic>;
-                      final score = map['score'] as Score;
-
-                      return buildMyTransition<void>(
-                        child: WinGameScreen(
-                          score: score,
-                          key: const Key('win game'),
-                        ),
-                        color: context.watch<Palette>().backgroundPlaySession,
-                      );
-                    },
-                  )
-                ]),
-            GoRoute(
-              path: 'settings',
-              builder: (context, state) =>
-                  const SettingsScreen(key: Key('settings')),
-            ),
-          ]),
-    ],
-  );
-*/ // IDW End GoRouter disabled for now.
-
-  const MyApp({
+  const MaxiDokuApp(
+    this.puzzle, {
     Key? key,
     required this.settingsController,
-  }) : super(key: key);
+    }
+  ) : super(key: key);
 
   final SettingsController settingsController;
+  final Puzzle puzzle;
 
   @override
   Widget build(BuildContext context) {
     // Make the MaterialApp listen for changes in Settings, by using the
-    // AnimatedBuilder to listen to the SettingsController. So whenever
-    // the user updates their settings, the MaterialApp and dependent
-    // widgets are rebuilt.
+    // AnimatedBuilder to listen to the SettingsController. So whenever the
+    // user updates their settings, the MaterialApp and dependent widgets
+    // can be rebuilt - IF the screen colors or appearance are affected.
     //
     // NOTE: In this instance the AnimatedBuilder does not listen for a tick of
     //       the clock. Rather it listens for any NotifyListeners() in the
     //       SettingsController, signalling a change in a Setting or Preference.
     return AnimatedBuilder(
       animation: settingsController,
-      builder: (BuildContext context, Widget? child) {
+      builder: (BuildContext context, Widget? child) { // The child is null.
+        debugPrint('BUILD APP.');
         return MaterialApp(
 
-          // Show stripe in work-version, but NOT in /Applications play-version.
-          // debugShowCheckedModeBanner: false, // No Debug stripe at top-right.
+          debugShowCheckedModeBanner: false, // No Debug stripe at top-right.
 
           // Providing a restorationScopeId allows the Navigator built by the
           // MaterialApp to restore the navigation stack when a user leaves and
@@ -127,18 +80,11 @@ class MyApp extends StatelessWidget {
           // Define a light and dark color theme. Then, read the user's
           // preferred ThemeMode (light, dark, or system default) from the
           // SettingsController to display the required theme.
-          // TODO - Home screen's appBar is white, not teal, since Flutter 3.
-          //        So what colours are acceptable as a "seed" and does it make
-          //        a difference which type of seed invocation is used?
           theme: ThemeData(
-            // colorSchemeSeed: Colors.teal,
-            // primaryColor: Colors.teal,
             brightness:      Brightness.light,
             useMaterial3:    true,
           ),
           darkTheme: ThemeData(
-            // colorSchemeSeed: Colors.teal,
-            // primaryColor: Colors.teal,
             brightness:      Brightness.dark,
             useMaterial3:    true,
           ),
@@ -156,42 +102,67 @@ class MyApp extends StatelessWidget {
                     return SettingsView(controller: settingsController);
 
                   case PuzzleView.routeName:
-                    // Show selected puzzle board.
-                    String puzzleSpecID = settingsController.puzzleSpecID;
-                    int    index = int.tryParse(puzzleSpecID, radix: 10) ?? 1;
-
-                    // Use Provider to monitor the state of the Puzzle model
-                    // and then repaint the Puzzle View after any change of any
-                    // kind: such as taps on the CustomPaint Canvas by the user
-                    // when making Puzzle moves or taps on buttons to Undo/Redo
-                    // moves, get a Hint or generate a new Puzzle. There are
-                    // several places in the Puzzle Class code where it calls
-                    // notifyListeners() and these are watched for by Provider.
-
-                    bool darkMode =
+                    bool isDarkMode =
                          (Theme.of(context).brightness == Brightness.dark);
 
-// IDW TODO - Should have separate Provider for Palette and Dark/Light changes,
-//            and maybe for other purposes (see examples in TicTacToe game).
+                    // Use Providers to monitor the state of the puzzle-model
+                    // and then repaint puzzle-views, after any change of any
+                    // kind: such as taps on puzzle or control cells by the user
+                    // when making puzzle moves or taps on buttons to undo/redo
+                    // moves, get a hint or generate a new puzzle. There are
+                    // several places in the puzzle-model classes where they
+                    // call notifyListeners(). The Providers listen for them.
 
-                    return ChangeNotifierProvider(
-                      create: (context) =>		// The Model to watch.
-                              Puzzle(index, settingsController, darkMode),
-                      lazy:   false,			// Create Puzzle NOW, to
-                                                        // avoid startup crash.
-                      child:  PuzzleView(darkMode),	// Top widget of screen.
-                    );
+                    debugPrint('\nMyApp: Create Providers,'
+                               ' dark mode $isDarkMode.');
+                    return MultiProvider(
+                      providers: [
+                        // Access to model of game in Puzzle class.
+                        ChangeNotifierProvider.value(
+                          value: puzzle,
+                        ),
+                        // Access to model of gameplay in PuzzlePlayer class.
+                        ChangeNotifierProvider.value(
+                          value: puzzle.puzzlePlayer,
+                        ),
+                        // Access to model of timer in GameTimer class.
+                        ChangeNotifierProvider.value(
+                          value: puzzle.gameTimer,
+                        ),
+                        // Access to Game Theme colours.
+                        Provider(
+                          // TODO - PROBLEM: This one re-creates GameTheme and
+                          //        changes Theme Brightness colors, BUT
+                          //        PuzzleView keeps the same colors, until
+                          //        return to the menu screen, selection of a
+                          //        Puzzle type and entry to PuzzleView, thus
+                          //        starting a new puzzle. The menu and settings                          //        screens go dark or light as soon as the
+                          //        setting changes.
+                          create: (context) => GameTheme(isDarkMode),
+                          lazy:   false,
+                        ),
+                      ],
+                      builder: (context, child) {
+                      // Top widget of puzzle screen.
+                      // ?????? child: PuzzleView(puzzle, isDarkMode,
+                      // ?????? final value = context.watch<GameTheme>();
+                      return PuzzleView(puzzle, isDarkMode,
+                        settings: settingsController
+                        );
+                      }
+                      // ?????? ),
+                    ); // End MultiProvider.
 
                   case PuzzleListView.routeName:
                   default:
-                    // Show a list of available puzzle types and sizes.
+                    // Choose from a list of puzzle types and sizes.
                     return PuzzleListView(settings: settingsController);
                 }
               },
             );
           },
-        );
-      },
-    );
+        ); // End MaterialApp.
+      }, // }, // End builder:
+    ); // ); // End AnimatedBuilder.
   }
 }

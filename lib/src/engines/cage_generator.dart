@@ -1,3 +1,9 @@
+/*
+    SPDX-FileCopyrightText: 2015      Ian Wadham <iandw.au@gmail.com>
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 // ignore_for_file: constant_identifier_names
 // Flutter likes names of constants to start in lower-case then use Camel Case.
 
@@ -6,23 +12,6 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import '../globals.dart';
 import '../models/puzzle_map.dart';
 import 'dlx_solver.dart';
-
-/* **************************************************************************
- *    Copyright 2015  Ian Wadham <iandw.au@gmail.com>                       *
- *                                                                          *
- *    This program is free software; you can redistribute it and/or         *
- *    modify it under the terms of the GNU General Public License as        *
- *    published by the Free Software Foundation; either version 2 of        *
- *    the License, or (at your option) any later version.                   *
- *                                                                          *
- *    This program is distributed in the hope that it will be useful,       *
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *    GNU General Public License for more details.                          *
- *                                                                          *
- *    You should have received a copy of the GNU General Public License     *
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
- ****************************************************************************/
 
 /*
  * This class and its methods do all the work of generating a Mathdoku or
@@ -60,11 +49,6 @@ import 'dlx_solver.dart';
    side means that there is a cell assigned to a cage on that side. Cells
    at the edges or corners of the board are set up to have imaginary (dummy)
    cages as neighbours.
-3. Set bool _hiddenOperators permanently == true. Only Mathdoku puzzles can
-   have hidden operators as part of the Puzzle's difficulty. However, the
-   option is NOT yet implemented: Mathdoku is hard enough already without
-   that. KillerSudoku has just + or NoOp and _hiddenOperators is irrelevant
-   but it always hides the +'s in the View.
 */
 
 class CageTarget		// Used as a composite return-value for a cage.
@@ -93,7 +77,6 @@ class CagesLevel		// Parameters for the level of Difficulty.
                    this.maxFeatureSize = 0,
                    this.sizeDistribution = const <int>[]
                    });
-// TODO: Does putting "this." on named params give correct values in all cases?
 }
 
 // Bit-values used to show what neighbours of a cell are already in other cages.
@@ -330,7 +313,7 @@ class CageGenerator
 
       // bool doPrint = true;               // Print progressive layouts.
       // doPrint = (_unusedCells.isEmpty);  // Print final layout only.
-      // if (kDebugMode) _printLayout(doPrint, cage);
+      // _printLayout(doPrint, cage);
 
       List<int> flagsList = [];
       for (int cell in _unusedCells) {
@@ -744,28 +727,7 @@ class CageGenerator
     }
     return isOK;
   }
-/*
-  void _setAllPossibilities (List<int> cage, int nDigits,
-                            CageOperator cageOperator, int cageValue)
-  // Set all possible values for the cells of a cage (used by the solver).
-  {
-    if ((nDigits > 1) && _hideOperators && (! _killerSudoku)) {
-        // debugPrint('MULTIPLE POSSIBLE OPERATORS');
-        // Mathdoku operators and hidden: must consider every possible operator.
-        if (nDigits == 2) {
-            _setPossibilities (cage, CageOperator.Divide, cageValue);
-            _setPossibilities (cage, CageOperator.Subtract, cageValue);
-        }
-        _setPossibilities (cage, CageOperator.Add, cageValue);
-        _setPossibilities (cage, CageOperator.Multiply, cageValue);
-    }
-    else {
-        // debugPrint('ONE OPERATOR ONLY');
-        // Operators are Killer or visible Mathdoku: can consider fewer cases.
-        _setPossibilities (cage, cageOperator, cageValue);
-    }
-  }
-*/
+
   void _setPossibilities (List<int> cage, CageOperator cageOperator,
                          int cageValue)
   // Set all possible values for one operator in a cage (used by the solver).

@@ -1,25 +1,16 @@
+/*
+    SPDX-FileCopyrightText: 2007      Francesco Rossi <redsh@email.it>
+    SPDX-FileCopyrightText: 2006-2007 Mick Kappenburg <ksudoku@kappendburg.net>
+    SPDX-FileCopyrightText: 2011      Ian Wadham <iandw.au@gmail.com>
+    SPDX-FileCopyrightText: 2015      Ian Wadham <iandw.au@gmail.com>
+    SPDX-FileCopyrightText: 2023      Ian Wadham <iandw.au@gmail.com>
+
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
 // ignore_for_file: constant_identifier_names
 // Flutter likes names of constants to start in lower-case then use Camel Case.
 
-/* **************************************************************************
- *    Copyright 2007      Francesco Rossi <redsh@email.it>                  *
- *    Copyright 2006-2007 Mick Kappenburg <ksudoku@kappendburg.net>         *
- *    Copyright 2011  Ian Wadham <iandw.au@gmail.com>                       *
- *    Copyright 2015  Ian Wadham <iandw.au@gmail.com>                       *
- *                                                                          *
- *    This program is free software; you can redistribute it and/or         *
- *    modify it under the terms of the GNU General Public License as        *
- *    published by the Free Software Foundation; either version 2 of        *
- *    the License, or (at your option) any later version.                   *
- *                                                                          *
- *    This program is distributed in the hope that it will be useful,       *
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *    GNU General Public License for more details.                          *
- *                                                                          *
- *    You should have received a copy of the GNU General Public License     *
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>. *
- ***************************************************************************/
+import 'dart:ui';
 
 // NOTE: On most platforms Dart/Flutter integers are 64 bits, BUT in Web apps,
 //       based on JavaScript, bit-wise operations are limited to 32 bits and
@@ -101,6 +92,10 @@ const String symm6 = 'No Symmetry';
 const List<String> symmetryTexts =
                            [symm0, symm1, symm2, symm3, symm4, symm5, symm6];
 
+// Tags for lists of Puzzle Types in screens PuzzleListView and PuzzleView.
+const int forPlay  = -1;	// These Puzzles will be generated immediately.
+const int forTapIn = -2;	// These Puzzles will be available for tap in.
+
 enum CageOperator {NoOperator, Divide, Subtract, Multiply, Add}
 
 typedef CellValue     = int;		// Bits or a value, see consts above.
@@ -123,6 +118,24 @@ enum    GuessingMode {Random, NotRandom}
 
 // The maximum digit that can be used in a Mathdoku or Killer Sudoku puzzle.
 const int MaxMathOrder = 9;
+
+// CELL CONSTANTS --- Proportional values for painting cells
+//                    in the puzzle's board and control bar.
+
+const double topMargin         = 0.2;	// Proportion of top margin.
+const double bottomMargin      = 0.2;	// Proportion of bottom margin.
+const double bottomNotesMargin = 0.15;	// Proportion of bottom Notes margin.
+
+// The proportion of the cell taken up by a single Sudoku symbol.
+const double symbolFraction    = 1.0 - topMargin - bottomMargin;
+
+const double thinGridFactor    = 30.0;	// Divisor for thin grid-line's width.
+const double boldGridFactor    = 15.0;	// Divisor for thick grid-line's width.
+
+const double cageGridFactor    = 20.0;	// Divisor for cage-outline's width.
+const double cageInsetFactor   = 12.0;	// Divisor for cage-outline's inset.
+const double labelInsetFactor  = 20.0;	// Divisor for cage-label's inset.
+const double labelTextFactor   =  6.0;	// Divisor for cage-label's text-size.
 
 class Message
 {
