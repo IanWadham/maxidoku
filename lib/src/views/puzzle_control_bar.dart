@@ -45,6 +45,8 @@ class PuzzleControlBar extends StatelessWidget
     double fontHeight = symbolFraction * cellSide;
     Gradient? cellGradient = null;
 
+    debugPrint('Build PuzzleControlBar: nCells $nCells hideNotes $hideNotes');
+
     // Controls are: Notes 1 2 3 (optional), 0 (delete), symbols 1 to nSymbols.
     List<int> controlValues = hideNotes ? [] : [NotesBit + 0xE];
     for (int n = 0; n <= nSymbols; n++) {

@@ -62,8 +62,8 @@ class PuzzleBoardView extends StatelessWidget
     PuzzleMap map = puzzle.puzzleMap;
 
     Rect boardSpace = const Offset(0.0, 0.0) & Size(boardSide, boardSide);
-    // debugPrint('PuzzleBoardView: Context size ${MediaQuery.of(context).size}'
-               // ' board space $boardSpace');
+    debugPrint('PuzzleBoardView: Context size ${MediaQuery.of(context).size}'
+               ' board space $boardSpace');
 
     // Find out if the System (O/S) or Flutter colour Theme is dark or light.
     bool isDarkMode = (Theme.of(context).brightness == Brightness.dark);

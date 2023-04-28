@@ -33,7 +33,8 @@ void main() async {
 
   // Run the app and pass in the SettingsController. The app listens to the
   // SettingsController for changes that require a screen repaint. The Puzzle
-  // object and its friends PuzzleMap and PuzzlePlayer are also constructed.
+  // model-object and its friends PuzzleMap, PuzzlePlayer and GameTimer are
+  // also constructed during this call for runApp() to start MaxiDokuApp().
 
-  runApp(MaxiDokuApp(Puzzle(), settingsController: settingsController));
+  runApp(MaxiDokuApp (Puzzle(), settingsController: settingsController));
 }

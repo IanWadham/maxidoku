@@ -58,6 +58,8 @@ class PuzzleListView extends StatelessWidget
       color: Colors.white,
       fontSize: 16.0,);
 
+    debugPrint('Build PuzzleListView.');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("MaxiDoku"),
@@ -179,7 +181,7 @@ class PuzzleListView extends StatelessWidget
             }
           ),
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings_outlined),
             tooltip: 'More Settings',
             color: Colors.white,
             onPressed: () {

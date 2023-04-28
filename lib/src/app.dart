@@ -11,7 +11,6 @@ import 'package:provider/provider.dart';
 // IDW TODO import 'app_lifecycle/app_lifecycle.dart';
 
 import 'models/puzzle.dart';
-import 'models/game_timer.dart';
 
 import 'views/puzzle_view.dart';
 import 'views/puzzle_list_view.dart';
@@ -24,7 +23,7 @@ class MaxiDokuApp extends StatelessWidget {
   // Adapted from the Flutter create command's "skeleton" example.
 
   const MaxiDokuApp(
-    Puzzle this.puzzle, {
+    this.puzzle, {
     Key? key,
     required this.settingsController,
     }
@@ -49,7 +48,6 @@ class MaxiDokuApp extends StatelessWidget {
         debugPrint('BUILD APP.');
         return MaterialApp(
 
-          // Show stripe in work-version, but NOT in /Applications play-version.
           debugShowCheckedModeBanner: false, // No Debug stripe at top-right.
 
           // Providing a restorationScopeId allows the Navigator built by the
@@ -133,10 +131,13 @@ class MaxiDokuApp extends StatelessWidget {
                         ),
                         // Access to Game Theme colours.
                         Provider(
-// TODO - PROBLEM: This one re-creates GameTheme and changes Theme Brightness
-//        colors, BUT PuzzleView keeps the same colors, until return to the menu
-//        screen, selection of a Puzzle and PuzzleView starting a new puzzle.
-//        The menu and settings screens go dark or light as the setting changes.
+                          // TODO - PROBLEM: This one re-creates GameTheme and
+                          //        changes Theme Brightness colors, BUT
+                          //        PuzzleView keeps the same colors, until
+                          //        return to the menu screen, selection of a
+                          //        Puzzle type and entry to PuzzleView, thus
+                          //        starting a new puzzle. The menu and settings                          //        screens go dark or light as soon as the
+                          //        setting changes.
                           create: (context) => GameTheme(isDarkMode),
                           lazy:   false,
                         ),
@@ -144,7 +145,7 @@ class MaxiDokuApp extends StatelessWidget {
                       builder: (context, child) {
                       // Top widget of puzzle screen.
                       // ?????? child: PuzzleView(puzzle, isDarkMode,
-                      final value = context.watch<GameTheme>();
+                      // ?????? final value = context.watch<GameTheme>();
                       return PuzzleView(puzzle, isDarkMode,
                         settings: settingsController
                         );

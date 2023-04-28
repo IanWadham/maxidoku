@@ -35,6 +35,8 @@ class TimerWidget extends StatelessWidget
     userTime  = context.select((GameTimer gameTimer)
                         => gameTimer.userTimeDisplay);
 
+    // debugPrint('BUILD TimerWidget: time |$userTime| visible $visible');
+
     if (visible) {
       return Text(userTime,	// Show the timer, if it has started, else ''.
                   maxLines:  1,

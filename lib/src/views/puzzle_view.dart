@@ -78,7 +78,9 @@ class PuzzleView extends StatelessWidget
                       ModalRoute.of(context)!.settings.arguments as List<int>;
     final int puzzleIndex = parameters.last;
     final int playOrTapIn = parameters.first;
-    print('PuzzleView puzzleIndex arg = $puzzleIndex');
+
+    debugPrint('Build PuzzleView: puzzleIndex = $puzzleIndex,'
+               ' playOrTapIn $playOrTapIn.');
 
     // Find the Puzzle and PuzzlePlayer models, as set up by Providers.
 
@@ -89,6 +91,7 @@ class PuzzleView extends StatelessWidget
     puzzlePlayer        = context.read<PuzzlePlayer>();
     // GameTheme gameTheme = context.read<GameTheme>();
     GameTheme gameTheme = context.watch<GameTheme>();
+                      // ?????? final value = context.watch<GameTheme>();
 
     debugPrint('PuzzleView: FOUND PUZZLE STATUS ${puzzlePlayer.puzzlePlay}.');
     debugPrint('PuzzleView: GameTheme.isDarkMode is ${gameTheme.isDarkMode}.');
@@ -163,10 +166,12 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(Icons.settings_outlined),
         iconSize: iconSize,
-        tooltip: 'Temporarily out of action',	// 'Settings',
+        // tooltip: 'Settings',
+        tooltip: 'Temporarily out of action',
         color:   foreground,
         onPressed: () {
           // Navigate to the settings page.
+          // debugPrint('PuzzleView: Go to Settings screen.');
           // Navigator.restorablePushNamed(
             // context, SettingsView.routeName);
         },
@@ -174,12 +179,10 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(Icons.save_outlined),
         iconSize: iconSize,
-        tooltip: 'Save puzzle',
+        // tooltip: 'Save puzzle',
+        tooltip: 'Not yet implemented',
         color:   foreground,
         onPressed: () {
-          // Navigate to the settings page.
-          Navigator.restorablePushNamed(
-            context, SettingsView.routeName);
         },
       ),
       IconButton(

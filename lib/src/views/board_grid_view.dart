@@ -29,6 +29,8 @@ class BoardGridView2D extends StatelessWidget
     final gameTheme = context.watch<GameTheme>();
     final puzzle    = context.read<Puzzle>();
 
+    debugPrint('Build BoardGridView2D');
+
     // RepaintBoundary seems to be essential to stop GridPainter re-painting
     // continually whenever a cell is tapped and the grid is unchanged. It
     // also stops GridPainter re-painting whenever the pointer moves out of
