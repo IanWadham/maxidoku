@@ -39,6 +39,7 @@ class PuzzleBoardView extends StatelessWidget
   final double boardSide;
   final SettingsController settings;
   final Puzzle puzzle;
+  late  GameTheme gameTheme;
 
   Offset hitPos    = const Offset(-1.0, -1.0);
 
@@ -55,7 +56,7 @@ class PuzzleBoardView extends StatelessWidget
     // In 3D puzzles, the repaint can be due to rotation, with no data change.
 
     puzzlePlayer        = context.read<PuzzlePlayer>();
-    GameTheme gameTheme = context.watch<GameTheme>();
+    gameTheme           = context.watch<GameTheme>();
 
     Color foreground    = gameTheme.boldLineColor;
 
@@ -213,12 +214,14 @@ class PuzzleBoardView extends StatelessWidget
       bool retrying = false;
       if (m.messageType == 'Q') {
         retrying = await questionMessage(
-                         context, 'Generate Puzzle', m.messageText,
-                         okText: 'Try Again', cancelText: 'Accept');
+                         context, 'Puzzle Generated', m.messageText,
+                         yesText: 'Try Again', noText: 'Accept',
+                         gameTheme: gameTheme);
       }
       else {
         // Inform the user about the puzzle that was generated, then return.
-        await infoMessage(context, 'Generate Puzzle', m.messageText);
+        await infoMessage(context, 'Puzzle Generated', m.messageText,
+                          gameTheme: gameTheme);
         if (m.messageType == 'F') {
           // TODO - Improve the user-feedback when/if this happens...
           // TODO - After 200 tries, Mathdoku/Killer returns type F because
@@ -257,20 +260,23 @@ class PuzzleBoardView extends StatelessWidget
       await questionMessage(
                         context,
                         'Tap In Own Puzzle?',
-                        'Do you wish to tap in your own puzzle?');
+                        'Do you wish to tap in your own puzzle?',
+                        gameTheme: gameTheme);
     // TODO - Expand this message a bit. Make it more explanatory.
     }
     else if (playNow == Play.Solved) {
       await infoMessage(context,
                         'WELL DONE!!!',
                         'You have reached the end of the puzzle!'
-                        ' Congratulations!!!');
+                        ' Congratulations!!!',
+                        gameTheme: gameTheme);
     }
     else if (playNow == Play.HasError) {
       await infoMessage(context,
                         'Incorrect Solution',
                         'Your solution contains one or more errors.'
-                        ' Please correct it and try again.');
+                        ' Please correct it and try again.',
+                        gameTheme: gameTheme);
     }
   }
 

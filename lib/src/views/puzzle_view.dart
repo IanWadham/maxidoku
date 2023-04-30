@@ -62,6 +62,7 @@ class PuzzleView extends StatelessWidget
   bool tappedInPuzzle = false;		// Whether the user tapped in a Puzzle.
 
   late PuzzlePlayer puzzlePlayer;
+  late GameTheme    gameTheme;
 
   Size   screenSize    = Size(0.0, 0.0);
   double edgeFactor    = 0.025;
@@ -89,8 +90,8 @@ class PuzzleView extends StatelessWidget
     //        after the board was filled with a correct or incorrect solution.
     puzzle              = context.watch<Puzzle>();
     puzzlePlayer        = context.read<PuzzlePlayer>();
-    // GameTheme gameTheme = context.read<GameTheme>();
-    GameTheme gameTheme = context.watch<GameTheme>();
+    // gameTheme           = context.read<GameTheme>();
+    gameTheme           = context.watch<GameTheme>();
                       // ?????? final value = context.watch<GameTheme>();
 
     debugPrint('PuzzleView: FOUND PUZZLE STATUS ${puzzlePlayer.puzzlePlay}.');
@@ -354,6 +355,7 @@ class PuzzleView extends StatelessWidget
         'Start a new puzzle?',
         'You could lose your work so far. Do you '
         ' really want to start a new puzzle?',
+        gameTheme: gameTheme,
       );
     }
     debugPrint('PuzzleView: New puzzle OK $newPuzzleOK,'
@@ -382,8 +384,9 @@ class PuzzleView extends StatelessWidget
           'Your puzzle has a single solution and is ready to be played.'
           ' Would you like to make it into a finished puzzle, ready to'
           ' solve, or continue working on it?',
-          okText:     'Finish Up',
-          cancelText: 'Continue Working',
+          yesText: 'Finish Up',
+          noText:  'Continue Working',
+          gameTheme: gameTheme,
         );
         if (finished) {
           // Convert the entered data into a Puzzle and re-display it.
@@ -397,7 +400,8 @@ class PuzzleView extends StatelessWidget
           'No Solution Found',
           'Your puzzle has no solution. Please check that you entered all'
           ' the data correctly and with no omissions, then edit it and try'
-          ' again.'
+          ' again.',
+          gameTheme: gameTheme,
         );
         return;
       case -2:
@@ -405,7 +409,8 @@ class PuzzleView extends StatelessWidget
         await infoMessage(
           context,
           '',
-          ''
+          '',
+          gameTheme: gameTheme,
         );
         return;
       case -3:
@@ -414,7 +419,8 @@ class PuzzleView extends StatelessWidget
           'Solution Is Not Unique',
           'Your puzzle has more than one solution. Please check that you'
           ' entered all the data correctly and with no omissions, then edit it'
-          ' and try again - maybe add some clues to narrow the possibilities.'
+          ' and try again - maybe add some clues to narrow the possibilities.',
+          gameTheme: gameTheme,
         );
         return;
       default:
@@ -433,6 +439,7 @@ class PuzzleView extends StatelessWidget
                  context,
                  'Quit?',
                  'You could lose your work so far. Do you really want to quit?',
+                 gameTheme: gameTheme,
                  );
     }
     if (okToQuit && context.mounted) {

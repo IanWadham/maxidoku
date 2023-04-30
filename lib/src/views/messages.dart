@@ -4,13 +4,12 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../settings/game_theme.dart';
 
-// TODO - Use a better barrier colour than black54 (black with 54% opacity),
-//        use better backround and foreground colours for the message area
-//        and shape and size the message-area nicely, e.g. rounded corners.
+// Because the message is issued by the AlertDialog in a changed Build Context,
+// Provider will not find the GameTheme object (red screen of death at run time)
+// and there is an optional gameTheme parameter in the Message calls.
 
 Future<bool> questionMessage(
   BuildContext context,
@@ -18,43 +17,36 @@ Future<bool> questionMessage(
   String question,
   {
   // Optional named parameters and their default values.
-  String okText     = 'Yes',
-  String cancelText = 'No',
-  // String ignoreText = '',	// No good. Makes an invisible tappable button.
+  String yesText = 'Yes',
+  String noText  = 'No',
+  GameTheme? gameTheme,
   }
 ) async
 {
   // Set up the buttons.
-  Widget okButton = TextButton(
-    child: Text(okText),
+  Widget yesButton = TextButton(
+    child: Text(yesText),
     onPressed: () {
-      debugPrint('User pressed $okText button in questionMessage()');
+      debugPrint('User pressed $yesText button in questionMessage()');
       Navigator.of(context).pop(true);	// Dismiss the dialog box.
     },
   );
-  Widget cancelButton = TextButton(
-    child: Text(cancelText),
+  Widget noButton = TextButton(
+    child: Text(noText),
     onPressed: () {
-      debugPrint('User pressed $cancelText button in questionMessage()');
+      debugPrint('User pressed $noText button in questionMessage()');
       Navigator.of(context).pop(false);	// Dismiss the dialog box.
     },
   );
-  // Widget ignoreButton = TextButton(
-    // child: Text(ignoreText),
-    // onPressed: () {
-      // debugPrint('User pressed $ignoreText button in questionMessage()');
-      // Navigator.of(context).pop(false);	// Dismiss the dialog box.
-    // },
-  // );
-  // Set up the AlertDialog.
+  // Set up the AlertDialog. 
+  Color? background = gameTheme?.messageBkgrColor;
   AlertDialog alert = AlertDialog(
     title:   Text(heading),
     content: Text(question),
-    backgroundColor:  Colors.amber.shade100,
+    backgroundColor: background,
     actions: [
-      // ignoreButton,
-      cancelButton,
-      okButton,
+      noButton,
+      yesButton,
     ],
   );
 
@@ -78,6 +70,7 @@ Future<void> infoMessage
   {
   // Optional named parameter and its default value.
   String okText     = 'OK',
+  GameTheme? gameTheme,
   }
 )
 async
@@ -89,15 +82,18 @@ async
       Navigator.of(context).pop();	// Dismiss the dialog box.
     },
   );
+
   // Set up the AlertDialog.
+  Color? background = gameTheme?.messageBkgrColor;
   AlertDialog alert = AlertDialog(
     title:   Text(heading),
     content: Text(information),
-    backgroundColor:  Colors.amber.shade100,
+    backgroundColor: background,
     actions: [
       okButton,
     ],
   );
+
   // Show the info message.
   // bool? reply = await showDialog(
   await showDialog(

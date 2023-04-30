@@ -42,6 +42,7 @@ class GameTheme {
   Color get thinLineColor    => _thinLineColor;
   Color get boldLineColor    => _boldLineColor;
   Color get cageLineColor    => _cageLineColor;
+  Color get messageBkgrColor => _messageBkgrColor;
 
   Color _backgroundColor  = Colors.white;
   Color _emptyCellColor   = Colors.white;
@@ -53,6 +54,7 @@ class GameTheme {
   Color _thinLineColor    = Colors.white;
   Color _boldLineColor    = Colors.white;
   Color _cageLineColor    = Colors.white;
+  Color _messageBkgrColor = Colors.white;
 
   // Default is light GameTheme for PuzzleBoard contents.
   final List<Color> _theme = [
@@ -65,13 +67,11 @@ class GameTheme {
     Colors.red.shade200,	// Colour of Error cells.
     Colors.brown.shade400,	// Colour of lines between cells.
     Colors.brown.shade600,	// Colour of symbols and group outlines.
-    Colors.lime.shade700,		// Colour for cage outlines.
+    Colors.lime.shade700,	// Colour for cage outlines.
   ];
 
   _setTheme()
   {
-    // highlight.color        = moveHighlight;	// TODO - Needed here?
-
     _backgroundColor  = Color(_theme[0].value ^ _themeMask);
     _emptyCellColor   = Color(_theme[1].value ^ _themeMask);
     _outerSphereColor = Color(_theme[2].value ^ _themeMask);
@@ -83,6 +83,7 @@ class GameTheme {
     _boldLineColor    = Color(_theme[8].value ^ _themeMask);
     _cageLineColor    = Color(_theme[9].value ^ _themeMask);
 
-    // TODO - calculateTextProperties(); when/if the theme changes.
+    // Message background same as _backgroundColor but with slight translucency.
+    _messageBkgrColor = _backgroundColor.withAlpha(0xd8);
   }
 } // End class GameTheme.
