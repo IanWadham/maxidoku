@@ -49,7 +49,7 @@ class PuzzleTypesText {
     SudokuGroups 0 HasSquareBlocks '''
 ,
 ''' Name Tiny Samurai
-    Description A small Samurai puzzle, with five overlapping 4x4 puzzles.
+    Description A small Samurai puzzle, with five overlapping 4x4 Sudoku puzzles.
     Author Francesco Rossi
     FileName TinySamurai.xml
     Icon ksudoku-tiny_samurai
@@ -79,7 +79,7 @@ class PuzzleTypesText {
     SudokuGroups 0 HasSquareBlocks '''
 ,
 ''' Name 6x6 Pseudo Sudoku
-    Description A 6x6 puzzle with rectangular blocks that must each contain the symbols 1-6 exactly once.
+    Description A 6x6 Sudoku puzzle with rectangular blocks that must each contain the symbols 1-6 exactly once.
     Author Ian Wadham
     FileName 6x6.xml
     Icon ksudoku-ksudoku_9x9
@@ -177,7 +177,7 @@ class PuzzleTypesText {
     Group 9 60 61 62 52 70 71 78 79 80 '''
 ,
 ''' Name Tiny Killer Sudoku 4x4
-    Description Same rules as 4x4 Sudoku, but each cage must also add to the total shown, using digits no more than once.
+    Description Same rules as 4x4 Sudoku, but each cage must also add to the total shown, using digits no more than once per cage.
     Author Ian Wadham
     FileName Killer_4x4.xml
     Icon ksudoku-ksudoku_4x4
@@ -190,7 +190,7 @@ class PuzzleTypesText {
     SudokuGroups 0 HasSquareBlocks '''
 ,
 ''' Name Killer Sudoku 9x9
-    Description Same rules as Classic 9x9 Sudoku, but each cage must also add to the total shown, using a digit no more than once per cage.
+    Description Same rules as Classic 9x9 Sudoku, but each cage must also add to the total shown, using digits no more than once per cage.
     Author Ian Wadham
     FileName Killer_9x9.xml
     Icon ksudoku-ksudoku_9x9
@@ -203,7 +203,7 @@ class PuzzleTypesText {
     SudokuGroups 0 HasSquareBlocks '''
 ,
 ''' Name Mathdoku 101 4x4
-    Description Size 4x4 grid, with calculated cages
+    Description Size 4x4 grid, with calculated cages. A digit can occur more than once in a cage.
     Author Ian Wadham
     FileName Mathdoku_4x4.xml
     Icon ksudoku-ksudoku_4x4
@@ -216,7 +216,7 @@ class PuzzleTypesText {
     SudokuGroups 0 NoSquareBlocks '''
 ,
 ''' Name Mathdoku - Settable Size
-    Description Size 3x3 to 9x9 grid, with calculated cages
+    Description Size 3x3 to 9x9 grid, with calculated cages. A digit can occur more than once in a cage.
     Author Ian Wadham
     FileName Mathdoku_Settable.xml
     Icon ksudoku-ksudoku_9x9
@@ -229,7 +229,7 @@ class PuzzleTypesText {
     SudokuGroups 0 NoSquareBlocks '''
 ,
 ''' Name Nonomino 9x9
-    Description Jigsaw variant with irregularly shaped Nonomino blocks
+    Description Jigsaw variant with irregularly shaped Nonomino (9 piece) blocks.
     Author Ian Wadham
     FileName Nonomino.xml
     Icon ksudoku-jigsaw
@@ -251,7 +251,7 @@ class PuzzleTypesText {
     Group 9  6  7 16 25  8 17 26 35 44 '''
 ,
 ''' Name Pentomino 5x5
-    Description Jigsaw variant with irregularly shaped Pentomino blocks
+    Description Jigsaw variant with irregularly shaped Pentomino (5 piece) blocks.
     Author Ian Wadham
     FileName Pentomino.xml
     Icon ksudoku-jigsaw
@@ -268,7 +268,7 @@ class PuzzleTypesText {
     Group 5  7  3  8 13  4
     Group 5 23  9 14 19 24 '''
 ,
-''' Name Roxdoku Twin
+''' Name 3D Roxdoku Twin
     Description Three-dimensional puzzle with two 3x3x3 cubes that share a corner.
     Author Ian Wadham
     FileName RoxdokuTwin.xml
@@ -287,7 +287,7 @@ class PuzzleTypesText {
     RoxdokuGroups 62 '''
 ,
 ''' Name Samurai
-    Description Samurai puzzle, with five overlapping 9x9 Sudoku puzzles.
+    Description Classic Samurai puzzle, with five overlapping 9x9 Sudoku puzzles.
     Author Francesco Rossi
     FileName Samurai.xml
     Icon ksudoku-samurai
@@ -334,7 +334,7 @@ class PuzzleTypesText {
     RoxdokuGroups 228 '''
 ,
 ''' Name Sohei
-    Description Sohei puzzle with four overlapping 9x9 Sudoku squares.
+    Description Sohei puzzle with four overlapping 9x9 Sudoku squares and a hole in the middle.
     Author Ian Wadham
     FileName Sohei.xml
     Icon ksudoku-samurai
@@ -350,7 +350,7 @@ class PuzzleTypesText {
     SudokuGroups 138 HasSquareBlocks '''
 ,
 ''' Name Tetromino 4x4
-    Description Jigsaw with Tetromino blocks (Tetris pieces).
+    Description Jigsaw with Tetromino size 4 blocks (Tetris pieces).
     Author Ian Wadham
     FileName Tetromino.xml
     Icon ksudoku-ksudoku_4x4
@@ -483,7 +483,7 @@ class PuzzleTypesText {
     RoxdokuGroups 96 '''
 ,
 ''' Name Blindfold Mathdoku 101
-    Description Size 4x4 grid, with calculated cages, but operators +-/x are hidden.
+    Description Size 4x4 grid, with calculated cages, but the operators +-/x are hidden.
     Author Ian Wadham
     FileName Mathdoku_4x4.xml
     Icon ksudoku-ksudoku_4x4
@@ -497,7 +497,7 @@ class PuzzleTypesText {
     SudokuGroups 0 NoSquareBlocks '''
 ,
 ''' Name Blindfold Mathdoku
-    Description Size 3x3 to 9x9 grid, with calculated cages, but operators +-/x are hidden.
+    Description Size 3x3 to 9x9 grid, with calculated cages, but the operators +-/x are hidden.
     Author Ian Wadham
     FileName Mathdoku_Settable.xml
     Icon ksudoku-ksudoku_9x9
