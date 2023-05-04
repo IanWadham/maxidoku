@@ -260,15 +260,15 @@ class PuzzleBoardView extends StatelessWidget
       await questionMessage(
                         context,
                         'Tap In Own Puzzle?',
-                        'Do you wish to tap in your own puzzle?',
+                        'Do you wish to tap in your own puzzle? This can be'
+                        ' one you have devised yourself or one from another'
+                        ' source, such as a newspaper or website.',
                         gameTheme: gameTheme);
-    // TODO - Expand this message a bit. Make it more explanatory.
     }
     else if (playNow == Play.Solved) {
       await infoMessage(context,
                         'WELL DONE!!!',
-                        'You have reached the end of the puzzle!'
-                        ' Congratulations!!!',
+                        'You have reached the end of the puzzle!',
                         gameTheme: gameTheme);
     }
     else if (playNow == Play.HasError) {

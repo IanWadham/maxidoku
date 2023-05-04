@@ -236,7 +236,10 @@ class PuzzleGenerator
           //        or change the Difficulty... ???????
           response.messageType = 'F';
           response.messageText = 'Attempts to generate a puzzle failed after'
-                                 ' about 200 tries.';
+                                 ' about 200 tries. Please try again, maybe'
+                                 ' with a lower level of Difficulty.';
+          // This should show an empty board then go back to the menu screen,
+          // where the user can retry and also change the Difficulty.
         }
         break;
       default:

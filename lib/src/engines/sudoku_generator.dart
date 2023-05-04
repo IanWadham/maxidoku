@@ -239,11 +239,10 @@ class SudokuGenerator
       currSolution = _solver.createFilledBoard();
 
       // debugPrint('RETURN FROM _solver.createFilledBoard()\n');
-      // dbo1 "Time to fill board: %d msec\n", t.elapsed());
       if (currSolution.isEmpty) {
         debugPrint('FAILED to find a solution from which to generate a puzzle.');
         response = Message('F', 'Puzzle generation failed. Please try again?');
-        break;
+         return response;;
       }
 
       // Randomly insert solution-values into an empty board until a point is
@@ -256,7 +255,6 @@ class SudokuGenerator
         response = Message('F', 'Sudoku Generator FAILED. Please try again.');
         return response;
       }
-      // dbo1 "Time to do insertValues: %d msec\n", t.elapsed());
 
       if (difficultyRequired.index > _stats.difficulty.index) {
         // If the the Puzzle is not as difficult as required, keep removing
@@ -268,18 +266,12 @@ class SudokuGenerator
         currPuzzle = removeValues (currSolution, currPuzzle,
                                    difficultyRequired, symmetry);
         // debugPrint('RETURN FROM removeValues()\n');
-        // dbo1 "Time to do removeValues: %d msec\n", t.elapsed());
       }
 
       Difficulty d = calculateRating (currPuzzle, 5);
 
       // Count the number of attempts to reach the required level of difficulty.
       count++;
-
-      // dbo1 "CYCLE %d, achieved difficulty %d, required %d, rating %3.1f\n",
-                       // count, d, difficultyRequired, _accum.ratingF);
-      // dbe1 "CYCLE %d, achieved difficulty %d, required %d, rating %3.1f\n",
-                       // count, d, difficultyRequired, _accum.ratingF);
 
       // Use the highest rated puzzle so far.
       if (_accum.rating > bestRating) {
@@ -293,13 +285,13 @@ class SudokuGenerator
         bestSolution     = currSolution;
       }
 
+      debugPrint('Count $count of $maxTries, ${d.index} target ${difficultyRequired.index}');
       // Check and explain the Sudoku/Roxdoku puzzle-generator's results.
       if ((d.index < difficultyRequired.index) && (count >= maxTries)) {
         // Exit after max attempts?
         String message =
           'After $maxTries tries, the best difficulty level achieved'
-          ' is ${difficultyTexts[bestDifficulty.index]}, with internal rating'
-          ' $bestRatingF, but you requested'
+          ' is ${difficultyTexts[bestDifficulty.index]}, but you requested'
           ' ${difficultyTexts[difficultyRequired.index]}.'
           ' Do you wish to try again?\n\n'
           'If you accept the puzzle as is, it may help to change to'
@@ -311,32 +303,18 @@ class SudokuGenerator
         break;
       }
       if ((d.index >= difficultyRequired.index) || (count >= maxTries)) {
-        if (_accum.nGuesses == 0) {
-          // ans = KMessageBox::questionYesNo (&owner,
-          int movesToGo = (_stats.nCells - bestNClues);
-          String message =
-            'It will be possible to solve this puzzle'
-            ' by logic alone. No guessing should be required.\n\n'
-            'The difficulty level is ${difficultyTexts[d.index]}, with'
-            ' internal rating $bestRatingF. There are'
-            ' $bestNClues clues at the start and $movesToGo moves to go.';
-          // debugPrint(message);
-          response = Message('I', message);
-        }
-        else {
-          int movesToGo = (_stats.nCells - bestNClues);
-          String message =
-            'This puzzle\'s difficulty level is ${difficultyTexts[d.index]},'
-            ' with internal difficulty rating $bestRatingF, there are'
-            ' $bestNClues clues at the start and $movesToGo moves to go.';
-          // debugPrint(message);
-          response = Message('I', message);
-        }
-
+        int movesToGo = (_stats.nCells - bestNClues);
+        String message =
+          'This puzzle\'s difficulty level is ${difficultyTexts[d.index]},'
+          ' there are $bestNClues clues at the start and $movesToGo'
+          ' moves to go.';
+        // debugPrint(message);
+        response = Message('I', message);
         // Exit when the required level of difficulty has been reached.
         break;
       }
-    }
+
+    } // End while(true)
 
     if (bestPuzzle.isEmpty || bestSolution.isEmpty) {
       response = Message('F', 'Sudoku Generator FAILED. Please try again.');
@@ -603,8 +581,6 @@ class SudokuGenerator
     // No guesses until this much of the puzzle, including clues, is filled in.
     double    guessLimit = 0.6;
     int       noGuesses  = (guessLimit * _stats.nCells + 0.5).floor();
-    // dbo1 "Guess limit = %.2f, nCells = %d, nClues = %d, noGuesses = %d\n",
-            // guessLimit, _stats.nCells, _stats.nClues, noGuesses);
 
     // debugPrint('Start REMOVING:\n');
 
@@ -637,8 +613,6 @@ class SudokuGenerator
         // Do not force the human solver to start guessing too soon.
         if ((result >= 0) && (required != Difficulty.Unlimited) &&
             (_stats.firstGuessAt <= (noGuesses - _stats.nClues))) {
-            // dbo1 "removeValues: FIRST GUESS is too soon: move %d of %d.\n",
-                    // _stats.firstGuessAt, _stats.nCells - _stats.nClues);
             result = -4;
         }
 
@@ -658,8 +632,6 @@ class SudokuGenerator
             if (_stats.difficulty == required) {
                 // Save removed positions while the difficulty is as required.
                 tailOfRemoved.add(cell);
-                // dbo1 "OVERSHOOT %d at sequence %d\n",
-                        // tailOfRemoved.count(), n);
                 if ((required == Difficulty.Unlimited) &&
                      (_stats.rating > 50.0)) {
                   debugPrint('STOPPING when rating > 50.0');
@@ -669,10 +641,6 @@ class SudokuGenerator
 
             else if (_stats.difficulty.index > required.index) {
                 // Finish if the required difficulty is exceeded.
-                // dbo1 "BREAK on difficulty %d\n", _stats.difficulty);
-                // dbe1 "BREAK on difficulty %d\n", _stats.difficulty);
-                // dbo1 "Replaced %d at cell %d, overshoot is %d\n",
-                        // value, cell, tailOfRemoved.count());
                 // Replace the value involved.
                 changeClues (puzzle, cell, symmetry, solution);
                 break;
@@ -690,7 +658,6 @@ class SudokuGenerator
     if ((required != Difficulty.Unlimited) && (tailOfRemoved.length > 1)) {
         for (int k = 0; k < tailOfRemoved.length ~/ 2; k++) {
             cell = tailOfRemoved.removeLast();
-            // dbo1 "Replaced clue(s) for cell %d\n", cell);
             changeClues (puzzle, cell, symmetry, solution);
         }
     }
@@ -730,7 +697,6 @@ class SudokuGenerator
     // Get references to the current Moves and MoveTypes from the SudokuSolver.
     _moves     = _solver.moves;
     _moveTypes = _solver.moveTypes;
-    // dbo1 "\nanalyseMoves()\n");
 
     s.nCells       = _stats.nCells;
     s.nClues       = _stats.nClues;
@@ -745,28 +711,19 @@ class SudokuGenerator
         mType   = _moveTypes.removeAt(0);
         int pos = m >> lowWidth;	// Was pairPos(m);
 
-        // The following values were used in commented-out debug-code below.
-        // int val = m & lowMask;	// Was pairVal(m);
-        // int row = _puzzleMap.cellPosY (pos);
-        // int col = _puzzleMap.cellPosX (pos);
-
         switch (mType) {
         case MoveType.Single:
-            // dbo2 "  Single Pick %d %d row %d col %d\n", val, pos, row+1, col+1);
             _sudokuMoves.add(pos);
             s.nSingles++;
             break;
         case MoveType.Spot:
-            // dbo2 "  Single Spot %d %d row %d col %d\n", val, pos, row+1, col+1);
             _sudokuMoves.add(pos);
             s.nSpots++;
             break;
         case MoveType.Deduce:
-            // dbo2 "Deduce: Iteration %d\n", m);
             s.nDeduces++;
             break;
         case MoveType.Guess:
-            // dbo2 "GUESS:        %d %d row %d col %d\n", val, pos, row+1, col+1);
             _sudokuMoves.add(pos);
             if (s.nGuesses < 1) {
                 s.firstGuessAt = s.nSingles + s.nSpots + 1;
@@ -774,7 +731,6 @@ class SudokuGenerator
             s.nGuesses++;
             break;
         case MoveType.Wrong:
-            // dbo2 "WRONG GUESS:  %d %d row %d col %d\n", val, pos, row+1, col+1);
             break;
         case MoveType.Result:
             break;
