@@ -478,7 +478,6 @@ class SudokuSolver
 
     int bitPattern = 0;
     for (int groupNumber = 0; groupNumber < _nGroups; groupNumber++) {
-	// dbo3 "Group %3d ", groupNumber);
 	List<int> cellList = _puzzleMap.group (groupNumber);
         bitPattern = 0;
         for (int n = 0; n < _groupSize; n++) {
@@ -486,11 +485,9 @@ class SudokuSolver
             if ((value >= 0) && (value < MaxValue)) {
                 bitPattern |= (1 << value);	// Add bit for each value found.
             }
-	    // dbo3 "%3d=%2d ", cellList[n], value + 1);
         }
         // Reverse all the bits, giving values currently not found in the group.
         _requiredGroupValues [groupNumber] = bitPattern ^ allValues;
-	// dbo3 "bits %03o\n", _requiredGroupValues[groupNumber]);
     }
     // debugPrint('Required Group Values (bit patterns)');
     // debugPrint(_requiredGroupValues);
@@ -534,19 +531,6 @@ class SudokuSolver
     }
     // debugPrint('Bit maps for the currently valid cell values');
     // debugPrint(_validCellValues);
-    // dbo2 "Finished _setUpValueRequirements()\n");
-
-    // dbo3 "allowed:\n");
-    for (int i = 0; i < _boardArea; i++) {
-        // dbo3 "'%03o', ", _validCellValues[i]);
-        // if ((i + 1) % _boardSize == 0) dbo3 "\n");
-    }
-    // dbo3 "needed:\n");
-    for (int groupNumber = 0; groupNumber < _nGroups; groupNumber++) {
-        // dbo3 "'%03o', ", _requiredGroupValues[groupNumber]);
-        // if ((groupNumber + 1) % _nSymbols == 0) dbo3 "\n");
-    }
-    // dbo3 "\n");
   }
 
   void _updateValueRequirements (BoardContents boardValues, int cell)
