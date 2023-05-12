@@ -25,12 +25,6 @@ import 'puzzle_board_view.dart';
 import 'puzzle_control_bar.dart';
 import 'timer_widget.dart';
 
-/* ************************************************************************** **
-  // Can get device/OS/platform at https://pub.dev/packages/device_info_plus
-  // See also the "Dependencies" list in the column at RHS of that page re
-  // info on MacOS, Linux, Windows, etc.
-** ************************************************************************** */
-
 class PuzzleView extends StatelessWidget
 {
 // Displays a 2D or 3D Sudoku puzzle of a selected type, difficulty and size.
@@ -46,31 +40,25 @@ class PuzzleView extends StatelessWidget
 //
 // A further complication is that messages to the user can be issued only when
 // there is no repainting going on and they must not be accidentally RE-issued
-// if a screen repaint occurs, otherwise the screen darkens and goes black. Some
-// messages originate from actions within the puzzle model. These are deferred
-// and later handled by a postFrameCallback() procedure in the PuzzleBoardView's
-// Widget build(). PuzzleBoardView is a sub-Widget of the PuzzleView Widget.
+// if a screen repaint occurs. Some messages originate from actions within the
+// puzzle model. These are deferred and later handled by a postFrameCallback()
+// procedure in the PuzzleBoardView's Widget build(). PuzzleBoardView is a
+// sub-Widget of the PuzzleView Widget.
 
   final bool isDarkMode;	// Display in dark theme-mode colours or light.
   final SettingsController settings;
   Puzzle puzzle;
 
-  PuzzleView(this.puzzle, this.isDarkMode, {required this.settings, Key? key,}) : super(key: key);
+  PuzzleView(this.puzzle, this.isDarkMode,
+    {required this.settings, Key? key,}) : super(key: key);
 
   final bool timerVisible = true;	// TODO - Make this a Setting...
-
-  bool tappedInPuzzle = false;		// Whether the user tapped in a Puzzle.
 
   late PuzzlePlayer puzzlePlayer;
   late GameTheme    gameTheme;
 
-  Size   screenSize    = Size(0.0, 0.0);
-  double edgeFactor    = 0.025;
-  double edgePadding   = 5.0;
-  double boardSide     = 200.0;
-  double controlSide   = 18.0;
-  int    nSymbols      = 9;
-  double iconSize      = 8.0;
+  final double iconSize      = 30.0;
+  final double iconPad       = 8.0;	// IconButton default all-round padding.
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +67,9 @@ class PuzzleView extends StatelessWidget
                       ModalRoute.of(context)!.settings.arguments as List<int>;
     final int puzzleIndex = parameters.last;
     final int playOrTapIn = parameters.first;
+
+    // Is the user tapping in a Puzzle from the "Tap In A Puzzle" menu?
+    final bool isTappedInPuzzle = (playOrTapIn == forTapIn);
 
     debugPrint('Build PuzzleView: puzzleIndex = $puzzleIndex,'
                ' playOrTapIn $playOrTapIn.');
@@ -90,9 +81,8 @@ class PuzzleView extends StatelessWidget
     //        after the board was filled with a correct or incorrect solution.
     puzzle              = context.watch<Puzzle>();
     puzzlePlayer        = context.read<PuzzlePlayer>();
-    // gameTheme           = context.read<GameTheme>();
-    gameTheme           = context.watch<GameTheme>();
-                      // ?????? final value = context.watch<GameTheme>();
+    gameTheme           = context.read<GameTheme>();
+    // ?????? gameTheme           = context.watch<GameTheme>();
 
     debugPrint('PuzzleView: FOUND PUZZLE STATUS ${puzzlePlayer.puzzlePlay}.');
     debugPrint('PuzzleView: GameTheme.isDarkMode is ${gameTheme.isDarkMode}.');
@@ -100,7 +90,9 @@ class PuzzleView extends StatelessWidget
 
     // Set portrait/landscape, depending on the device or window-dimensions.
     Orientation orientation = MediaQuery.of(context).orientation;
-    screenSize = MediaQuery.of(context).size;
+
+    // Get the available screen/window/webpage size - in logical pixels.
+    Size        screenSize  = MediaQuery.of(context).size;
 
     // If a new puzzle has been requested, create a puzzle and board, else just
     // do a repaint, but DO NOT clobber puzzle play by creating a new puzzle!
@@ -116,12 +108,10 @@ class PuzzleView extends StatelessWidget
       // TODO - Compute-bound, maybe a few seconds, usually < 1 sec. What to do?
 
       if (playOrTapIn == forPlay) {
-        tappedInPuzzle = false;
         debugPrint('\nPuzzleView: GENERATE PUZZLE, index $puzzleIndex.');
         puzzle.generatePuzzle(settings.difficulty, settings.symmetry);
       }
       else if (playOrTapIn == forTapIn) {
-        tappedInPuzzle = true;
         debugPrint('\nPuzzleView: TAP IN PUZZLE, index $puzzleIndex.');
         puzzlePlayer.initialise(puzzle.puzzleMap, puzzle);
       }
@@ -133,8 +123,7 @@ class PuzzleView extends StatelessWidget
     // The information for configuring the Puzzle Board View is now available.
     PuzzleMap map = puzzle.puzzleMap;
 
-    // Save the orientation, for later use by PuzzlePainters and paint().
-    // A setter in Puzzle saves "portrait" in either 2D or 3D PaintingSpecs.
+    // Save the orientation.
     bool portrait = (orientation == Orientation.portrait);
 
     // Set up Puzzle's theme in dark/light mode and get the icon button colours.
@@ -142,14 +131,23 @@ class PuzzleView extends StatelessWidget
     Color foreground = gameTheme.boldLineColor;
 
     // Provide some layout hints for Flutter, including 3D layout if applicable.
-    calculateLayoutHints(map, portrait);
+    List<double> layoutHints = calculateLayoutHints(
+                                 map, portrait, screenSize, isTappedInPuzzle
+                               );
+    double boardSide       = layoutHints[0];
+    double edgePadding     = layoutHints[1];
+    double controlsPadding = layoutHints[2];
+    double controlSide     = layoutHints[3];
+
+    EdgeInsetsGeometry iconPadding = EdgeInsets.all(iconPad);
+    debugPrint('ICON SIZE $iconSize, ICON PAD $iconPad.');
 
     // TODO - Can we put Icon list away somewhere and access list.length above?
 
     // Create the list of timer widget and action-icons.
     List<Widget> actionIcons = [
       SizedBox(	// If the timer is invisible, shrink it and center the icons.
-        width: timerVisible ? 4.0 * iconSize : 1,
+        width: timerVisible ? 2.0 * iconSize : 1,
         child: TimerWidget(
           visible:   timerVisible,
           textColor: foreground,
@@ -158,15 +156,18 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(CommunityMaterialIcons.exit_run), // exit_to_app),
         iconSize: iconSize,
+        padding:  iconPadding,
         tooltip: 'Return to list of puzzles',
         color:   foreground,
         onPressed: () {
           exitScreen(context);
         },
       ),
+/* DISABLED - Could not get light/dark Settings change to work in this screen.
       IconButton(
         icon: const Icon(Icons.settings_outlined),
         iconSize: iconSize,
+        padding:  iconPadding,
         // tooltip: 'Settings',
         tooltip: 'Temporarily out of action',
         color:   foreground,
@@ -177,9 +178,11 @@ class PuzzleView extends StatelessWidget
             // context, SettingsView.routeName);
         },
       ),
+*/
       IconButton(
         icon: const Icon(Icons.save_outlined),
         iconSize: iconSize,
+        padding:  iconPadding,
         // tooltip: 'Save puzzle',
         tooltip: 'Not yet implemented',
         color:   foreground,
@@ -189,6 +192,7 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(CommunityMaterialIcons.lightbulb_on_outline),
         iconSize: iconSize,
+        padding:  iconPadding,
         tooltip: 'Get a hint',
         color:   foreground,
         onPressed: () {
@@ -198,6 +202,7 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(Icons.undo_outlined),
         iconSize: iconSize,
+        padding:  iconPadding,
         tooltip: 'Undo a move',
         color:   foreground,
         onPressed: () {
@@ -207,6 +212,7 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(Icons.redo_outlined),
         iconSize: iconSize,
+        padding:  iconPadding,
         tooltip: 'Redo a move',
         color:   foreground,
         onPressed: () {
@@ -216,10 +222,11 @@ class PuzzleView extends StatelessWidget
       IconButton(
         icon: const Icon(Icons.devices_outlined),
         iconSize: iconSize,
+        padding:  iconPadding,
         tooltip: 'Create a new puzzle',
         color:   foreground,
         onPressed: () {
-          createPuzzle(context);
+          createPuzzle(context, isTappedInPuzzle);
         },
       ),
     ]; // End list of action icons
@@ -245,22 +252,24 @@ class PuzzleView extends StatelessWidget
               ),
               const Spacer(),
               PuzzleBoardView(puzzle, boardSide, settings: settings),
-              Padding(padding: EdgeInsets.only(top: edgePadding * 5.0)),
-              PuzzleControlBar(boardSide, map,
+              Padding(padding: EdgeInsets.only(top: controlsPadding)),
+              PuzzleControlBar(boardSide, controlSide, map,
                                horizontal: true,
                                hideNotes: puzzlePlayer.hideNotes),
               const Spacer(),
             ],
-          ), // End body: Column(
-        ), // End Padding(
-      ); // End return Scaffold(
+          ), // End Column
+        ), // End body: Padding
+      ); // End return Scaffold
     }
     else {			// Landscape mode.
       debugPrint('PuzzleView: Paint puzzle view, landscape mode.');
       return Scaffold(		// Omit AppBar, to maximize real-estate.
         // Give puzzle-background colour to whole screen, including icons.
         backgroundColor: background,
-        body: Column(
+        body: Padding(
+          padding: EdgeInsets.all(edgePadding),
+          child: Column(
           children: <Widget> [
             InkWell(
               child: Row(
@@ -268,72 +277,95 @@ class PuzzleView extends StatelessWidget
                 children: actionIcons,
               ),
             ),
-            // ?????? Spacer(),
+            Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget> [
                 PuzzleBoardView(puzzle, boardSide, settings: settings),
-                Padding(padding: EdgeInsets.only(left: edgePadding * 5.0)),
-                PuzzleControlBar(boardSide, map,
+                Padding(padding: EdgeInsets.only(left: controlsPadding)),
+                PuzzleControlBar(boardSide, controlSide, map,
                                  horizontal: false,
                                  hideNotes: puzzlePlayer.hideNotes),
               ],
-            ), // End Row(.
-            // ?????? Spacer(),
+            ), // End Row
+            Spacer(),
           ],
-        ), // End body: Column(
-      ); // End return Scaffold(
+        ), // End Column
+        ), // End body: Padding
+      ); // End return Scaffold
     }
   } // End Widget build
 
-  void calculateLayoutHints(PuzzleMap map, bool portrait)
+
+  List<double> calculateLayoutHints(
+                 PuzzleMap map, bool portrait,
+                 Size screenSize, bool isTappedInPuzzle)
   {
+    double edgeFactor        = 0.025;
+    List<double> layoutHints = [];
+
     double longSide     = screenSize.longestSide;
     double shortSide    = screenSize.shortestSide;
+    double aspectRatio  = longSide/shortSide;
     double edgePadding  = shortSide * edgeFactor;
-    shortSide           = shortSide - 2.0 * edgePadding;
-    longSide            = longSide  - 2.0 * edgePadding;
-    double nIcons       = 10.0;
-    iconSize            = 0.5  * shortSide / nIcons;
-    // debugPrint('Layout long $longSide short $shortSide, '
-          // 'nIcons $nIcons, iconSize $iconSize edgePadding $edgePadding');
-    nSymbols            = map.nSymbols;
+    double iconHitArea  = iconSize + 2.0 * iconPad;
 
-////////////////////////////////////////////////////////////////////////////////
-// TODO - Calculations need fine-tuning, also the widget-trees (pads? spacers?).
-////////////////////////////////////////////////////////////////////////////////
+    int nSymbols        = map.nSymbols;
+    int nControls       = isTappedInPuzzle ? nSymbols + 1 : nSymbols + 2;
+
+    debugPrint('Layout long $longSide short $shortSide, '
+          'iconSize $iconSize edgePadding $edgePadding');
+
+    iconHitArea         = iconHitArea > 40.0 ? iconHitArea : 40.0;
+    edgePadding         = (edgePadding > 8.0) ? 8.0 : edgePadding;
+
+    double controlsPadding = 5.0 * edgePadding;
+    double boardSide       = 0.0;
+    double controlSide     = 0.0;
+
+    shortSide              = shortSide - 2.0 * edgePadding;
+    longSide               = longSide  - 2.0 * edgePadding;
 
     if (portrait) {
       // Vertical layout: icons, board, empty space, control bar.
-      boardSide = longSide - (2.0 * iconSize) - edgePadding - controlSide;
-      if (boardSide > shortSide) {
-        boardSide = shortSide;
-      }
+      controlSide = shortSide / nControls;
+
+      // Get the vertical space available for the board area.
+      boardSide   = longSide - iconHitArea - controlsPadding - controlSide;
     }
     else {
       // Horizontal layout: icons at top, board, empty space, control bar below.
-      boardSide = longSide - edgePadding - controlSide;
-      // double testValue = shortSide - (2.0 * iconSize) - edgePadding;
-      double testValue = shortSide - (1.0 * iconSize); // - edgePadding;
-      // debugPrint('testValue $testValue boardSide $boardSide');
-      if (boardSide > testValue) {
-        boardSide = testValue;
-      }
+      shortSide   = shortSide - iconHitArea - 4.0; // Safety factor.
+      controlSide = shortSide / nControls;
+
+      // Get the horizontal space available for the board area.
+      boardSide = longSide - controlsPadding - controlSide;
+      // debugPrint('Short side $shortSide boardSide $boardSide');
     }
-    if (nSymbols <= 6) {
-      boardSide = nSymbols * (boardSide / 6.0);
+    // If OK, board area fills available screen space, otherwise something less.
+    if (boardSide > shortSide) {
+      boardSide = shortSide;
     }
-    controlSide = boardSide / (nSymbols + 2.0);;
-/*
-    if (map.specificType == SudokuType.Roxdoku) {	// 3D Puzzle.
-      // Calculate the dimensions of the puzzle's arrangement of spheres.
+
+    // Choose smaller symbols and/or cells if there are < 6 of them.
+    // NOTE: Tiny Samurai needs a full 10x10 board, but only 4 symbols.
+    if (nSymbols < 6) {
+      // controlSide = boardSide / (6.0 + nControls - nSymbols);
+      controlSide = nSymbols * (boardSide / 6.0) / nControls;
     }
-*/
+    if ((map.sizeY < 6) && (map.sizeZ == 1)) {	// 2D board, < 6x6 size..
+      boardSide = map.sizeY * (boardSide / 6.0);
+    }
+
+    // Return nControls, controlSide, boardSide, controlsPadding.
+    layoutHints = [boardSide, edgePadding, controlsPadding, controlSide];
+    return layoutHints;
   }
 
   // PROCEDURES FOR ICON ACTIONS AND USER MESSAGES.
 
-  void createPuzzle(context)
+  void createPuzzle(context, bool isTappedInPuzzle)
   async
   {
     // Generate a puzzle of the requested level of difficulty
@@ -346,7 +378,7 @@ class PuzzleView extends StatelessWidget
     }
 
     bool newPuzzleOK = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
-                       (! tappedInPuzzle && (puzzlePlayer.puzzlePlay
+                       (! isTappedInPuzzle && (puzzlePlayer.puzzlePlay
                                                 == Play.ReadyToStart)) ||
                        (puzzlePlayer.puzzlePlay == Play.Solved);
     if (! newPuzzleOK) {

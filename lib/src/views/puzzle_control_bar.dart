@@ -15,12 +15,12 @@ import 'symbol_view.dart';
 class PuzzleControlBar extends StatelessWidget
 {
   final double    boardSide;
+  final double    controlSide;
   final PuzzleMap map;
-  // ?????? final int       nSymbols;
   final bool      horizontal;
   final bool      hideNotes;
 
-  PuzzleControlBar(this.boardSide, this.map,
+  PuzzleControlBar(this.boardSide, this.controlSide, this.map,
                    {required this.horizontal,
                     required this.hideNotes,
                     Key? key})
@@ -31,7 +31,8 @@ class PuzzleControlBar extends StatelessWidget
   {
     int    nSymbols = map.nSymbols;
     int    nCells   = hideNotes ? nSymbols + 1 : nSymbols + 2;
-    double cellSide = boardSide / nCells;
+    // ?????? double cellSide = boardSide / nCells;
+    double cellSide = controlSide; // ?????? boardSide / nCells;
 
     GameTheme gameTheme   = context.read<GameTheme>();
 
@@ -133,7 +134,6 @@ class ControlGridPainter extends CustomPainter
     boldLinePaint.strokeWidth  = puzzleCellSide / boldGridFactor;
 
     Rect r = Offset.zero & size;
-    print('Control Rect $r, size $size');
 
     // Paint background of control bar.
     canvas.drawRect(r, backgroundPaint);
