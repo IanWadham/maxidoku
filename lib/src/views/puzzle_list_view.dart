@@ -80,8 +80,6 @@ class PuzzleListView extends StatelessWidget
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
         leading: null,
-        // TODO - Move AppBar actions: to bottom: and TabBar()... ?
-        //        See example in AppBar API doco.
         actions: [
           PopupMenuButton<Difficulty>(
             icon: const Icon(Icons.leaderboard),
@@ -262,21 +260,19 @@ class _MyListViewState extends State<MyListView>
           title:       Text(item[1]),
           subtitle:    Text(item[2]),
           isThreeLine: true,
-          leading:     Image.asset(
+          // leading:     Image.asset(
             // Display a MaxiDoku icon from the assets folder.
-            'assets/icons/hi48-action-${item[3]}.png',
-            color: null,    // Don't blend in any colour.
-          ),
+            // 'assets/icons/hi48-action-${item[3]}.png',
+            // color: null,    // Don't blend in any colour.
+          // ),
           // Highlight prevous selection (from settings).
           selected:    index == _selectedIndex,
           enabled:     true,
           // Called when the user has selected an item from the list.
           onTap: () {
-            // TODO - Call a small function in models/puzzle_list.dart.
             List<int> parameters = [];	// Parameters to be sent to PuzzleView.
             parameters.add(PuzzleList.puzzles[widget.listNumber].first);
             parameters.add(PuzzleList.puzzles[widget.listNumber][index + 1]);
-            print('Parameters for PuzzleView: $parameters');
 
             item = items.getItem(widget.listNumber, index);
             // Make the highlight on this selection persist.
