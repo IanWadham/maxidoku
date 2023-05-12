@@ -101,7 +101,7 @@ class PuzzleBoardView extends StatelessWidget
       }
 
       // Add rotation buttons (left, right, upward, downward) to the view.
-      double size = 30.0;
+      double size = 24.0;
       for (int n = 0; n < 4; n++) {
         roundCellViews.add(rotationButton(n, boardSpace, size, foreground));
       }
