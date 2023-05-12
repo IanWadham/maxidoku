@@ -1,5 +1,5 @@
 name: maxidoku
-description: A new Flutter project.
+description: A new Flutter game that creates many kinds of Sudoku puzzle.
 
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
@@ -41,7 +41,7 @@ dependencies:
   # Flutter can't find compatible versions in Podfile...
   # games_services: ^3.0.0  # Achievements and leaderboards
 
-  google_mobile_ads: ^2.0.1  # Ads
+  # google_mobile_ads: ^2.0.1  # Ads
 
   # Flutter can't find compatible versions in Podfile...
   # in_app_purchase: ^3.0.1  # In-app purchases
@@ -62,7 +62,8 @@ flutter:
 
   assets:
     # Add assets from the images directory to the application.
-    - assets/images/hi64-action-ksudoku-ksudoku_9x9.png
+    # Obsolete icons removed from repository - new ones needed.
+    # - assets/images/hi64-action-ksudoku-ksudoku_9x9.png
     - assets/images/flutter_logo.png
-    # Add assets from the MultiDoku icons directory to the application.
-    - assets/icons/
+    # Add assets from the MaxiDoku icons directory to the application.
+    # - assets/icons/
