@@ -285,7 +285,6 @@ class SudokuGenerator
         bestSolution     = currSolution;
       }
 
-      debugPrint('Count $count of $maxTries, ${d.index} target ${difficultyRequired.index}');
       // Check and explain the Sudoku/Roxdoku puzzle-generator's results.
       if ((d.index < difficultyRequired.index) && (count >= maxTries)) {
         // Exit after max attempts?

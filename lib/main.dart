@@ -13,6 +13,8 @@ import 'src/settings/settings_service.dart';
 import 'src/models/puzzle.dart';
 
 void main() async {
+  // If uncommented, the following will cancel all debugPrint() output.
+  // debugPrint = (String? message, {int? wrapWidth}) => '';
 
   // Start up the persistent-storage package for Settings (on file).
   // Remembering a player's preferences between sessions is an

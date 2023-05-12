@@ -21,7 +21,7 @@ import '../layouts/board_layout_3d.dart';
 class Puzzle with ChangeNotifier
 {
   // Constructor.
-  Puzzle() {print('PUZZLE CREATED');} // ;
+  Puzzle();
 
   final PuzzleMap       _puzzleMap       = PuzzleMap();
   final PuzzlePlayer    _puzzlePlayer    = PuzzlePlayer();

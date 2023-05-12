@@ -18,7 +18,6 @@ class GameTheme {
   {
     _themeMask = isDarkMode ? _darkThemeMask : _lightThemeMask;
     _setTheme();
-    print('GameTheme: isDarkMode is $isDarkMode.');
   }
 
   bool isDarkMode;

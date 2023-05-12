@@ -87,10 +87,12 @@ class GridPainter extends CustomPainter
   @override
   void paint(Canvas canvas, Size size)
   {
-    print('GridPainter.paint() called...');
+    debugPrint('GridPainter.paint() called...');
     int sizeX       = puzzleMap.sizeX;
     int sizeY       = puzzleMap.sizeY;
     double cellSide = boardSide / sizeX;
+
+    debugPrint('Cell side $cellSide, board side $boardSide.');
 
     Paint thinLinePaint = Paint()	// Style for lines between cells.
       ..color = thinLineColor

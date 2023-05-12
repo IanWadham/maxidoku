@@ -166,14 +166,14 @@ class SymbolView extends StatelessWidget
     // gesture detectors get all taps on the cell-widget area, whether a single
     // symbol or a Stack of tiny Notes lies underneath (opaque behavior option).
 
-    debugPrint('BUILD SymbolView: Paint $cellType cell, cellSide $cellSide.');
+    // debugPrint('BUILD SymbolView: Paint $cellType cell.');
     if (cellType == '3D') {
       // Build a 3D cell.
 
       double borderWidth = _hasHighlight ? cellSide / highlightFactor3D : 1.0;
       return GestureDetector(
         onTap: () {
-          debugPrint('Tapped 3D cell $index');
+          // debugPrint('Tapped 3D cell $index');
           _puzzlePlayer.hitPuzzleCellN(index);
         },
         child: DecoratedBox(
@@ -228,11 +228,11 @@ class SymbolView extends StatelessWidget
           behavior: HitTestBehavior.opaque,
           onTap: () {
             if (cellType == 'Control') {
-              debugPrint('Tapped control cell $index');
+              // debugPrint('Tapped control cell $index');
               _puzzlePlayer.hitControlArea(index);
             }
             else {			// Board cell of '2D' or '3D' type.
-              debugPrint('Tapped 2D cell $index');
+              // debugPrint('Tapped 2D cell $index');
               _puzzlePlayer.hitPuzzleCellN(index);
             }
           },
