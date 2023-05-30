@@ -29,6 +29,8 @@ class BoardGridView2D extends StatelessWidget
     final gameTheme = context.watch<GameTheme>();
     final puzzle    = context.read<Puzzle>();
 
+    bool hasCages = puzzle.cagePerimeters.isNotEmpty;
+
     debugPrint('Build BoardGridView2D');
 
     // RepaintBoundary seems to be essential to stop GridPainter re-painting
@@ -50,15 +52,21 @@ class BoardGridView2D extends StatelessWidget
             ),
           ),
         ),
+
 // TODO - How to fix unwanted repaints, but let NEW puzzle cages be painted.
-        /* RepaintBoundary(
-          child:*/ CustomPaint(
-            painter: CagePainter(puzzleMap, boardSide,
-                       puzzle.cagePerimeters, gameTheme.cageLineColor,
-                       gameTheme.boldLineColor, gameTheme.emptyCellColor,
+
+        // Paint cages if there are any (for Mathdoku and Killer Sudoku only).
+        Visibility(
+          visible: hasCages,
+          child: RepaintBoundary(
+            child: CustomPaint(
+              painter: CagePainter(puzzleMap, boardSide,
+                         puzzle.cagePerimeters, gameTheme.cageLineColor,
+                         gameTheme.boldLineColor, gameTheme.emptyCellColor,
+              ),
             ),
           ),
-        // ),
+        ),
       ],
     );
 
@@ -204,11 +212,6 @@ class CagePainter extends CustomPainter
     // debugPrint('CagePainter.paint() called...');
 
     // TODO - Need to call this ONLY ONCE, unless there is a resize...
-
-    // Paint cages if there are any: for Mathdoku and Killer Sudoku only.
-    if (cagePerimeters.isEmpty) {
-      return;
-    }
 
     int sizeX       = puzzleMap.sizeX;
     double cellSide = boardSide / sizeX;
