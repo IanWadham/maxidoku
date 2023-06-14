@@ -16,13 +16,12 @@ import 'dart:math';		// For random-number generator Random class.
 import '../globals.dart';
 
 /*
- * @class PuzzleMap
- * @short Generalized data representing a Sudoku puzzle size, shape and rules.
+ * Class: PuzzleMap
+ * Brief: Generalized data representing a Sudoku puzzle size, shape and rules.
  *
  * PuzzleMap is a class that can represent any type or size of Sudoku layout,
- * either in two dimensions or three. It is used, together with the Puzzle class,
- * by the puzzle generator/solver, the 2-D and 3-D views, the Save action and
- * the Load action.
+ * either in two dimensions or three. It is used by the puzzle generator/solver,
+ * the 2-D and 3-D views, the Save action and the Load action.
  *
  * The data structures in PuzzleMap are loaded from strings of the form
  * <keyword> <space-separated value(s)> in file models/puzzle_types.dart.
@@ -40,54 +39,51 @@ import '../globals.dart';
  * sizeX = sizeY and sizeZ = 1.  A three-dimensional type of puzzle (Roxdoku)
  * has a three-dimensional grid with sizeZ > 1.
  *
- * The actual contents of a puzzle or solution are represented as a vector of
- * integers (see classes Puzzle and SudokuBoard).  PuzzleMap provides methods to
- * convert both ways between XYZ co-ordinates and a cell index (or cell number)
- * in an integer list representing a puzzle or solution.  The total size of the
- * list is (sizeX * sizeY * sizeZ) cells, but in some types of puzzle not all
- * cells are used (e.g. gaps between the five sub-grids of a Samurai puzzle).
- * In such cases sizeX, sizeY and sizeX can be greater than the size of a Sudoku
- * square or Roxdoku cube and the unused cells become empty space on the screen.
+ * The actual contents of a puzzle or solution are represented as a List of
+ * integers.  PuzzleMap provides methods to convert both ways between XYZ
+ * co-ordinates and a cell index (or cell number) in an integer List
+ * representing a puzzle or solution.  The total size of the List is
+ * (sizeX * sizeY * sizeZ) cells, but in some types of puzzle not all cells
+ * are used (e.g. gaps between the five sub-grids of a Samurai puzzle). In such
+ * cases sizeX, sizeY and sizeX can be greater than the size of a Sudoku square
+ * or Roxdoku cube and the unused cells become empty space on the screen.
  *
- * Finally, the cells are organised into groups (or cliques) which represent
- * everything that needs to be known about the rules and structure of a
- * particular type of puzzle.  Each group or clique has as many members as
- * there are symbols in the puzzle (i.e. that number = nSymbols).  Each member
- * of a group is a cell number (or index) representing a cell that is in the
- * group.  A group may represent a row, a column, a block of some shape (not
- * necessarily square) or a plane within a 3-D grid.  The fact that each
- * row, column, block or plane must contain each symbol exactly once is the
- * cardinal rule of Sudoku puzzles in general.
+ * Finally, the cells are organised into groups which represent everything that
+ * needs to be known about the rules and structure of a particular type of
+ * puzzle.  Each group has as many members as there are symbols in the puzzle
+ * (i.e. nSymbols).  Each member of a group is a cell number (or index)
+ * representing a cell that is in the group.  A group may represent a row,
+ a column, a block of some shape (not necessarily square) or a plane within
+ * a 3-D grid.  The fact that each row, column, block or plane must contain
+ * each symbol exactly once is the cardinal rule of Sudoku puzzles in general.
  *
- * For example, the XSudoku puzzle type has order 9 and 29 groups (or cliques)
- * of 9 cells each: 9 rows, 9 columns and 9 blocks 3x3 square, plus 2 diagonals,
- * which must also comtain the numbers 1 to 9 in that type of Sudoku.  A Roxdoku
- * puzzle of order 16 has a cubic grid containing 12 planes, each a square of
- * 4x4 cells and each having 16 cells to be filled with the letters A to P.
- * There are three sets of 4 planes, which are perpendicular to the X, Y and Z
- * directions respectively.
+ * For example, the XSudoku puzzle type has order 9 and 29 groups of 9 cells
+ * each: 9 rows, 9 columns and 9 blocks 3x3 square, plus 2 diagonals, which
+ * must also comtain the numbers 1 to 9 in that type of Sudoku.  A Roxdoku
+ * puzzle of order 16 has 12 groups of size 16, representing a cubic grid
+ * containing 12 planes, each a square of 4x4 cells and each having 16 cells
+ * to be filled with the letters A to P. There are three sets of 4 planes,
+ * which are perpendicular to the X, Y and Z directions respectively.
  *
- * For brevity and the convenience of classes using PuzzleMap, the groups or
- * cliques are organised into high-level structures such as a square grid (with
+ * For brevity and convenience of defining additional types of puzzle, the
+ * groups are organised into high-level structures such as a square grid (with
  * rows and columns, but with or without square blocks), a large NxNxN cube or a
  * special block, such as a diagonal in XSudoku or an irregularly shaped block
- * in jigsaw-type puzzles.  These structures also make it easier to write data
- * strings for new 2-D puzzle shapes and open the way for 3-D puzzles containing
- * more than one NxNxN cube overlapping in various ways.
+ * in jigsaw-type puzzles.  These structures make it easier to write data
+ * strings for new types of puzzle.
  *
- * Cages, introduced in May-June 2015, are a new data-structure to support
- * Killer Sudoku and Mathdoku (aka Kenken TM) types of puzzle. A cage is an
- * irregular group of cells with size 1 to puzzle-order. Cages are imposed over
- * a Latin Square of digits, as used in 2-D Sudokus. A cage of size 1 is
- * equivalent to a clue or given value in a Sudoku. Cages of size 2 or more
- * provide the rest of the clues. In Mathdoku, each such cage has an arithmetic
- * operator (+-x/) and a value that is calculated, using that operator and
- * the hidden solution-values of the cells in the cage. The user has to work
- * out what the solutions are from the clues in the cages and the regular
- * Sudoku rules for rows and columns (but not blocks). In Killer Sudoku, there
- * are the usual 3x3 or 2x2 Sudoku blocks and the only operator is addition.
- * Note that a Mathdoku puzzle can have any size from 3x3 up to 9x9, but a
- * Killer Sudoku can have sizes 4x4 or 9x9 only.
+ * Cages are a data-structure to support Killer Sudoku and Mathdoku
+ * (aka Kenken TM) types of puzzle. A cage is an irregular group of cells
+ * with size 1 to nSymbols. Cages are imposed over a Latin Square of digits,
+ * as used in 2-D Sudokus. A cage of size 1 is equivalent to a clue or given
+ * value in a Sudoku. Cages of size 2 or more provide the rest of the clues.
+ * In Mathdoku, each such cage has an arithmetic operator (+-x/) and a value
+ * that is calculated, using that operator and the hidden solution-values of
+ * the cells in the cage. The user has to work out what the solutions are from
+ * the clues in the cages and the usual Sudoku rules for rows and columns (but
+ * not blocks). In Killer Sudoku, there are the usual 3x3 or 2x2 Sudoku blocks
+ * and the only operator is addition. Note that a Mathdoku puzzle can have any
+ * size from 3x3 up to 9x9, but a Killer Sudoku can have sizes 4x4 or 9x9 only.
  */
 
 // High-level structure types are a square grid, a large cube or a
@@ -103,6 +99,186 @@ class PuzzleMap
 
   PuzzleMap();
 
+  // Getters for PuzzleMap properties.
+  int get nSymbols   => _nSymbols;
+  int get blockSize  => _blockSize;
+
+  int get sizeX      => _sizeX;
+  int get sizeY      => _sizeY;
+  int get sizeZ      => _sizeZ;
+
+  int get size       => _size;
+
+  String get name    => _name;
+
+  bool get hideOperators => _hideOperators;
+
+  SudokuType    get specificType  => _specificType;
+  BoardContents get emptyBoard    => _emptyBoard;
+
+  List<int>     get specialCells  => _specialCells;
+
+  // Viewing parameters for 3D Roxdoku puzzles.
+  int get diameter   => _diameter;
+  int get rotateX    => _rotateX;
+  int get rotateY    => _rotateY;
+
+  // Methods for calculating cell positions and X, Y and Z co-ordinates.
+
+  // In a BoardContents list the fastest variations are in Z, Y and X, in that
+  // order. The cells in a two-dimensional board are listed one complete column
+  // at a time (i.e. Y X order).
+
+  int cellIndex(int x, int y, [int z = 0])	// BoardContents index (x,y,z).
+  {
+    return (x * _sizeY + y) * _sizeZ + z;
+  }
+
+  int cellPosX(int i) {				// X co-ordinate of cell i.
+    if(_size <= 0) return 0;
+    return i ~/ _sizeZ ~/ _sizeY;
+    // NOTE: Truncated integer operator is ~/ in Dart (/ converts to double).
+  }
+
+  int cellPosY(int i) {				// Y co-ordinate of cell i.
+    if(_size <= 0) return 0;
+    return i ~/ _sizeZ % _sizeY;
+  }
+
+  int cellPosZ(int i) {				// Z co-ordinate of cell i.
+    if(_size <= 0) return 0;
+    return i % _sizeZ;
+  }
+
+  // Get the total number of groups -- rows, columns and blocks.
+  int groupCount()   { return _groups.length; }
+
+  // Get a list of the cells in a group.
+  List<int> group(int i) { return _groups[i]; }
+
+  // Get a list of the groups to which a cell belongs.
+  List<int> groupList(int cellNumber) => _indexOfCellsToGroups[cellNumber];
+
+    // NOTE: This index's main usage is on an inner loop of the
+    // generator/solver and execution time is a concern there.
+
+  // Get the total number of high-level structures.
+  int structureCount() => _structureTypes.length;
+
+  // Get the type of a structure (square, cube, etc.).
+  StructureType structureType(int n) => _structureTypes[n];
+
+  // Get the position of a structure within the puzzle-map.
+  int structurePosition(int n) => _structurePositions[n];
+
+  // Find out whether a 2-D structure has square blocks or not.
+  bool structureHasBlocks(int n) => _structuresWithBlocks[n];
+
+  // Get the total number of cages (0 if not Mathdoku or Killer Sudoku).
+  int cageCount() { return _cages.length; }
+
+  // Get a list of the cells in a cage.
+  List<int> cage(int i) => _cages[i].cage;
+
+  // Get the mathematical operator of a cage (+ - * or /).
+  CageOperator cageOperator(int i) => _cages[i].cageOperator;
+
+  // Get the calculated value of the cells in a cage.
+  int cageValue(int i) => _cages[i].cageValue;
+
+  // Get the top left cell in a cage.
+  int cageTopLeft(int i) => _cages[i].cageTopLeft;
+
+  // Add a cage (applicable to Mathdoku or Killer Sudoku puzzles only).
+  void addCage(List<int> cage, CageOperator cageOperator, int cageValue)
+  {
+        // Calculate cageTopLeft cell (used for displaying operator and value).
+        int topY          = _nSymbols;	// Start at the bottom right of the
+        int leftX         = _nSymbols;	// user's view of the Sudoku grid.
+        int cageTopLeft   = 0;
+        for (int cell in cage) {
+            int X = cellPosX(cell);
+            int Y = cellPosY(cell);
+            // Is this cell higher than before or same height and further left.
+            if ((Y < topY) || (Y == topY) && (X < leftX)) {
+              cageTopLeft = cell;
+              topY  = Y;
+              leftX = X;
+            }
+        }
+
+        // Add to the cages list.
+        _cages.add (Cage(cage, cageOperator, cageValue,
+                         cageTopLeft, _hideOperators));
+  }
+
+  // Remove a cage (when keying in a Mathdoku or Killer Sudoku puzzle).
+  void dropCage(int cageNum)
+  {
+        if (cageNum >= _cages.length) {
+            return;
+        }
+        _cages.removeAt (cageNum);
+  }
+
+  // Clear cages used in a previous puzzle, if any.
+  void clearCages() {
+        // Clear previous cages (if any).
+        if (_cages.isNotEmpty) {
+            _cages.clear();
+        }
+  }
+
+  // Copy cages from puzzleMap in the puzzle-generator Isolate.
+  List<Cage> cloneCages()
+  {
+    return List<Cage>.of(_cages);
+  }
+
+  // Load the copied cages into puzzleMap in the main Isolate.
+  void loadCages(List<Cage> generatedCages)
+  {
+    _cages = List<Cage>.of(generatedCages);
+  }
+
+  // PuzzleMap Properties - Private values and methods.
+
+  int _sizeX      = 0;
+  int _sizeY      = 0;
+  int _sizeZ      = 0;
+  int _size       = 0;	// Size of puzzle's whole area or volume (the board).
+  int _blockSize  = 0;	// Edge-length of a square 2D block or 3D cube.
+  int _nGroups    = 0;	// Number of groups in the puzzle.
+  int _nSymbols   = 9;	// Number of symbols (4 9 16 25: 0-4, 0-9, A-P or A-Y).
+
+  bool _hideOperators = false;	// Default Mathdoku option: operators are SHOWN.
+
+  int _diameter = 350;	// Default diameter of spheres in 3D puzzle * 100.
+  int _rotateX  = 15;	// Default degrees rotation of view around X axis.
+  int _rotateY  = 27;	// Default degrees rotation of view around Y axis.
+
+  // Cells to get special colour, such as XSudoku diagonals and some 3D cells.
+  final List<int>            _specialCells = [];
+
+  // High-level structures, 3 values per structure: structure type (see
+  // enum), structure position and whether structure has square blocks.
+  final List<StructureType>  _structureTypes = [];
+  final List<int>            _structurePositions = [];
+  final List<bool>           _structuresWithBlocks = [];
+
+  // Low-level structures (rows, columns and blocks) also known as groups.
+  final List<List<int>>  _groups = [];
+
+  // Cages are for Mathdoku and Killer Sudoku puzzles only, else empty.
+  List<Cage>       _cages = [];
+
+  String           _name = 'PlainSudoku';
+  SudokuType       _specificType = SudokuType.PlainSudoku;
+
+  // Initialise the board to zero size until we know what size is required.
+  BoardContents    _emptyBoard = [];
+
+  // Create all the data needed to generate and play a particular Puzzle type.
   void buildPuzzleMap({required List<String> specStrings})
   {
     // Start by initializing or re-initializing the Puzzle configuration data.
@@ -233,7 +409,7 @@ class PuzzleMap
                   _blockSize = n;
               }
           }
-          debugPrint('Block size = $_blockSize');
+          // debugPrint('Block size = $_blockSize');
 
           // Create a blank puzzle map filled with UNUSABLE cells. Some may
           // remain and be displayed as empty space, e.g. in Samurai puzzles.
@@ -272,7 +448,7 @@ class PuzzleMap
           if (mapStarted && (nFields >= 6)) {
             int groupSize = _getDimension(fields, nFields, 0);
             if (groupSize >= 4) {
-              List<int> data = List.empty(growable: true);
+              List<int> data = [];
               for (int i = 2; i < nFields; i++) {
                 if (i < (groupSize + 2)) {
                   data.add(int.tryParse(fields[i], radix: 10) ?? -1); 
@@ -308,7 +484,6 @@ class PuzzleMap
       }
       specIndex++;
     }
-
     // Finalise the number of groups.
     _nGroups = groupCount();
 
@@ -319,177 +494,6 @@ class PuzzleMap
     _createIndexOfCellsToGroups();
 
   } // End of buildPuzzleMap().
-
-  // Getters for PuzzleMap properties.
-  int get nSymbols   => _nSymbols;
-  int get blockSize  => _blockSize;
-
-  int get sizeX      => _sizeX;
-  int get sizeY      => _sizeY;
-  int get sizeZ      => _sizeZ;
-
-  int get size       => _size;
-
-  String get name    => _name;
-
-  bool get hideOperators => _hideOperators;
-
-  SudokuType    get specificType  => _specificType;
-  BoardContents get emptyBoard    => _emptyBoard;
-
-  List<int>     get specialCells  => _specialCells;
-
-  // Viewing parameters for 3D Roxdoku puzzles.
-  int get diameter   => _diameter;
-  int get rotateX    => _rotateX;
-  int get rotateY    => _rotateY;
-
-  // Methods for calculating cell positions and X, Y and Z co-ordinates.
-
-  // In a BoardContents list the fastest variations are in Z, Y and X, in that
-  // order. The cells in a two-dimensional board are listed one complete column
-  // at a time.
-
-  int cellIndex(int x, int y, [int z = 0])	// BoardContents index (x,y,z).
-  {
-    return (x * _sizeY + y) * _sizeZ + z;
-  }
-
-  int cellPosX(int i) {				// X co-ordinate of cell i.
-    if(_size <= 0) return 0;
-    return i ~/ _sizeZ ~/ _sizeY;
-    // NOTE: Truncated integer operator is ~/ in Dart (/ converts to double).
-  }
-
-  int cellPosY(int i) {				// Y co-ordinate of cell i.
-    if(_size <= 0) return 0;
-    return i ~/ _sizeZ % _sizeY;
-  }
-
-  int cellPosZ(int i) {				// Z co-ordinate of cell i.
-    if(_size <= 0) return 0;
-    return i % _sizeZ;
-  }
-
-  // Get the total number of groups (cliques) -- rows, columns and blocks.
-  int groupCount()   { return _groups.length; }
-
-  // Get a list of the cells in a group (clique).
-  List<int> group(int i) { return _groups[i]; }
-
-  // Get a list of the groups (cliques) to which a cell belongs.
-  List<int> groupList(int cellNumber) => _indexOfCellsToGroups[cellNumber];
-
-    // NOTE: This index's main usage is on an inner loop of the
-    // generator/solver and execution time is a concern there.
-
-  // Get the total number of high-level structures.
-  int structureCount() { return _structureTypes.length; }
-
-  // Get the type of a structure (square, cube, etc.).
-  StructureType structureType(int n) { return _structureTypes.elementAt(n); }
-
-  // Get the position of a structure within the puzzle-map.
-  int structurePosition(int n) { return _structurePositions.elementAt(n); }
-
-  // Find out whether a 2-D structure has square blocks or not.
-  bool structureHasBlocks(int n) { return _structuresWithBlocks.elementAt(n); }
-
-  // Get the total number of cages (0 if not Mathdoku or Killer Sudoku)..
-  int cageCount() { return _cages.length; }
-
-  // Get a list of the cells in a cage.
-  List<int> cage(int i) { return _cages.elementAt(i).cage; }
-
-  // Get the mathematical operator of a cage (+ - * or /).
-  CageOperator cageOperator(int i) { return
-                                 _cages.elementAt(i).cageOperator; }
-
-  // Get the calculated value of the cells in a cage.
-  int cageValue(int i) { return _cages.elementAt(i).cageValue; }
-
-  // Get the top left cell in a cage.
-  int cageTopLeft(int i) { return _cages.elementAt(i).cageTopLeft; }
-
-  // Add a cage (applicable to Mathdoku or Killer Sudoku puzzles only).
-  void addCage(List<int> cage, CageOperator cageOperator, int cageValue)
-  {
-        // Add to the cages list.
-        _cages.add (Cage());
-        Cage   newCage        = _cages.last;
-        newCage.cage          = cage;
-        newCage.cageOperator  = cageOperator;
-        newCage.cageValue     = cageValue;
-
-        // Calculate cageTopLeft cell (used for displaying operator and value).
-        int topY              = _nSymbols; // Start at the bottom right of the
-        int leftX             = _nSymbols; // user's view of the Sudoku grid.
-        newCage.cageTopLeft   = 0;
-        for (int cell in cage) {
-            int X = cellPosX(cell);
-            int Y = cellPosY(cell);
-            // Is this cell higher than before or same height and further left.
-            if ((Y < topY) || (Y == topY) && (X < leftX)) {
-              newCage.cageTopLeft = cell;
-              topY  = Y;
-              leftX = X;
-            }
-        }
-  }
-
-  // Remove a cage (when keying in a Mathdoku or Killer Sudoku puzzle).
-  void dropCage(int cageNum)
-  {
-        if (cageNum >= _cages.length) {
-            return;
-        }
-        _cages.removeAt (cageNum);
-  }
-
-  // Clear cages used in a previous puzzle, if any.
-  void clearCages() {
-        // Clear previous cages (if any).
-        if (_cages.isNotEmpty) {
-            _cages.clear();
-        }
-  }
-
-  // PuzzleMap Properties - Private values and methods.
-
-  int _sizeX      = 0;
-  int _sizeY      = 0;
-  int _sizeZ      = 0;
-  int _size       = 0;	// Size of puzzle's whole area or volume (the board).
-  int _blockSize  = 0;	// Edge-length of a square 2D block or 3D cube.
-  int _nGroups    = 0;	// Number of groups (cliques) in the puzzle.
-  int _nSymbols   = 9;	// Number of symbols (4 9 16 25: 0-4, 0-9, A-P or A-Y).
-
-  bool _hideOperators = false;	// Default Mathdoku option: operators are SHOWN.
-
-  int _diameter = 350;	// Default diameter of spheres in 3D puzzle * 100.
-  int _rotateX  = 15;	// Default degrees rotation of view around X axis.
-  int _rotateY  = 27;	// Default degrees rotation of view around Y axis.
-
-  // Cells to get special colour, such as XSudoku diagonals and some 3D cells.
-  final List<int>            _specialCells = [];
-
-  // High-level structures, 3 values per structure: structure type (see
-  // enum), structure position and whether structure has square blocks.
-  final List<StructureType>  _structureTypes = [];
-  final List<int>            _structurePositions = [];
-  final List<bool>           _structuresWithBlocks = [];
-
-  // Low-level structures (rows, columns and blocks) also known as groups.
-  final List<List<int>>  _groups = [];
-
-  // Cages are for Mathdoku and Killer Sudoku puzzles only, else empty.
-  final List<Cage>       _cages = [];
-
-  String           _name = 'PlainSudoku';
-  SudokuType       _specificType = SudokuType.PlainSudoku;
-
-  // Initialise the board to zero size until we know what size is required.
-  BoardContents    _emptyBoard = List.empty(growable: true);
 
   int _getDimension(List<String>fields, int nFields, int dimension)
   {
@@ -517,12 +521,8 @@ class PuzzleMap
     _structurePositions.add(pos);
     _structuresWithBlocks.add(withBlocks);
 
-    List<int> rowc, colc, blockc;
     for (int i = 0; i < _nSymbols; ++i) {
-      rowc   = List.empty(growable: true);
-      colc   = List.empty(growable: true);
-      blockc = List.empty(growable: true);
-
+      List<int> rowc = [], colc = [], blockc = [];
       for (int j = 0; j < _nSymbols; ++j) {
         // Truncated integer division operator is ~/ in Dart.
         rowc.add (pos + j*_sizeY + i);
@@ -540,24 +540,20 @@ class PuzzleMap
 
   void _initRoxdokuGroups([int pos = 0])
   {
-     // initRoxdokuGroups() sets up the intersecting planes in a
-     // 3-D Roxdoku grid. Its only parameter shows where in the entire
-     // three-dimensional layout the grid goes.
+    // initRoxdokuGroups() sets up the intersecting planes in a
+    // 3-D Roxdoku grid. Its only parameter shows where in the entire
+    // three-dimensional layout the grid goes.
 
-     // _structures << RoxdokuGroups << pos << 1;
-     _structureTypes.add(StructureType.RoxdokuGroups);
-     _structurePositions.add(pos);
-     _structuresWithBlocks.add(false);
+    _structureTypes.add(StructureType.RoxdokuGroups);
+    _structurePositions.add(pos);
+    _structuresWithBlocks.add(false);
 
-     List<int> xFace, yFace, zFace;
-     int x = cellPosX(pos);
-     int y = cellPosY(pos);
-     int z = cellPosZ(pos);
+    int x = cellPosX(pos);
+    int y = cellPosY(pos);
+    int z = cellPosZ(pos);
 
     for (int i = 0; i < _blockSize; i++) {
-      xFace = List.empty(growable: true);
-      yFace = List.empty(growable: true);
-      zFace = List.empty(growable: true);
+      List<int> xFace = [], yFace = [], zFace = [];
       for (int j = 0; j < _blockSize; j++) {
         for (int k = 0; k < _blockSize; k++) {
           // Intersecting faces at relative (0,0,0), (1,1,1), etc.
@@ -583,18 +579,18 @@ class PuzzleMap
   }
 
   void _addGroup(List<int> data) {
-        // Add to the groups (cliques) list.
+        // Add to the list of groups.
         _groups.add (data);
         for (int n = 0; n < data.length; n++) {
             // Set cells in groups VACANT: cells not in groups are UNUSABLE.
-            _emptyBoard [data.elementAt(n)] = VACANT;
+            _emptyBoard [data[n]] = VACANT;
         }
         // debugPrint('ADD GROUP $data');
         // printBoard(_emptyBoard);
   }
 
   // For time-efficiency in generating and solving puzzles, make an index from
-  // each cell number to the list of groups (cliques) where the cell belongs.
+  // each cell number to the list of groups where the cell belongs.
   final List<List<int>> _indexOfCellsToGroups = [];
 
   void _createIndexOfCellsToGroups()
@@ -615,7 +611,7 @@ class PuzzleMap
     }
 
     for (int i = 0; i < _size; i++) {
-      _indexOfCellsToGroups.add(List.empty(growable: true));
+      _indexOfCellsToGroups.add([]);	// Initialise an index for every cell.`
     }
     // debugPrint('Empty index created');
     // debugPrint(_indexOfCellsToGroups);	// Print an empty index.
@@ -626,12 +622,12 @@ class PuzzleMap
       List<int> cells = _groups[groupNumber];
       int nCells = cells.length;
       // debugPrint('\nGroup: $groupNumber nCells: $nCells --- '
-      //            'List of cells: $cells');
+                 // 'List of cells: $cells');
       for (int n = 0; n < nCells; n++) {
         int cell = cells[n];
         _indexOfCellsToGroups[cell].add(groupNumber);
         // debugPrint('Cell $cell: add group: $groupNumber: '
-        //            'giving index ${_indexOfCellsToGroups}');
+                   // 'giving index ${_indexOfCellsToGroups}');
       }
     }
     // _testIndexOfCells();
@@ -678,17 +674,41 @@ class PuzzleMap
   // Random-number functions for puzzle generators and solvers.  //
   // **********************************************************  //
 
-  // Random _random = Random(266133);	// Fixed seed for testing only.
-  // NOTE: There is no setSeed() function. Must re-create _random to set seed.
-  final Random _random = Random(DateTime.now().millisecondsSinceEpoch);
+  // Random _random is the only random-number generator in the Puzzle model.
+  // It is placed in PuzzleMap to provide ease of access from wherever and
+  // whenever it is needed in the Puzzle solvers and generators.
+
+  // Because puzzle generation occurs asynchronously in an Isolate, PuzzleMap
+  // and _random get cloned each time a Puzzle is generated, so a new _random
+  // object must be created each time (see restartRandom()), otherwise you will
+  // get the same Puzzle generated repeatedly.
+
+  // The length of the random number series required is typically a few thousand
+  // numbers, but can be in the millions, so for efficiency reasons the Random()
+  //  constructor is used only once per generated Puzzle.
+
+  // A fixed seed is for testing only: otherwise Random() creates its own seed.
+
+  Random _random = Random();
+
+  int randomsUsed = 0;		// A statistic on how many randomInts get used.
+
+  // Called by PuzzleGenerator.generatePuzzle() before puzzle generation starts.
+  void randomRestart()
+  {
+    randomsUsed = 0;
+    // _random = Random(266133);	// For testing only.
+    _random = Random();
+  }
 
   // Generate a random integer in a given range.
   int randomInt(int limit)
   {
+    randomsUsed++;
     return _random.nextInt(limit);
   }
 
-  // Generate a random sequence of non-repeating integers: range 0 to nItems - 1.
+  // Generate a random sequence of non-repeating integers: range 0 to nItems-1.
   List<int> randomSequence (int nItems)
   {
     List<int> sequence = [];
@@ -765,11 +785,19 @@ class PuzzleMap
 
 } // End of PuzzleMap class.
 
+class Cage {
+  List<int>    cage;			// The cells in the cage.
+  CageOperator cageOperator;		// The mathematical operator.
+  int          cageValue;		// The value to be calculated.
+  int          cageTopLeft;		// The top-left (display) cell.
+  bool         hideOperator;		// Applies to Mathdoku only.
 
-class Cage {					// In lieu of a struct { }...
-  List<int>    cage = [];			// The cells in the cage.
-  CageOperator cageOperator = CageOperator.Add;	// The mathematical operator.
-  int          cageValue = 1;			// The value to be calculated.
-  int          cageTopLeft = 0;			// The top-left (display) cell.
-  bool         hideOperator = false;		// Applies to Mathdoku only.
+  Cage(this.cage, this.cageOperator, this.cageValue,
+       this.cageTopLeft, this.hideOperator);
+
+  // Needed when passing generated cages back to the UI Isolate for painting.
+  Cage.clone(Cage obj)
+    :
+    this(obj.cage, obj.cageOperator, obj.cageValue,
+         obj.cageTopLeft, obj.hideOperator);
 }
