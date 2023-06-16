@@ -29,9 +29,12 @@ class BoardGridView2D extends StatelessWidget
     final gameTheme = context.watch<GameTheme>();
     final puzzle    = context.read<Puzzle>();
 
-    bool hasCages = puzzle.cagePerimeters.isNotEmpty;
+    // TODO - Should we be testing this or puzzle.cagePerimeters.length > 0?
+    // TODO - CircularProgressWidget fails to appear when using icon button
+    //        to generate second and subsequent puzzles. Bug in build() code?   
+    bool hasCages = puzzleMap.cageCount() > 0;
 
-    debugPrint('Build BoardGridView2D');
+    debugPrint('Build BoardGridView2D: hasCages $hasCages');
 
     // RepaintBoundary seems to be essential to stop GridPainter re-painting
     // continually whenever a cell is tapped and the grid is unchanged. It
@@ -209,7 +212,7 @@ class CagePainter extends CustomPainter
   @override
   void paint(Canvas canvas, Size size)
   {
-    // debugPrint('CagePainter.paint() called...');
+    debugPrint('CagePainter.paint() called...');
 
     // TODO - Need to call this ONLY ONCE, unless there is a resize...
 

@@ -103,11 +103,10 @@ class PuzzleView extends StatelessWidget
 
       puzzle.createState(puzzleIndex);
 
-      // Generate a puzzle of the required type and difficulty.
-      // Deliver the results to the PuzzlePlayer object.
-      // TODO - Compute-bound, maybe a few seconds, usually < 1 sec. What to do?
-
       if (playOrTapIn == forPlay) {
+        // Generate a puzzle of the required type and difficulty.
+        // Deliver the results to the PuzzlePlayer object. The Puzzle is
+        // generated async, in an Isolate, using Flutter compute().
         debugPrint('\nPuzzleView: GENERATE PUZZLE, index $puzzleIndex.');
         puzzle.generatePuzzle(settings.difficulty, settings.symmetry);
       }
@@ -122,6 +121,7 @@ class PuzzleView extends StatelessWidget
 
     // The information for configuring the Puzzle Board View is now available.
     PuzzleMap map = puzzle.puzzleMap;
+    debugPrint('PuzzleView: Ready to paint the Puzzle board...');
 
     // Save the orientation.
     bool portrait = (orientation == Orientation.portrait);

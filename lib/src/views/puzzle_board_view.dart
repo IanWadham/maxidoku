@@ -122,6 +122,8 @@ class PuzzleBoardView extends StatelessWidget
       int    n = puzzle.puzzleMap.sizeY;
       double cellSide = boardSide / n;
       debugPrint('PuzzleBoardView: Paint 2D Puzzle, boardSide $boardSide;');
+      bool waitingForPuzzleData = puzzlePlayer.puzzlePlay == Play.NotStarted;
+      // ??????? TEST waitingForPuzzleData = !waitingForPuzzleData;
       return SizedBox(
         width: boardSide,
         height: boardSide,
@@ -131,6 +133,7 @@ class PuzzleBoardView extends StatelessWidget
             //        into grid before building (transparent) CellView
             //        (SymbolViews-to-be). Would need to move the Stack( and
             //        children: lines in there too.
+            // TODO - Generate a list of Positioned() SymbolView() widgets?
             BoardGridView2D(
               boardSide,
               puzzleMap: map),
@@ -140,6 +143,11 @@ class PuzzleBoardView extends StatelessWidget
             //        RepaintBoundary and deleted and re-created whenever there
             //        is a new caged puzzle. The function shared by the grid and
             //        cage calculations might become a "helper" function.
+            Visibility(
+              visible: waitingForPuzzleData,
+              child:
+                Center(child: CircularProgressIndicator(),),
+            ),
           ],
         ),
       );

@@ -48,7 +48,8 @@ class BoardLayout2D
   bool calculateCagesLayout(PuzzleMap puzzleMap,
                             List<List<int>> cagePerimeters)
   {
-    _markCageBoundaries(puzzleMap, cagePerimeters);
+    _markCageBoundaries(puzzleMap,
+                        cagePerimeters);
     return true;
   }
 
@@ -155,7 +156,8 @@ class BoardLayout2D
 
   Pair setPair (int cell, int corner) => (cell << lowWidth) + corner;
 
-  void _markCageBoundaries(PuzzleMap puzzleMap, List<List<int>> cagePerimeters)
+  void _markCageBoundaries(PuzzleMap puzzleMap,
+                           List<List<int>> cagePerimeters)
   {
     // After generating a Mathdoku or Killer Sudoku puzzle, set up the painting
     // specifications for the boundaries of the cages.
