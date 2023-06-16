@@ -3,7 +3,8 @@
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */
-import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
+import 'package:flutter/foundation.dart' show ChangeNotifier,
+                                              debugPrint, compute;
 
 import '../globals.dart';
 import 'puzzle_map.dart';
@@ -17,6 +18,73 @@ import '../engines/mathdoku_generator.dart';
 
 import '../layouts/board_layout_2d.dart';
 import '../layouts/board_layout_3d.dart';
+
+class GeneratorParameters
+{
+  // TODO - Can reduce parameters to index, difficulty and symmetry. Can
+  //        (re)compute puzzleMap from index.
+  PuzzleMap puzzleMap;
+  Difficulty difficulty;
+  Symmetry symmetry;
+
+  GeneratorParameters(this.puzzleMap, this.difficulty, this.symmetry);
+}
+
+class GeneratedData
+{
+  // Results of generating a puzzle (BoardContents is typedef List<int>).
+  Message       message      = Message('', '');
+  BoardContents puzzleGiven  = [];	// Starting state of puzzle.
+  BoardContents solution     = [];	// Finishing state of puzzle.
+  List<int>     sudokuMoves  = [];	// Move-list: for hints.
+  List<Cage>    clonedCages  = [];	// For Killer or Mathdoku.
+}
+
+// Flutter compute() requires a "helper" method NOT a class-instance method.
+GeneratedData asyncGeneration(GeneratorParameters params)
+{
+    PuzzleGenerator puzzleGenerator = PuzzleGenerator();
+
+    // Generate a puzzle of the required layout type, difficulty and symmetry.
+    GeneratedData puzzleData = puzzleGenerator.generatePuzzle(
+                       params.puzzleMap, params.difficulty, params.symmetry);
+    return puzzleData;
+}
+
+// TODO - Has all the required code (see below) been moved elsewhere???
+/* ???????
+    if (_puzzleMap.cageCount() > 0) {
+      // Get the cage-layouts for Mathdoku and Killeri Sudoku puzzles.
+      BoardLayout2D _boardLayout2D = BoardLayout2D(_puzzleMap);
+      _cagePerimeters.clear();
+      _boardLayout2D.calculateCagesLayout(_puzzleMap, _cagePerimeters);
+    }
+    if (_startingStatus == Play.NotStarted) {
+      return;		// Avoid notifyListeners() during Flutter's first build.
+      // Flutter will be already painting. Issuing a message causes a crash.
+      // The message is issued later in PuzzleBoardView.executeAfterBuild().
+    }
+
+    notifyListeners();	// Make sure PuzzleView issues the delayedMessage.
+??????? */
+/* ???????
+  debugPrint('asyncGeneration PuzzleMap() $index');
+  PuzzleMap map = PuzzleMap();
+  // Get a list of puzzle specifications in textual form.
+  PuzzleTypesText puzzleList = PuzzleTypesText();
+
+  // Get a specification of a puzzle, using the index selected by the user.
+  List<String> puzzleMapSpec = puzzleList.puzzleTypeText(index);
+
+  // Parse it and create the corresponding Puzzle Map, with an empty board.
+  map.buildPuzzleMap(specStrings: puzzleMapSpec);
+  debugPrint('ASYNC Name ${map.name}');
+  debugPrint('ASYNC SIZE ${map.size}');
+  // ??????? debugPrint('PUZZLE SPEC\n$puzzleMapSpec');
+  debugPrint('RESULT of asyncGeneration READY');
+  return map;
+  // return Message('', i.toString());
+??????? */
 
 class Puzzle with ChangeNotifier
 {
@@ -108,9 +176,9 @@ class Puzzle with ChangeNotifier
       _boardLayout3D.calculate3DLayout();
       _roundCells3D = _boardLayout3D.calculate2DProjection();
     }
-
+/* ??????? TIMER DISABLED: need to sort out its lifetime vs. async generation.
     _puzzleTimer.init();
-
+*/
     return;
   }
 
@@ -127,7 +195,7 @@ class Puzzle with ChangeNotifier
 
   void generatePuzzle(Difficulty difficulty, Symmetry symmetry)
   {
-    PuzzleGenerator puzzleGenerator = PuzzleGenerator();
+    // TODO - With async generation, should we ALWAYS do notifyListeners()?
 
     // If the starting status is NotStarted, Flutter will begin to paint the
     // PuzzleView and board and it will be necessary to avoid notifyListeners().
@@ -138,26 +206,40 @@ class Puzzle with ChangeNotifier
 
     // Generate a puzzle of the required layout type, difficulty and symmetry.
     // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
-    // The result-message either informs the user about the puzzle generated or
-    // asks whether to Accept or Retry when the requirements have not been met.
-    // The message is stashed, in case the Puzzle View is currently painting.
-    delayedMessage = _puzzleGenerator.generatePuzzle(puzzleMap, puzzlePlayer,
-                                                     difficulty, symmetry);
+    // The Message in GeneratedData informs the user about the puzzle or asks
+    // whether to Accept or Retry when the requirements have not been met. The
+    // message is stashed, in case the Puzzle View is currently painting.
+    GeneratorParameters params = GeneratorParameters(
+                                   puzzleMap, difficulty, symmetry);
+    Future<GeneratedData> futureData = compute(asyncGeneration, params);
 
-    if (_puzzleMap.cageCount() > 0) {
-      // Get the cage-layouts for Mathdoku and Killeri Sudoku puzzles.
-      BoardLayout2D _boardLayout2D = BoardLayout2D(_puzzleMap);
-      _cagePerimeters.clear();
-      _boardLayout2D.calculateCagesLayout(_puzzleMap, _cagePerimeters);
-    }
+    futureData.then((GeneratedData data)
+    {
+      // CALLBACK: to distribute results of PuzzleGenerator.generatePuzzle().
+      debugPrint('Delayed Message type ${data.message.messageType},'
+                                ' ${data.message.messageText}'); 
+      debugPrint('Returned puzzleGiven = ${data.puzzleGiven}');
+      debugPrint('Returned solution    = ${data.solution}');
+      debugPrint('Returned sudokuMoves = ${data.sudokuMoves}');
 
-    if (_startingStatus == Play.NotStarted) {
-      return;		// Avoid notifyListeners() during Flutter's first build.
-      // Flutter will be already painting. Issuing a message causes a crash.
-      // The message is issued later in PuzzleBoardView.executeAfterBuild().
-    }
-
-    notifyListeners();	// Make sure PuzzleView issues the delayedMessage.
+      // Clone the Cage data down into puzzleMap in the main (UI) Isolate.
+      _puzzleMap.loadCages(data.clonedCages);
+      debugPrint('NUMBER OF LOADED CAGES ${puzzleMap.cageCount()}');
+      if (puzzleMap.cageCount() > 0) {
+        // Get the cage-layouts for Mathdoku and Killer Sudoku puzzles.
+        BoardLayout2D _boardLayout2D = BoardLayout2D(_puzzleMap);
+        _cagePerimeters.clear();
+        _boardLayout2D.calculateCagesLayout(_puzzleMap,
+                                            _cagePerimeters);
+      }
+      delayedMessage = data.message;
+      // PuzzlePlayer calls notifyListeners() and the puzzle clues appear...
+      puzzlePlayer.makeReadyToPlay(data.puzzleGiven, data.solution,
+                                   data.sudokuMoves);
+      notifyListeners();	// To re-examine whole PuzzleView screen...
+      // TODO - Always notifyListeners? From which class(es)/object(s)?
+      //        Puzzle? PuzzlePlayer? Or both?
+    });
   }
 
   int checkPuzzle()
@@ -205,14 +287,20 @@ class PuzzleGenerator
   BoardContents _solution     = [];	// Finishing state of puzzle.
   List<int>     _sudokuMoves  = [];	// Move-list: for hints.
 
-  Message generatePuzzle(PuzzleMap puzzleMap, PuzzlePlayer puzzlePlayer,
-                         Difficulty difficulty, Symmetry symmetry)
+  GeneratedData generatePuzzle(PuzzleMap puzzleMap,
+                               Difficulty difficulty, Symmetry symmetry)
   // Generate a new puzzle of the type and size selected by the user.
   {
+    GeneratedData puzzleData = GeneratedData();	// Start with an empty result.
+
+    // In an Isolate now, so start a newly-seeded Random: don't want clone of
+    // previous one, otherwise the generator gets the same Puzzle as before.
+    puzzleMap.randomRestart();
+
     // Get a board of the required layout and size, filled with empty cells.
     _puzzleGiven = [...puzzleMap.emptyBoard];
 
-    Message response = Message('', '');
+    Message response = Message("", "");
     SudokuType puzzleType = puzzleMap.specificType;
     switch (puzzleType) {
       case SudokuType.Mathdoku:
@@ -232,8 +320,6 @@ class PuzzleGenerator
         }
         if (response.messageType == '') {
           // Used up max tries with no valid puzzle - 10 solutions x 20 tries.
-          // TODO - There IS no puzzle to Accept... Try again or go back to menu
-          //        or change the Difficulty... ???????
           response.messageType = 'F';
           response.messageText = 'Attempts to generate a puzzle failed after'
                                  ' about 200 tries. Please try again, maybe'
@@ -245,22 +331,27 @@ class PuzzleGenerator
       default:
 	// Generate Sudoku (2D) and Roxdoku (3D) types - and all their variants.
         SudokuGenerator srg = SudokuGenerator(puzzleMap);
-        debugPrint('GENERATE $puzzleType, $difficulty, $symmetry');
 	response = srg.generateSudokuRoxdoku(_puzzleGiven, _solution,
                                              _sudokuMoves,
                                              difficulty, symmetry);
         break;
     }
+    puzzleData.message = response;
 
-    // debugPrint('_puzzleGiven = $_puzzleGiven');
-    // debugPrint('_solution    = $_solution   ');
-    // debugPrint('_sudokuMoves = $_sudokuMoves');
+    debugPrint('RANDOM NUMBERS USED = ${puzzleMap.randomsUsed}');
+    debugPrint('GENERATOR RESULT _puzzleGiven = $_puzzleGiven');
+    debugPrint('GENERATOR RESULT _solution    = $_solution   ');
+    debugPrint('GENERATOR RESULT _sudokuMoves = $_sudokuMoves');
+    debugPrint('GENERATED NUMBER OF CAGES ${puzzleMap.cageCount()}');
 
     if (response.messageType != 'F') {	// Succeeded - up to a point maybe...
-      puzzlePlayer.makeReadyToPlay(_puzzleGiven, _solution, _sudokuMoves);
-      // PuzzlePlayer calls notifyListeners() and the puzzle clues appear...
+      puzzleData.puzzleGiven = [..._puzzleGiven];
+      puzzleData.solution    = [..._solution];
+      puzzleData.sudokuMoves = [..._sudokuMoves];
+      puzzleData.clonedCages = puzzleMap.cloneCages();
+      debugPrint('GENERATED NUMBER OF CLONED CAGES ${puzzleData.clonedCages.length}');
 
-      // Release PuzzleGenerator storage.
+      // Release any remaining PuzzleGenerator storage.
       _puzzleGiven.clear();
       _solution.clear();
       _sudokuMoves.clear();
@@ -268,7 +359,7 @@ class PuzzleGenerator
     else {				// Did not succeed. Please try again.
       debugPrint('PuzzleGenerator did not succeed. User will try again?');
     }
-    return response;
+    return puzzleData;
   }
 
   BoardContents _fillBoard(PuzzleMap puzzleMap)
@@ -471,6 +562,7 @@ class PuzzlePlayer with ChangeNotifier
     _puzzlePlay = Play.ReadyToStart;
     debugPrint('PuzzlePlayer: CHANGED STATUS TO $_puzzlePlay');
     if (_puzzle._startingStatus == Play.NotStarted) {
+notifyListeners();	// ??????? TODO ???????
       return;		// Flutter is already painting the PuzzleView and board.
     }
     notifyListeners();  // Ensure that the board and initial clues get painted.
@@ -505,6 +597,8 @@ class PuzzlePlayer with ChangeNotifier
 
   void hitControlArea(int selection)
   {
+    // TODO - Must ignore hits if Puzzle is generating: need another status?
+
     if (puzzlePlay == Play.Solved) {
       // All done! Can use undo/redo to review moves, but cannot make new moves.
       return;
