@@ -207,7 +207,7 @@ class CageGenerator
     List<int> saveUnusedCells;
     List<int> saveNeighbourFlags;
 
-    debugPrint('\n');
+    // debugPrint('\n');
     _init();
     _singles = 0;
 
@@ -260,7 +260,7 @@ class CageGenerator
     int maxFailures = 20;
     int feature     = level.featureSize;
 
-    debugPrint('START GENERATING CAGES');
+    // debugPrint('START GENERATING CAGES');
 
     while (_unusedCells.isNotEmpty) {
       List<int>    cage         = [];
@@ -311,9 +311,8 @@ class CageGenerator
       // debugPrint("ADDED CAGE ${_puzzleMap.cageCount()}"
       //            " $cage val $cageValue op $cageOperator");
 
-      // bool doPrint = true;               // Print progressive layouts.
-      // doPrint = (_unusedCells.isEmpty);  // Print final layout only.
-      // _printLayout(doPrint, cage);
+      // _printLayout(true, cage);	// Print progressive layouts.
+      _printLayout(false, cage);	// Save layouts but do not print yet.
 
       List<int> flagsList = [];
       for (int cell in _unusedCells) {
@@ -341,8 +340,8 @@ class CageGenerator
     } // End while()
 
     // Use the DLX solver to check if this puzzle has a unique solution.
-    debugPrint('Calling DLXSolver... index len ${_possibilitiesIndex.length} '
-          'poss len ${_possibilities.length}');
+    // debugPrint('Calling DLXSolver... index len ${_possibilitiesIndex.length} '
+          // 'poss len ${_possibilities.length}');
     int maxSolutions = 2;		// Stop if 2 solutions are found.
     int nSolutions = _myDLXSolver.solveMathdokuKillerTypes (_puzzleMap,
                                                             _possibilities,
@@ -354,7 +353,7 @@ class CageGenerator
     }
     _clearLists();			// Release possibilities workspace.
 
-    debugPrint('DLXSolver returned nSolutions $nSolutions, max $maxSolutions');
+    // debugPrint('DLXSolver returned nSolutions $nSolutions, max $maxSolutions');
     if (nSolutions == 0) {
       // debugPrint("FAILED TO FIND A SOLUTION: nSolutions = $nSolutions");
       return 0;				// No solution found: return zero cages.
@@ -366,6 +365,8 @@ class CageGenerator
 
     // debugPrint("UNIQUE SOLUTION FOUND: nSolutions = $nSolutions");
     // debugPrint('_puzzleMap.cageCount() ${_puzzleMap.cageCount()}');
+    debugPrint('\nFINAL CAGE LAYOUT');
+    _printLayout(true, []);		// Print final uniquely-solvable layout.
 
     // If there is a unique solution, retrieve the moves from the solver.
     solutionMoves.clear();
@@ -870,8 +871,8 @@ class CageGenerator
     return true;
   }
 
-/* Debugging aid.
-  // String        _usedCells = '';	// 2D image of cages/board, for DEBUG.
+// ????? /* Debugging aid.
+  String        _usedCells = '';	// 2D image of cages/board, for DEBUG.
 
   void _printLayout(bool doPrint, List<int> addedCage)
   {
@@ -897,7 +898,7 @@ class CageGenerator
     if (doPrint) debugPrint('\n');
     return;
   }
-*/
+// ????? */
 
   void _init()
   // Initialise the cage generator for a particular size and type of puzzle.

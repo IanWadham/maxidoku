@@ -66,8 +66,8 @@ class MathdokuKillerGenerator
         numMultis++;
       }
       numTries++;
-      debugPrint('CageGen return = $n, numTries $numTries, '
-                 'numMultis $numMultis\n\n');
+      // debugPrint('CageGen return = $n, numTries $numTries, '
+                 // 'numMultis $numMultis\n\n');
     }
 
     if ((n <= 0) && (numTries >= maxTries)) {
@@ -76,8 +76,8 @@ class MathdokuKillerGenerator
       return response;
     }
 
-    debugPrint('makeCages() took $numTries tries $numMultis multi-solutions');
-    debugPrint('MathdokuGen: Solution moves $solutionMoves');
+    debugPrint('\n==== makeCages() took $numTries tries $numMultis multi-solutions');
+    // debugPrint('MathdokuGen: Solution moves $solutionMoves');
 
     // Insert the values of the single-cell cages as clues in the empty Puzzle.
     int nClues = 0;
