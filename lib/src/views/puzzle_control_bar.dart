@@ -31,8 +31,7 @@ class PuzzleControlBar extends StatelessWidget
   {
     int    nSymbols = map.nSymbols;
     int    nCells   = hideNotes ? nSymbols + 1 : nSymbols + 2;
-    // ?????? double cellSide = boardSide / nCells;
-    double cellSide = controlSide; // ?????? boardSide / nCells;
+    double cellSide = controlSide;
 
     GameTheme gameTheme   = context.read<GameTheme>();
 
@@ -46,7 +45,7 @@ class PuzzleControlBar extends StatelessWidget
     double fontHeight = symbolFraction * cellSide;
     Gradient? cellGradient = null;
 
-    debugPrint('Build PuzzleControlBar: nCells $nCells hideNotes $hideNotes');
+    debugPrint('BUILD PuzzleControlBar: nCells $nCells hideNotes $hideNotes');
 
     // Controls are: Notes 1 2 3 (optional), 0 (delete), symbols 1 to nSymbols.
     List<int> controlValues = hideNotes ? [] : [NotesBit + 0xE];
@@ -147,11 +146,7 @@ class ControlGridPainter extends CustomPainter
     }
 
     // Paint surrounding frame.
-    // r = r.deflate(cellSide / 30.0);
-    // r = r.inflate(cellSide / 10.0);
-    // print('Inflated Rect $r');
     canvas.drawRect(r, boldLinePaint);
-    // canvas.drawLine(Offset.zero, Offset(cellSide, 0.0), boldLinePaint);
   }
 
   @override
