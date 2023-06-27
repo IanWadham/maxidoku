@@ -97,7 +97,8 @@ class PuzzleView extends StatelessWidget
     // If a new puzzle has been requested, create a puzzle and board, else just
     // do a repaint, but DO NOT clobber puzzle play by creating a new puzzle!
 
-    if (puzzlePlayer.puzzlePlay == Play.NotStarted) {
+    if ((puzzle.nPuzzlesGenerated == 0) &&
+        (puzzlePlayer.puzzlePlay == Play.NotStarted)) {
       // Create a Puzzle and board where all the cells are empty or unusable.
       // Internally this initializes the Puzzle model and creates the PuzzleMap.
 
@@ -107,16 +108,17 @@ class PuzzleView extends StatelessWidget
         // Generate a puzzle of the required type and difficulty.
         // Deliver the results to the PuzzlePlayer object. The Puzzle is
         // generated async, in an Isolate, using Flutter compute().
-        debugPrint('\nPuzzleView: GENERATE PUZZLE, index $puzzleIndex.');
+        debugPrint('\n==== PuzzleView: GENERATE PUZZLE FROM WIDGET BUILD: '
+                   'index $puzzleIndex.');
         puzzle.generatePuzzle(settings.difficulty, settings.symmetry);
       }
       else if (playOrTapIn == forTapIn) {
-        debugPrint('\nPuzzleView: TAP IN PUZZLE, index $puzzleIndex.');
+        debugPrint('\n==== PuzzleView: TAP IN PUZZLE, index $puzzleIndex.');
         puzzlePlayer.initialise(puzzle.puzzleMap, puzzle);
       }
     }
     else {
-      debugPrint('\nPuzzleView: REPAINT PUZZLE - DO NOT re-generate it.');
+      debugPrint('\n==== PuzzleView: REPAINT PUZZLE - DO NOT re-generate it.');
     }
 
     // The information for configuring the Puzzle Board View is now available.
@@ -371,7 +373,7 @@ class PuzzleView extends StatelessWidget
     // Generate a puzzle of the requested level of difficulty
     // OR check a tapped-in puzzle and maybe make it into a playable puzzle.
 
-    debugPrint('CREATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
+    debugPrint('==== CREATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
     if (puzzlePlayer.puzzlePlay == Play.BeingEntered) {
       checkPuzzle(context);
       return;
@@ -396,9 +398,11 @@ class PuzzleView extends StatelessWidget
       // Erase the time-display and stop the clock, if it is running.
       debugPrint('CLEAR Clock.');
       puzzle.clearClock();
-      Difficulty difficulty = settings.difficulty;
-      Symmetry   symmetry   = settings.symmetry;
-      puzzle.generatePuzzle(difficulty, symmetry);
+      // TODO - REACTIVATE this? Makes any difference? ???????????????????
+      // ??????? puzzleMap.clearCages();	// ????? Force cages to vanish.
+      debugPrint('==== GENERATE Puzzle FROM BUTTON: '
+                 'status ${puzzlePlayer.puzzlePlay}');
+      puzzle.generatePuzzle(settings.difficulty, settings.symmetry);
     }
   }
 

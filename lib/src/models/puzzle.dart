@@ -3,7 +3,7 @@
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */
-import 'package:flutter/foundation.dart' show ChangeNotifier,
+import 'package:flutter/foundation.dart' show ChangeNotifier, ValueNotifier,
                                               debugPrint, compute;
 
 import '../globals.dart';
@@ -45,9 +45,11 @@ GeneratedData asyncGeneration(GeneratorParameters params)
 {
     PuzzleGenerator puzzleGenerator = PuzzleGenerator();
 
+    debugPrint('ENTERED asyncGeneration...');
     // Generate a puzzle of the required layout type, difficulty and symmetry.
     GeneratedData puzzleData = puzzleGenerator.generatePuzzle(
                        params.puzzleMap, params.difficulty, params.symmetry);
+    debugPrint('LEAVING asyncGeneration...');
     return puzzleData;
 }
 
@@ -113,10 +115,15 @@ class Puzzle with ChangeNotifier
   late BoardLayout2D _boardLayout2D;
   late BoardLayout3D _boardLayout3D;
 
+  int _nPuzzlesGenerated = 0;		// No. puzzles gen'd on current screen.
+
   // Layout data for 2D Puzzles: stays empty in 3D, set ONCE in Puzzle lifetime.
   List<int>       _edgesEW = [];	// East-West edges of cells in 2D.
   List<int>       _edgesNS = [];	// North-South edges of cells in 2D.
   List<List<int>> _cagePerimeters = [];	// Cage-layouts for Mathdoku and Killer.
+
+  // Set when new _cagePerimeters are generated: triggers re-paint of cages.
+  bool            hasNewCages     = false;
 
   // Layout data for 3D Puzzles: stays empty in 2D, set ONCE when the Puzzle
   //starts  and again whenever the user turns or tilts the Puzzle by 90 degrees.
@@ -131,6 +138,8 @@ class Puzzle with ChangeNotifier
   PuzzleGenerator get puzzleGenerator => _puzzleGenerator;
   PuzzlePlayer    get puzzlePlayer    => _puzzlePlayer;
   GameTimer       get gameTimer       => _puzzleTimer;
+
+  int             get nPuzzlesGenerated => _nPuzzlesGenerated;
 
   List<int>       get edgesEW         => _edgesEW;
   List<int>       get edgesNS         => _edgesNS;
@@ -176,10 +185,14 @@ class Puzzle with ChangeNotifier
       _boardLayout3D.calculate3DLayout();
       _roundCells3D = _boardLayout3D.calculate2DProjection();
     }
-/* ??????? TIMER DISABLED: need to sort out its lifetime vs. async generation.
     _puzzleTimer.init();
-*/
     return;
+  }
+
+  void endPuzzle()
+  {
+    // Clear the way for PuzzleView to start a completely new Puzzle and screen.
+    _nPuzzlesGenerated = 0;
   }
 
   void rotateLayout3D(int buttonID)
@@ -195,6 +208,7 @@ class Puzzle with ChangeNotifier
 
   void generatePuzzle(Difficulty difficulty, Symmetry symmetry)
   {
+    debugPrint('ENTERED generatePuzzle in Puzzle object...');
     // TODO - With async generation, should we ALWAYS do notifyListeners()?
 
     // If the starting status is NotStarted, Flutter will begin to paint the
@@ -203,24 +217,34 @@ class Puzzle with ChangeNotifier
 
     // Clear the PuzzlePlayer state.
     puzzlePlayer.initialise(puzzleMap, this);
+if (puzzleMap.cageCount() > 0) {
+    debugPrint('FORCE-CLEAR CAGES');
+    puzzleMap.clearCages();		// ??????? Force cages to vanish???
+    cagePerimeters.clear();
+  notifyListeners();
+}
 
     // Generate a puzzle of the required layout type, difficulty and symmetry.
     // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
     // The Message in GeneratedData informs the user about the puzzle or asks
     // whether to Accept or Retry when the requirements have not been met. The
     // message is stashed, in case the Puzzle View is currently painting.
+    _nPuzzlesGenerated++;
     GeneratorParameters params = GeneratorParameters(
                                    puzzleMap, difficulty, symmetry);
+    debugPrint('DECLARING futureData = compute()... $_nPuzzlesGenerated');
     Future<GeneratedData> futureData = compute(asyncGeneration, params);
 
     futureData.then((GeneratedData data)
     {
+      debugPrint('ENTERED futureData = compute() CALLBACK...');
+
       // CALLBACK: to distribute results of PuzzleGenerator.generatePuzzle().
-      debugPrint('Delayed Message type ${data.message.messageType},'
-                                ' ${data.message.messageText}'); 
-      debugPrint('Returned puzzleGiven = ${data.puzzleGiven}');
-      debugPrint('Returned solution    = ${data.solution}');
-      debugPrint('Returned sudokuMoves = ${data.sudokuMoves}');
+      // debugPrint('Delayed Message type ${data.message.messageType},'
+                                // ' ${data.message.messageText}'); 
+      debugPrint('RETURNED puzzleGiven = ${data.puzzleGiven}');
+      // debugPrint('Returned solution    = ${data.solution}');
+      // debugPrint('Returned sudokuMoves = ${data.sudokuMoves}');
 
       // Clone the Cage data down into puzzleMap in the main (UI) Isolate.
       _puzzleMap.loadCages(data.clonedCages);
@@ -231,6 +255,10 @@ class Puzzle with ChangeNotifier
         _cagePerimeters.clear();
         _boardLayout2D.calculateCagesLayout(_puzzleMap,
                                             _cagePerimeters);
+        hasNewCages = true;		// Trigger CagePainter to repaint.
+        debugPrint('Puzzle: SET puzzle.hasNewCages TRUE');
+        notifyListeners();
+        debugPrint('CAGE PERIMETERS: $_cagePerimeters');
       }
       delayedMessage = data.message;
       // PuzzlePlayer calls notifyListeners() and the puzzle clues appear...
@@ -239,6 +267,7 @@ class Puzzle with ChangeNotifier
       notifyListeners();	// To re-examine whole PuzzleView screen...
       // TODO - Always notifyListeners? From which class(es)/object(s)?
       //        Puzzle? PuzzlePlayer? Or both?
+      debugPrint('LEAVING futureData = compute() CALLBACK...');
     });
   }
 
@@ -291,6 +320,7 @@ class PuzzleGenerator
                                Difficulty difficulty, Symmetry symmetry)
   // Generate a new puzzle of the type and size selected by the user.
   {
+    debugPrint('ENTERED ISOLATE: generatePuzzle()');
     GeneratedData puzzleData = GeneratedData();	// Start with an empty result.
 
     // In an Isolate now, so start a newly-seeded Random: don't want clone of
@@ -339,10 +369,10 @@ class PuzzleGenerator
     puzzleData.message = response;
 
     debugPrint('RANDOM NUMBERS USED = ${puzzleMap.randomsUsed}');
-    debugPrint('GENERATOR RESULT _puzzleGiven = $_puzzleGiven');
-    debugPrint('GENERATOR RESULT _solution    = $_solution   ');
-    debugPrint('GENERATOR RESULT _sudokuMoves = $_sudokuMoves');
-    debugPrint('GENERATED NUMBER OF CAGES ${puzzleMap.cageCount()}');
+    // debugPrint('GENERATOR RESULT _puzzleGiven = $_puzzleGiven');
+    // debugPrint('GENERATOR RESULT _solution    = $_solution   ');
+    // debugPrint('GENERATOR RESULT _sudokuMoves = $_sudokuMoves');
+    // debugPrint('GENERATED NUMBER OF CAGES ${puzzleMap.cageCount()}');
 
     if (response.messageType != 'F') {	// Succeeded - up to a point maybe...
       puzzleData.puzzleGiven = [..._puzzleGiven];
@@ -359,6 +389,7 @@ class PuzzleGenerator
     else {				// Did not succeed. Please try again.
       debugPrint('PuzzleGenerator did not succeed. User will try again?');
     }
+    debugPrint('LEAVING ISOLATE: generatePuzzle()');
     return puzzleData;
   }
 
@@ -527,6 +558,7 @@ class PuzzlePlayer with ChangeNotifier
   {
     debugPrint('CLEAR Clock.');
     _puzzle.clearClock();
+    _puzzle.endPuzzle();
     _puzzlePlay = Play.NotStarted;
     debugPrint('PuzzlePlayer: RESET STATUS TO $_puzzlePlay');
   }

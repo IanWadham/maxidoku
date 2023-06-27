@@ -18,31 +18,34 @@ class BoardGridView2D extends StatelessWidget
   final PuzzleMap puzzleMap;
   final double    boardSide;
 
+  final hasNewCages = ValueNotifier<int>(0);
+
   BoardGridView2D(this.boardSide, {Key? key, required this.puzzleMap})
       : super(key: key);
 
   @override
   Widget build(BuildContext context)
   {
-    assert(puzzleMap.sizeZ == 1, 'BoardGridView2D widget cannot be used with a 3D puzzle. Puzzle name is ${puzzleMap.name}, sizeZ ${puzzleMap.sizeZ}');
-
     final gameTheme = context.watch<GameTheme>();
     final puzzle    = context.read<Puzzle>();
+    final _hasCages = puzzle.cagePerimeters.isNotEmpty;
 
-    // TODO - Should we be testing this or puzzle.cagePerimeters.length > 0?
+    debugPrint('BUILD BoardGridView2D, hasNewCages ${hasNewCages.value}');
+    if (puzzle.hasNewCages) {
+      // Generated a Mathdoku/Killer puzzle: need to re-paint cages and labels.
+      hasNewCages.value++;
+      puzzle.hasNewCages = false;
+      debugPrint('VALUE hasNewCages ${hasNewCages.value},'
+                 ' puzzle value ${puzzle.hasNewCages}');
+    }
+
     // TODO - CircularProgressWidget fails to appear when using icon button
     //        to generate second and subsequent puzzles. Bug in build() code?   
-    bool hasCages = puzzleMap.cageCount() > 0;
-
-    debugPrint('Build BoardGridView2D: hasCages $hasCages');
 
     // RepaintBoundary seems to be essential to stop GridPainter re-painting
-    // continually whenever a cell is tapped and the grid is unchanged. It
-    // also stops GridPainter re-painting whenever the pointer moves out of
-    // the Puzzle's desktop window (observed on an Apple MacOS machine).
-    //
-    // NOTE: RepaintBoundary also prevnts further updates to the grid, such as
-    // adding cages to an empty grid when they are needed by Mathdoku/Killer.
+    // continually whenever a cell or icon is tapped and the grid is unchanged.
+    // It also stops GridPainter re-painting whenever the pointer moves out of
+    // the Puzzle's desktop window (as observed on an Apple MacOS machine).
 
     return Stack(
       children: [
@@ -57,15 +60,16 @@ class BoardGridView2D extends StatelessWidget
         ),
 
 // TODO - How to fix unwanted repaints, but let NEW puzzle cages be painted.
+// TODO - ???????????? Clear Puzzle._hasNewCages AT END.
 
         // Paint cages if there are any (for Mathdoku and Killer Sudoku only).
         Visibility(
-          visible: hasCages,
+          visible: _hasCages,
           child: RepaintBoundary(
             child: CustomPaint(
-              painter: CagePainter(puzzleMap, boardSide,
-                         puzzle.cagePerimeters, gameTheme.cageLineColor,
+              painter: CagePainter(puzzle, boardSide, gameTheme.cageLineColor,
                          gameTheme.boldLineColor, gameTheme.emptyCellColor,
+                         hasNewCages,
               ),
             ),
           ),
@@ -184,23 +188,23 @@ class GridPainter extends CustomPainter
   @override
   bool shouldRepaint(GridPainter oldDelegate)
   {
-    return oldDelegate.boardSide != boardSide;
+    return false;
   }
 
 } // End class GridPainter.
 
 class CagePainter extends CustomPainter
 {
-  CagePainter(this.puzzleMap, this.boardSide,
-              this.cagePerimeters, this.cageLineColor,
-              this.boldLineColor, this.emptyCellColor);
+  CagePainter(this.puzzle, this.boardSide, this.cageLineColor,
+              this.boldLineColor, this.emptyCellColor, this.hasNewCages)
+              : super(repaint: hasNewCages);
 
-  final PuzzleMap       puzzleMap;
-  final double          boardSide;
-  final List<List<int>> cagePerimeters;
-  final Color           cageLineColor;
-  final Color           boldLineColor;
-  final Color           emptyCellColor;
+  final Puzzle              puzzle;
+  final double              boardSide;
+  final Color               cageLineColor;
+  final Color               boldLineColor;
+  final Color               emptyCellColor;
+  final ValueNotifier<int>  hasNewCages;
 
   // A text-painter for painting Sudoku symbols on a Canvas.
   final TextPainter textPainter = TextPainter(
@@ -212,12 +216,11 @@ class CagePainter extends CustomPainter
   @override
   void paint(Canvas canvas, Size size)
   {
-    debugPrint('CagePainter.paint() called...');
+    debugPrint('CagePainter.paint() called... hasNewCages ${hasNewCages.value}');
 
-    // TODO - Need to call this ONLY ONCE, unless there is a resize...
-
-    int sizeX       = puzzleMap.sizeX;
-    double cellSide = boardSide / sizeX;
+    PuzzleMap puzzleMap = puzzle.puzzleMap;
+    int sizeX           = puzzleMap.sizeX;
+    double cellSide     = boardSide / sizeX;
 
     Paint cageLinePaint = Paint()		// Style for cage outlines.
       ..color = cageLineColor
@@ -242,15 +245,21 @@ class CagePainter extends CustomPainter
     }
   } // End paint().
 
+  @override
   bool shouldRepaint(CagePainter oldDelegate)
   {
-    return oldDelegate.boardSide != boardSide;
+    return false;
   }
+
+
+  ///////////////////////////////////////////////////////////
+  // Painting methods for cage boundaries and labels-text. //
+  ///////////////////////////////////////////////////////////
 
   void paintCages(Canvas canvas, int cageCount, double cellSide,
                   Paint labelPaintFg, Paint cageLinePaint, Paint labelPaintBg)
   {
-    PuzzleMap       map            = puzzleMap;
+    PuzzleMap       map  = puzzle.puzzleMap;
 
     double inset = cellSide/cageInsetFactor;
     List<Offset> corners = [Offset(inset, inset),			// NW
@@ -260,13 +269,13 @@ class CagePainter extends CustomPainter
 
     // Paint lines to connect lists of right-turn and left-turn points in cage
     // perimeters. Lines are inset within cage edges and have a special colour.
-    for (List<int> perimeter in cagePerimeters) {
+    for (List<int> perimeter in puzzle.cagePerimeters) {
       Offset? startLine;	// Initially null.
       for (Pair point in perimeter) {
         int cell          = point >> lowWidth;
         int corner        = point & lowMask;
-        int i             = puzzleMap.cellPosX(cell);
-        int j             = puzzleMap.cellPosY(cell);
+        int i             = map.cellPosX(cell);
+        int j             = map.cellPosY(cell);
         Offset cellOrigin = Offset(i * cellSide, j * cellSide);
         Offset endLine    = cellOrigin + corners[corner];
         if (startLine != null) {
