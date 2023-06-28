@@ -83,6 +83,6 @@ class GameTheme {
     _cageLineColor    = Color(_theme[9].value ^ _themeMask);
 
     // Message background same as _backgroundColor but with slight translucency.
-    _messageBkgrColor = _backgroundColor.withAlpha(0xd8);
+    _messageBkgrColor = _backgroundColor.withAlpha(0xc8);
   }
 } // End class GameTheme.

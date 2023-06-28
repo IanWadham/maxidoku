@@ -44,6 +44,7 @@ Future<bool> questionMessage(
     title:   Text(heading),
     content: Text(question),
     backgroundColor: background,
+    surfaceTintColor: Colors.transparent,	// Don't alter background color.
     actions: [
       noButton,
       yesButton,
@@ -89,6 +90,7 @@ async
     title:   Text(heading),
     content: Text(information),
     backgroundColor: background,
+    surfaceTintColor: Colors.transparent,	// Don't alter background color.
     actions: [
       okButton,
     ],
