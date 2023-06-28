@@ -165,22 +165,6 @@ class PuzzleView extends StatelessWidget
           exitScreen(context);
         },
       ),
-/* DISABLED - Could not get light/dark Settings change to work in this screen.
-      IconButton(
-        icon: const Icon(Icons.settings_outlined),
-        iconSize: iconSize,
-        padding:  iconPadding,
-        // tooltip: 'Settings',
-        tooltip: 'Temporarily out of action',
-        color:   foreground,
-        onPressed: () {
-          // Navigate to the settings page.
-          // debugPrint('PuzzleView: Go to Settings screen.');
-          // Navigator.restorablePushNamed(
-            // context, SettingsView.routeName);
-        },
-      ),
-*/
       IconButton(
         icon: const Icon(Icons.save_outlined),
         iconSize: iconSize,
