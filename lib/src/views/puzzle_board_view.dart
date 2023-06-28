@@ -73,8 +73,6 @@ class PuzzleBoardView extends StatelessWidget
     WidgetsBinding.instance.addPostFrameCallback((_)
                             {executeAfterBuild(context);});
 
-    // TODO - Re-activate debugPrints and check where repaints are occurring.
-
     // Fill the board area with a 3D Roxdoku Puzzle (in simulated 3D).
     if (map.specificType == SudokuType.Roxdoku) {
     // TODO - Tune the layouts of 3D puzzles, especially the rotation buttons.
@@ -122,8 +120,10 @@ class PuzzleBoardView extends StatelessWidget
       int    n = puzzle.puzzleMap.sizeY;
       double cellSide = boardSide / n;
       debugPrint('PuzzleBoardView: Paint 2D Puzzle, boardSide $boardSide;');
-      bool waitingForPuzzleData = puzzlePlayer.puzzlePlay == Play.NotStarted;
-      // ??????? TEST waitingForPuzzleData = !waitingForPuzzleData;
+
+      // TODO - CircularProgressIndicator appears all the time in TapIn mode...
+
+      bool waitingForPuzzleData = (puzzlePlayer.puzzlePlay == Play.NotStarted);
       return SizedBox(
         width: boardSide,
         height: boardSide,

@@ -18,8 +18,6 @@ class BoardGridView2D extends StatelessWidget
   final PuzzleMap puzzleMap;
   final double    boardSide;
 
-  final hasNewCages = ValueNotifier<int>(0);
-
   BoardGridView2D(this.boardSide, {Key? key, required this.puzzleMap})
       : super(key: key);
 
@@ -30,17 +28,8 @@ class BoardGridView2D extends StatelessWidget
     final puzzle    = context.read<Puzzle>();
     final _hasCages = puzzle.cagePerimeters.isNotEmpty;
 
-    debugPrint('BUILD BoardGridView2D, hasNewCages ${hasNewCages.value}');
-    if (puzzle.hasNewCages) {
-      // Generated a Mathdoku/Killer puzzle: need to re-paint cages and labels.
-      hasNewCages.value++;
-      puzzle.hasNewCages = false;
-      debugPrint('VALUE hasNewCages ${hasNewCages.value},'
-                 ' puzzle value ${puzzle.hasNewCages}');
-    }
-
-    // TODO - CircularProgressWidget fails to appear when using icon button
-    //        to generate second and subsequent puzzles. Bug in build() code?   
+    debugPrint('BUILD BoardGridView2D, hasCages $_hasCages,'
+               ' hasNewCages ${puzzle.hasNewCages}');
 
     // RepaintBoundary seems to be essential to stop GridPainter re-painting
     // continually whenever a cell or icon is tapped and the grid is unchanged.
@@ -59,19 +48,11 @@ class BoardGridView2D extends StatelessWidget
           ),
         ),
 
-// TODO - How to fix unwanted repaints, but let NEW puzzle cages be painted.
-// TODO - ???????????? Clear Puzzle._hasNewCages AT END.
-
         // Paint cages if there are any (for Mathdoku and Killer Sudoku only).
         Visibility(
           visible: _hasCages,
           child: RepaintBoundary(
-            child: CustomPaint(
-              painter: CagePainter(puzzle, boardSide, gameTheme.cageLineColor,
-                         gameTheme.boldLineColor, gameTheme.emptyCellColor,
-                         hasNewCages,
-              ),
-            ),
+            child: CageOverlay(puzzle, boardSide, gameTheme),
           ),
         ),
       ],
@@ -192,6 +173,39 @@ class GridPainter extends CustomPainter
   }
 
 } // End class GridPainter.
+
+class CageOverlay extends StatefulWidget
+{
+  const CageOverlay(this.puzzle, this.boardSide, this.gameTheme);
+
+  final Puzzle    puzzle;
+  final double    boardSide;
+  final GameTheme gameTheme;
+
+  @override
+  CageOverlayState createState() => CageOverlayState();
+}
+
+class CageOverlayState extends State<CageOverlay>
+{
+  final hasNewCages = ValueNotifier<int>(0);
+
+  @override
+  Widget build(BuildContext context) {
+    final puzzle    = widget.puzzle;
+    final gameTheme = widget.gameTheme;
+    if (puzzle.hasNewCages) {
+      this.hasNewCages.value++;
+      puzzle.hasNewCages = false;
+    }
+    return CustomPaint(
+      painter: CagePainter(puzzle, widget.boardSide, gameTheme.cageLineColor,
+                 gameTheme.boldLineColor, gameTheme.emptyCellColor,
+                 hasNewCages,
+      ),
+    );
+  }
+}
 
 class CagePainter extends CustomPainter
 {
