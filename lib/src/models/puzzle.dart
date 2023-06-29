@@ -451,8 +451,8 @@ class PuzzleGenerator
     // TODO - We should provide Hints... but how?
     _sudokuMoves.clear();
 
+    // PuzzlePlayer calls notifyListeners() and puzzle clues get highlighted...
     puzzlePlayer.makeReadyToPlay(_puzzleGiven, _solution, _sudokuMoves);
-    // PuzzlePlayer calls notifyListeners() and the puzzle clues appear...
 
     // Release PuzzleGenerator storage.
     _puzzleGiven.clear();
@@ -524,7 +524,7 @@ class PuzzlePlayer with ChangeNotifier
   int? selectedCell;		// Null means no valid cell to play.
   bool notesMode       = false;
 
-  initialise(PuzzleMap puzzleMap, Puzzle puzzle)
+  initialise(PuzzleMap puzzleMap, Puzzle puzzle, {bool tapIn: false})
   {
     // Set references to the Puzzle Map and the Puzzle.
     _puzzleMap = puzzleMap;
@@ -551,7 +551,7 @@ class PuzzlePlayer with ChangeNotifier
     selectedControl = 1;
     notesMode       = false;
 
-    _puzzlePlay = Play.NotStarted;
+    _puzzlePlay = tapIn ? Play.BeingEntered : Play.NotStarted;
   }
 
   void resetPlayStatus()
@@ -560,6 +560,7 @@ class PuzzlePlayer with ChangeNotifier
     _puzzle.clearClock();
     _puzzle.endPuzzle();
     _puzzlePlay = Play.NotStarted;
+    _previousPuzzlePlay = Play.NotStarted;
     debugPrint('PuzzlePlayer: RESET STATUS TO $_puzzlePlay');
   }
 

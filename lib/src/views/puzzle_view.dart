@@ -114,7 +114,7 @@ class PuzzleView extends StatelessWidget
       }
       else if (playOrTapIn == forTapIn) {
         debugPrint('\n==== PuzzleView: TAP IN PUZZLE, index $puzzleIndex.');
-        puzzlePlayer.initialise(puzzle.puzzleMap, puzzle);
+        puzzlePlayer.initialise(puzzle.puzzleMap, puzzle, tapIn: true);
       }
     }
     else {
@@ -412,6 +412,9 @@ class PuzzleView extends StatelessWidget
           // Convert the entered data into a Puzzle and re-display it.
           puzzle.convertDataToPuzzle();
           // TODO - Suggest saving the puzzle to a file before playing it.
+          // A puzzle was selected, generated and accepted, so start the clock!
+          debugPrint('START Clock.');
+          puzzle.startClock();
         }
         return;
       case -1:

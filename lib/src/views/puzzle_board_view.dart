@@ -145,8 +145,11 @@ class PuzzleBoardView extends StatelessWidget
             //        cage calculations might become a "helper" function.
             Visibility(
               visible: waitingForPuzzleData,
-              child:
-                Center(child: CircularProgressIndicator(),),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: gameTheme.moveHighlight,
+                ),
+              ),
             ),
           ],
         ),
@@ -264,14 +267,23 @@ class PuzzleBoardView extends StatelessWidget
       return;
     }
     // Play-status of Puzzle has changed. Need to issue a message to the user?
+    bool tappingIn = false;
     if (playNow == Play.BeingEntered) {
-      await questionMessage(
+      tappingIn = await questionMessage(
                         context,
                         'Tap In Own Puzzle?',
                         'Do you wish to tap in your own puzzle? This can be'
                         ' one you have devised yourself or one from another'
                         ' source, such as a newspaper or website.',
                         gameTheme: gameTheme);
+      if (! tappingIn) {
+        debugPrint('NOT TAPPING IN');
+        puzzlePlayer.resetPlayStatus();	// Needed in next build of PuzzleView.
+        if (context.mounted) {
+          debugPrint('! tappingIn: RETURN TO LIST OF PUZZLES - exitScreen();');
+          Navigator.pop(context);
+        }
+      }
     }
     else if (playNow == Play.Solved) {
       await infoMessage(context,
