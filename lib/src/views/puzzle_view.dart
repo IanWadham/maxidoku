@@ -82,7 +82,6 @@ class PuzzleView extends StatelessWidget
     puzzle              = context.watch<Puzzle>();
     puzzlePlayer        = context.read<PuzzlePlayer>();
     gameTheme           = context.read<GameTheme>();
-    // ?????? gameTheme           = context.watch<GameTheme>();
 
     debugPrint('PuzzleView: FOUND PUZZLE STATUS ${puzzlePlayer.puzzlePlay}.');
     debugPrint('PuzzleView: GameTheme.isDarkMode is ${gameTheme.isDarkMode}.');
@@ -357,12 +356,17 @@ class PuzzleView extends StatelessWidget
     // Generate a puzzle of the requested level of difficulty
     // OR check a tapped-in puzzle and maybe make it into a playable puzzle.
 
-    debugPrint('==== CREATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
     if (puzzlePlayer.puzzlePlay == Play.BeingEntered) {
+      debugPrint('==== TAP IN Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
       checkPuzzle(context);
       return;
     }
 
+    if (puzzle.generatorBusy) {
+      return;			// Do not run multiple async generator Isolates.
+    }
+
+    debugPrint('==== CREATE Puzzle: Play status ${puzzlePlayer.puzzlePlay}');
     bool newPuzzleOK = (puzzlePlayer.puzzlePlay == Play.NotStarted) ||
                        (! isTappedInPuzzle && (puzzlePlayer.puzzlePlay
                                                 == Play.ReadyToStart)) ||
@@ -382,8 +386,6 @@ class PuzzleView extends StatelessWidget
       // Erase the time-display and stop the clock, if it is running.
       debugPrint('CLEAR Clock.');
       puzzle.clearClock();
-      // TODO - REACTIVATE this? Makes any difference? ???????????????????
-      // ??????? puzzleMap.clearCages();	// ????? Force cages to vanish.
       debugPrint('==== GENERATE Puzzle FROM BUTTON: '
                  'status ${puzzlePlayer.puzzlePlay}');
       puzzle.generatePuzzle(settings.difficulty, settings.symmetry);

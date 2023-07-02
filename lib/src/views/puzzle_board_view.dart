@@ -106,11 +106,24 @@ class PuzzleBoardView extends StatelessWidget
 
       // We wish to fill the parent, in either Portrait or Landscape layout.
       debugPrint('PuzzleBoardView: Paint 3D Puzzle, boardSide $boardSide.');
+      bool waitingForPuzzleData = puzzle.generatorBusy;
       return SizedBox(
         width:  boardSide,
         height: boardSide,
         child:  Stack(
-          children: roundCellViews,
+          children: [
+            Stack(
+              children: roundCellViews,
+            ),
+            Visibility(
+              visible: waitingForPuzzleData,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: gameTheme.moveHighlight,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -120,10 +133,7 @@ class PuzzleBoardView extends StatelessWidget
       int    n = puzzle.puzzleMap.sizeY;
       double cellSide = boardSide / n;
       debugPrint('PuzzleBoardView: Paint 2D Puzzle, boardSide $boardSide;');
-
-      // TODO - CircularProgressIndicator appears all the time in TapIn mode...
-
-      bool waitingForPuzzleData = (puzzlePlayer.puzzlePlay == Play.NotStarted);
+      bool waitingForPuzzleData = puzzle.generatorBusy;
       return SizedBox(
         width: boardSide,
         height: boardSide,
@@ -138,11 +148,6 @@ class PuzzleBoardView extends StatelessWidget
               boardSide,
               puzzleMap: map),
             BoardView2D(map, cellSide),
-            // TODO - Disconnect the Cage painter from this. So that it can be
-            //        instantiated and painted only ONCE per caged puzzle, using
-            //        RepaintBoundary and deleted and re-created whenever there
-            //        is a new caged puzzle. The function shared by the grid and
-            //        cage calculations might become a "helper" function.
             Visibility(
               visible: waitingForPuzzleData,
               child: Center(
@@ -229,18 +234,19 @@ class PuzzleBoardView extends StatelessWidget
                          yesText: 'Try Again', noText: 'Accept',
                          gameTheme: gameTheme);
       }
-      else {
+      else {		// Message type 'I' (info) or 'F' (fatal).
         // Inform the user about the puzzle that was generated, then return.
         await infoMessage(context, 'Puzzle Generated', m.messageText,
                           gameTheme: gameTheme);
         if (m.messageType == 'F') {
-          // TODO - Improve the user-feedback when/if this happens...
-          // TODO - After 200 tries, Mathdoku/Killer returns type F because
+          // NOTE - After 200 tries, Mathdoku/Killer returns type F because
           //        the Puzzle board is still empty. This can easily happen.
           //        Just choose a small board-size and a high Difficulty.
+          //        Other type F messages may show up a generator/solver bug.
           debugPrint('BAIL OUT');
+          puzzlePlayer.resetPlayStatus();
           if (context.mounted) {
-            Navigator.pop(context);
+            Navigator.pop(context);	// Return the user to the menu screen.
           }
         }
       }

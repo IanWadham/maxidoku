@@ -53,41 +53,6 @@ GeneratedData asyncGeneration(GeneratorParameters params)
     return puzzleData;
 }
 
-// TODO - Has all the required code (see below) been moved elsewhere???
-/* ???????
-    if (_puzzleMap.cageCount() > 0) {
-      // Get the cage-layouts for Mathdoku and Killeri Sudoku puzzles.
-      BoardLayout2D _boardLayout2D = BoardLayout2D(_puzzleMap);
-      _cagePerimeters.clear();
-      _boardLayout2D.calculateCagesLayout(_puzzleMap, _cagePerimeters);
-    }
-    if (_startingStatus == Play.NotStarted) {
-      return;		// Avoid notifyListeners() during Flutter's first build.
-      // Flutter will be already painting. Issuing a message causes a crash.
-      // The message is issued later in PuzzleBoardView.executeAfterBuild().
-    }
-
-    notifyListeners();	// Make sure PuzzleView issues the delayedMessage.
-??????? */
-/* ???????
-  debugPrint('asyncGeneration PuzzleMap() $index');
-  PuzzleMap map = PuzzleMap();
-  // Get a list of puzzle specifications in textual form.
-  PuzzleTypesText puzzleList = PuzzleTypesText();
-
-  // Get a specification of a puzzle, using the index selected by the user.
-  List<String> puzzleMapSpec = puzzleList.puzzleTypeText(index);
-
-  // Parse it and create the corresponding Puzzle Map, with an empty board.
-  map.buildPuzzleMap(specStrings: puzzleMapSpec);
-  debugPrint('ASYNC Name ${map.name}');
-  debugPrint('ASYNC SIZE ${map.size}');
-  // ??????? debugPrint('PUZZLE SPEC\n$puzzleMapSpec');
-  debugPrint('RESULT of asyncGeneration READY');
-  return map;
-  // return Message('', i.toString());
-??????? */
-
 class Puzzle with ChangeNotifier
 {
   // Constructor.
@@ -115,7 +80,8 @@ class Puzzle with ChangeNotifier
   late BoardLayout2D _boardLayout2D;
   late BoardLayout3D _boardLayout3D;
 
-  int _nPuzzlesGenerated = 0;		// No. puzzles gen'd on current screen.
+  int  _nPuzzlesGenerated = 0;		// No. puzzles gen'd on current screen.
+  bool _generatorBusy     = false;	// True while Isolate is running.
 
   // Layout data for 2D Puzzles: stays empty in 3D, set ONCE in Puzzle lifetime.
   List<int>       _edgesEW = [];	// East-West edges of cells in 2D.
@@ -140,6 +106,7 @@ class Puzzle with ChangeNotifier
   GameTimer       get gameTimer       => _puzzleTimer;
 
   int             get nPuzzlesGenerated => _nPuzzlesGenerated;
+  bool            get generatorBusy     => _generatorBusy;
 
   List<int>       get edgesEW         => _edgesEW;
   List<int>       get edgesNS         => _edgesNS;
@@ -209,37 +176,42 @@ class Puzzle with ChangeNotifier
   void generatePuzzle(Difficulty difficulty, Symmetry symmetry)
   {
     debugPrint('ENTERED generatePuzzle in Puzzle object...');
-    // TODO - With async generation, should we ALWAYS do notifyListeners()?
 
-    // If the starting status is NotStarted, Flutter will begin to paint the
+    _generatorBusy = true;
+    _nPuzzlesGenerated++;
+
+    // If the screen is empty, Flutter will begin to build and paint the
     // PuzzleView and board and it will be necessary to avoid notifyListeners().
     _startingStatus = _puzzlePlayer.puzzlePlay;
 
-    // Clear the PuzzlePlayer state.
+    // Clear previous Puzzle data from the screen, including Mathdoku/Killer
+    // cages, if any. Should see an empty board-layout and a Circular Progress
+    // Indicator while Puzzle generation is active (mainly asynchronously).
     puzzlePlayer.initialise(puzzleMap, this);
-if (puzzleMap.cageCount() > 0) {
-    debugPrint('FORCE-CLEAR CAGES');
-    puzzleMap.clearCages();		// ??????? Force cages to vanish???
-    cagePerimeters.clear();
-  notifyListeners();
-}
+    if (puzzleMap.cageCount() > 0) {
+      debugPrint('CLEAR ALL CAGES');
+      puzzleMap.clearCages();
+      cagePerimeters.clear();
+    }
+
+    // NotifyListeners causes a Flutter EXCEPTION if generatePuzzle() was called
+    // from PuzzleView's build, but not if invoked from Create Button callback.
+    if (_nPuzzlesGenerated > 1) {	// Called from Icon Button, not build().
+      notifyListeners();		// Trigger CircularProgressIndicator.
+    }
 
     // Generate a puzzle of the required layout type, difficulty and symmetry.
     // Note that symmetry is not supported in 3D, Mathdoku and Killer Sudoku.
-    // The Message in GeneratedData informs the user about the puzzle or asks
-    // whether to Accept or Retry when the requirements have not been met. The
-    // message is stashed, in case the Puzzle View is currently painting.
-    _nPuzzlesGenerated++;
     GeneratorParameters params = GeneratorParameters(
                                    puzzleMap, difficulty, symmetry);
-    debugPrint('DECLARING futureData = compute()... $_nPuzzlesGenerated');
+    debugPrint('DECLARING futureData = compute(), PUZZLE $_nPuzzlesGenerated');
     Future<GeneratedData> futureData = compute(asyncGeneration, params);
 
+    // CALLBACK: To distribute results of PuzzleGenerator.generatePuzzle().
+    //           Executed only when asynchronous Puzzle generation is complete.
     futureData.then((GeneratedData data)
     {
-      debugPrint('ENTERED futureData = compute() CALLBACK...');
-
-      // CALLBACK: to distribute results of PuzzleGenerator.generatePuzzle().
+      debugPrint('ENTERED CALLBACK AFTER futureData = compute()...');
       // debugPrint('Delayed Message type ${data.message.messageType},'
                                 // ' ${data.message.messageText}'); 
       debugPrint('RETURNED puzzleGiven = ${data.puzzleGiven}');
@@ -249,6 +221,20 @@ if (puzzleMap.cageCount() > 0) {
       // Clone the Cage data down into puzzleMap in the main (UI) Isolate.
       _puzzleMap.loadCages(data.clonedCages);
       debugPrint('NUMBER OF LOADED CAGES ${puzzleMap.cageCount()}');
+
+      // The Message in GeneratedData informs the user about the puzzle OR asks
+      // whether to Accept or Retry when the requirements have not been met. The
+      // message is stashed, in case PuzzleView is currently painting.
+      delayedMessage = data.message;
+      if (data.message.messageType == 'F' || data.message.messageType == '') {
+        // The puzzle generator has failed. Don't try to display a puzzle.
+        notifyListeners();		// To get the message on the screen...
+        _generatorBusy = false;;
+        debugPrint('ABORTING futureData = compute() CALLBACK...');
+        return;
+      }
+
+      // If there are cages in the puzzle, get ready to paint them.
       if (puzzleMap.cageCount() > 0) {
         // Get the cage-layouts for Mathdoku and Killer Sudoku puzzles.
         BoardLayout2D _boardLayout2D = BoardLayout2D(_puzzleMap);
@@ -260,16 +246,17 @@ if (puzzleMap.cageCount() > 0) {
         notifyListeners();
         debugPrint('CAGE PERIMETERS: $_cagePerimeters');
       }
-      delayedMessage = data.message;
+
       // PuzzlePlayer calls notifyListeners() and the puzzle clues appear...
       puzzlePlayer.makeReadyToPlay(data.puzzleGiven, data.solution,
                                    data.sudokuMoves);
-      notifyListeners();	// To re-examine whole PuzzleView screen...
-      // TODO - Always notifyListeners? From which class(es)/object(s)?
-      //        Puzzle? PuzzlePlayer? Or both?
+
+      notifyListeners();	// To re-examine the whole PuzzleView screen...
+      _generatorBusy = false;;
       debugPrint('LEAVING futureData = compute() CALLBACK...');
-    });
-  }
+
+    }); // End callback.
+  } // End Puzzle.generatePuzzle().
 
   int checkPuzzle()
   {
@@ -305,7 +292,7 @@ class PuzzleGenerator
   // enormous share of CPU time and memory, so everything is done inside
   // functions and procedures, here or in Engine objects, so that all memory
   // should get released after all the calculation is done or the generator
-  // has made a number of attempts to meet the user's requirementsr. Then it
+  // has made a number of attempts to meet the user's requirements. Then it
   // is time to ask them to accept the best result so far - or try again.
 
   // That situation is more likely to arise if the Difficulty and Symmetry are
@@ -330,15 +317,16 @@ class PuzzleGenerator
     // Get a board of the required layout and size, filled with empty cells.
     _puzzleGiven = [...puzzleMap.emptyBoard];
 
-    Message response = Message("", "");
+    Message response = Message('', '');
     SudokuType puzzleType = puzzleMap.specificType;
     switch (puzzleType) {
       case SudokuType.Mathdoku:
       case SudokuType.KillerSudoku:
+        debugPrint('GENERATE $puzzleType, $difficulty');
 	// Generate variants of Killer Sudoku or Mathdoku (aka Kenken TM) types.
         MathdokuKillerGenerator mg = MathdokuKillerGenerator(puzzleMap);
+        // Try up to 10 solution-boards and up to 20 cage-layouts for each.
 	int maxTries = 10;
-        debugPrint('GENERATE $puzzleType, $difficulty');
         for (int numTries = 1; numTries <= maxTries; numTries++) {
           // Try up to 10 different starting-solutions.
           _solution = _fillBoard(puzzleMap);
@@ -391,7 +379,8 @@ class PuzzleGenerator
     }
     debugPrint('LEAVING ISOLATE: generatePuzzle()');
     return puzzleData;
-  }
+
+  } // End PuzzleGenerator.generatePuzzle().
 
   BoardContents _fillBoard(PuzzleMap puzzleMap)
   {
@@ -594,13 +583,14 @@ class PuzzlePlayer with ChangeNotifier
     // Change the Puzzle Play status to receive solving moves.
     _puzzlePlay = Play.ReadyToStart;
     debugPrint('PuzzlePlayer: CHANGED STATUS TO $_puzzlePlay');
-    if (_puzzle._startingStatus == Play.NotStarted) {
-notifyListeners();	// ??????? TODO ???????
-      return;		// Flutter is already painting the PuzzleView and board.
-    }
     notifyListeners();  // Ensure that the board and initial clues get painted.
-    // TODO - This notifyListeners can cause Flutter to throw an exception
-    //        because "setState() or markNeedsBuild() is called during build".
+
+    // NOTE - This notifyListeners can cause Flutter to throw an exception
+    //        because "setState() or markNeedsBuild() is called during build",
+    //        but that should not happen because makeReadyToPlay() is always
+    //        invoked from a callback when Future Puzzle data is available after
+    //        Puzzle generation OR from convertDataToPuzzle() (via an Icon
+    //        Button callback) after a Puzzle has been tapped in.
   }
 
   bool triggerRepaint()
