@@ -231,7 +231,7 @@ class SudokuGenerator
       // debugPrint('Diagonal symmetry used $symmetry');
     }
 
-    debugPrint('GenerateSudokuRoxdoku $difficultyRequired $symmetry');
+    debugPrint('GENERATE SudokuRoxdoku $difficultyRequired $symmetry');
 
     while (true) {
       // Fill the board with values that satisfy the Sudoku rules but are
@@ -241,8 +241,8 @@ class SudokuGenerator
       // debugPrint('RETURN FROM _solver.createFilledBoard()\n');
       if (currSolution.isEmpty) {
         debugPrint('FAILED to find a solution from which to generate a puzzle.');
-        response = Message('F', 'Puzzle generation failed. Please try again?');
-         return response;;
+        response = Message('F', 'Solution generator failed. Please try again.');
+        return response;
       }
 
       // Randomly insert solution-values into an empty board until a point is
@@ -315,7 +315,8 @@ class SudokuGenerator
 
     } // End while(true)
 
-    if (bestPuzzle.isEmpty || bestSolution.isEmpty) {
+    if (bestPuzzle.isEmpty || bestSolution.isEmpty ||
+        response.messageType == '') {
       response = Message('F', 'Sudoku Generator FAILED. Please try again.');
       return response;		// Generator FAILED.
     }

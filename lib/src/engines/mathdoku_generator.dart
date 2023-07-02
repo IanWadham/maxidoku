@@ -44,7 +44,7 @@ class MathdokuKillerGenerator
                                        List<int>     solutionMoves,
                                        Difficulty    difficultyRequired)
   {
-    // Try up to 10 solution boards + 20 attempts to generate cages for each
+    // Try up to 10 solution boards and 20 attempts to generate cages for each
     // solution that satisfy the user's requirements: total 10x20 = 200 tries.
     int  maxTries      = 20;
 
